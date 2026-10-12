@@ -20,40 +20,40 @@ export default function HeroSpotlight({
           alt={leadData.title}
           class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
         />
-        <div class="absolute top-4 left-4 flex items-center gap-2">
-          <span class="bg-brand-red text-white text-xs font-subtitle font-bold px-3 py-1 rounded-md shadow-md flex items-center gap-1">
-            <span class="w-2 h-2 rounded-full bg-white animate-pulse"></span>
+        <div class="absolute top-2.5 left-2.5 sm:top-4 sm:left-4 flex items-center gap-1.5 sm:gap-2 flex-wrap">
+          <span class="bg-brand-red text-white text-[11px] sm:text-xs font-subtitle font-bold px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-md shadow-md flex items-center gap-1">
+            <span class="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-white animate-pulse"></span>
             <span>சிறப்புப் பார்வை • {leadData.category}</span>
           </span>
-          <span class="bg-amber-400 text-slate-950 font-subtitle font-extrabold text-[10px] px-2 py-0.5 rounded shadow">
+          <span class="hidden xs:inline-block bg-amber-400 text-slate-950 font-subtitle font-extrabold text-[9px] sm:text-[10px] px-2 py-0.5 rounded shadow">
             PRGI NO. TNBIL/2023/88656
           </span>
         </div>
 
         {/* Floating Actions */}
-        <div class="absolute bottom-3 right-3 flex items-center gap-2">
+        <div class="absolute bottom-2.5 right-2.5 sm:bottom-3 sm:right-3 flex items-center gap-1.5 sm:gap-2">
           <button
             onClick={() => onSpeak(leadData.title)}
-            class="bg-slate-900/80 hover:bg-brand-red backdrop-blur-md text-white px-3 py-1.5 rounded-lg text-xs font-subtitle font-bold flex items-center gap-1 transition-all shadow"
+            class="bg-slate-900/80 hover:bg-brand-red backdrop-blur-md text-white px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[11px] sm:text-xs font-subtitle font-bold flex items-center gap-1 transition-all shadow cursor-pointer"
             title="குரல் வாசிப்பு"
           >
-            <span class="material-symbols-outlined text-[18px]">volume_up</span>
+            <span class="material-symbols-outlined text-[16px] sm:text-[18px]">volume_up</span>
             <span>கேட்க</span>
           </button>
           <button
             onClick={() => onShareWhatsApp(leadData.title)}
-            class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs font-subtitle font-bold flex items-center gap-1 transition-all shadow"
+            class="bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[11px] sm:text-xs font-subtitle font-bold flex items-center gap-1 transition-all shadow cursor-pointer"
             title="வாட்ஸ்அப்பில் பகிர"
           >
-            <span class="material-symbols-outlined text-[18px]">share</span>
+            <span class="material-symbols-outlined text-[16px] sm:text-[18px]">share</span>
             <span>பகிர்</span>
           </button>
         </div>
       </div>
 
       {/* Content Area */}
-      <div class="p-5 md:p-6 space-y-3">
-        <div class="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+      <div class="p-4 sm:p-5 md:p-6 space-y-3">
+        <div class="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 flex-wrap gap-1">
           <span class="font-subtitle font-bold text-brand-red dark:text-red-400 flex items-center gap-1">
             <span class="material-symbols-outlined text-[16px]">edit_note</span>
             <span>{leadData.author || "அரசியல் நிருபர் குழு • சென்னை"}</span>
@@ -66,7 +66,7 @@ export default function HeroSpotlight({
 
         <h1
           onClick={() => onOpenArticle(leadData.id)}
-          class="font-title font-extrabold text-xl md:text-2xl lg:text-3xl text-slate-900 dark:text-white group-hover:text-brand-red transition-colors cursor-pointer leading-tight"
+          class="font-title font-extrabold text-lg sm:text-2xl lg:text-3xl text-slate-900 dark:text-white group-hover:text-brand-red transition-colors cursor-pointer leading-tight sm:leading-snug"
         >
           {leadData.title}
         </h1>

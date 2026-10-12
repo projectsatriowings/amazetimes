@@ -484,7 +484,7 @@ export default function App() {
       <Ticker tickers={backendTickers} />
 
       {/* Main Container */}
-      <main class="max-w-[1380px] mx-auto px-4 py-4 flex-1 w-full space-y-6">
+      <main class="max-w-[1380px] mx-auto px-3 sm:px-4 py-3 sm:py-4 flex-1 w-full space-y-5 sm:space-y-6">
         
         {/* If category is 'editorial', show dedicated prestigious Thalaiyangam Broadsheet View */}
         {activeCategory === 'editorial' ? (

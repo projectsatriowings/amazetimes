@@ -41,11 +41,11 @@ export default function Ticker({ tickers = [] }) {
     : 'தமிழக பட்ஜெட் கூட்டத்தொடர் நாளை தொடக்கம்: புதிய உள்கட்டமைப்பு திட்டங்கள் அறிவிப்பு • சென்னை மெட்ரோ விரிவாக்கப் பணிகள் 85% நிறைவு • தங்கம் விலை சவரனுக்கு ₹120 சரிவு • ஐபிஎல் 2025: சிஎஸ்கே தீவிர தீவிர பயிற்சி!';
 
   return (
-    <div class="space-y-3">
+    <div class="space-y-2.5 sm:space-y-3">
       {/* CYBER NEON BREAKING NEWS TICKER HUB */}
-      <div class="max-w-[1380px] mx-auto px-4 mt-3 mb-2">
-        <div class="bg-gradient-to-r from-red-950 via-slate-900 to-slate-950 dark:from-red-950/80 dark:via-slate-900 dark:to-slate-950 text-white rounded-2xl text-xs font-medium p-2 shadow-lg flex items-center gap-3 border border-red-500/30">
-          <div class="bg-gradient-to-r from-brand-red to-rose-600 text-white font-black px-3 py-1 rounded-xl flex items-center gap-1.5 flex-shrink-0 uppercase text-[10px] shadow-md tracking-wider">
+      <div class="max-w-[1380px] mx-auto px-3 sm:px-4 mt-2 sm:mt-3 mb-1.5 sm:mb-2">
+        <div class="bg-gradient-to-r from-red-950 via-slate-900 to-slate-950 dark:from-red-950/80 dark:via-slate-900 dark:to-slate-950 text-white rounded-2xl text-xs font-medium p-1.5 sm:p-2 shadow-lg flex items-center gap-2 sm:gap-3 border border-red-500/30">
+          <div class="bg-gradient-to-r from-brand-red to-rose-600 text-white font-black px-2.5 sm:px-3 py-1 rounded-xl flex items-center gap-1.5 flex-shrink-0 uppercase text-[9px] sm:text-[10px] shadow-md tracking-wider">
             <span class="w-2 h-2 rounded-full bg-amber-300 animate-ping"></span>
             <span>⚡ நேரடி செய்தி அலை</span>
           </div>
@@ -58,8 +58,8 @@ export default function Ticker({ tickers = [] }) {
       </div>
 
       {/* REAL-TIME LIVE MARKET TICKER RIBBON */}
-      <div class="max-w-[1380px] mx-auto px-4">
-        <div class="bg-white dark:bg-[#0D1424] rounded-xl p-2.5 shadow-sm border border-slate-300 dark:border-slate-800 flex items-center justify-between overflow-x-auto gap-4 text-xs font-bold">
+      <div class="max-w-[1380px] mx-auto px-3 sm:px-4">
+        <div class="bg-white dark:bg-[#0D1424] rounded-xl p-2 sm:p-2.5 shadow-sm border border-slate-300 dark:border-slate-800 flex items-center justify-between overflow-x-auto scrollbar-none gap-3 sm:gap-4 text-xs font-bold">
           
           <div class="flex items-center gap-2 text-[#DC2626] dark:text-amber-400 whitespace-nowrap font-subtitle font-extrabold flex-shrink-0">
             <span class={`w-2.5 h-2.5 rounded-full ${isLiveUpdating ? 'bg-amber-500 animate-spin' : 'bg-red-600 animate-pulse'}`}></span>

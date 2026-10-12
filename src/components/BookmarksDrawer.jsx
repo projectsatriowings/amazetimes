@@ -9,11 +9,18 @@ export default function BookmarksDrawer({
   onOpenArticle
 }) {
   return (
-    <div
-      class={`fixed inset-y-0 right-0 z-50 w-80 sm:w-96 bg-white dark:bg-[#0D1424] border-l border-slate-300 dark:border-slate-800 shadow-2xl p-5 transform transition-transform duration-300 flex flex-col justify-between ${
-        isOpen ? 'translate-x-0' : 'translate-x-full'
-      }`}
-    >
+    <>
+      {isOpen && (
+        <div
+          onClick={onClose}
+          class="fixed inset-0 z-40 bg-black/50 backdrop-blur-xs transition-opacity duration-300"
+        />
+      )}
+      <div
+        class={`fixed inset-y-0 right-0 z-50 w-full max-w-[320px] sm:max-w-sm bg-white dark:bg-[#0D1424] border-l border-slate-300 dark:border-slate-800 shadow-2xl p-5 transform transition-transform duration-300 flex flex-col justify-between ${
+          isOpen ? 'translate-x-0' : 'translate-x-full'
+        }`}
+      >
       <div class="space-y-4 overflow-y-auto flex-1">
         <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
           <div class="flex items-center gap-2">
@@ -74,6 +81,7 @@ export default function BookmarksDrawer({
           </button>
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 }

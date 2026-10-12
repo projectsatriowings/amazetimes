@@ -17,31 +17,31 @@ export default function Footer({ onSelectCategory, onOpenEPaper, onOpenBookmarks
       <div class="max-w-[1340px] mx-auto px-4 pt-10 pb-8 space-y-10">
         
         {/* Newsletter & Social Community Banner */}
-        <div class="bg-gradient-to-r from-[#0C152B] via-[#142242] to-[#0A1124] border border-slate-700/80 rounded-2xl p-6 shadow-2xl flex flex-col lg:flex-row items-center justify-between gap-6">
-          <div class="flex items-center gap-4">
-            <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-brand-red via-rose-600 to-amber-500 flex items-center justify-center text-white shadow-lg shadow-brand-red/30 flex-shrink-0">
-              <span class="material-symbols-outlined text-[26px]">mark_email_unread</span>
+        <div class="bg-gradient-to-r from-[#0C152B] via-[#142242] to-[#0A1124] border border-slate-700/80 rounded-2xl p-4 sm:p-6 shadow-2xl flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-5 overflow-hidden">
+          <div class="flex items-start sm:items-center gap-3.5 w-full min-w-0">
+            <div class="w-11 h-11 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-gradient-to-tr from-brand-red via-rose-600 to-amber-500 flex items-center justify-center text-white shadow-lg shadow-brand-red/30 flex-shrink-0 mt-0.5 sm:mt-0">
+              <span class="material-symbols-outlined text-[24px] sm:text-[26px]">mark_email_unread</span>
             </div>
-            <div>
-              <h3 class="font-subtitle font-bold text-base text-white flex items-center gap-2">
+            <div class="min-w-0 flex-1 space-y-1">
+              <h3 class="font-subtitle font-bold text-sm sm:text-base text-white flex flex-wrap items-center gap-2">
                 <span>செய்திகளை உடனுக்குடன் பெற சந்தாதாரராகுங்கள்!</span>
-                <span class="bg-emerald-500/20 text-emerald-400 text-[10px] font-bold px-2 py-0.5 rounded border border-emerald-500/30">இலவசம்</span>
+                <span class="bg-emerald-500/20 text-emerald-400 text-[10px] font-bold px-2 py-0.5 rounded border border-emerald-500/30 flex-shrink-0">இலவசம்</span>
               </h3>
-              <p class="font-body text-xs text-slate-400">தினசரி முக்கிய செய்திகள் நேரடியாக உங்கள் மின்னஞ்சல் அல்லது வாட்ஸ்அப் எண்ணிற்கு உடனுக்குடன் வந்து சேரும்.</p>
+              <p class="font-body text-xs text-slate-400 break-words leading-relaxed">தினசரி முக்கிய செய்திகள் நேரடியாக உங்கள் மின்னஞ்சல் அல்லது வாட்ஸ்அப் எண்ணிற்கு உடனுக்குடன் வந்து சேரும்.</p>
             </div>
           </div>
 
-          <div class="flex items-center gap-2 w-full lg:w-auto">
+          <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full lg:w-auto">
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="உங்கள் மின்னஞ்சல் முகவரி..."
-              class="bg-slate-900/90 border border-slate-700 rounded-xl px-4 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-red flex-1 lg:w-64"
+              class="w-full sm:flex-1 lg:w-64 bg-slate-900/90 border border-slate-700 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-red"
             />
             <button
               onClick={handleSubscribe}
-              class="bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white font-subtitle font-bold text-xs px-5 py-2.5 rounded-xl transition-all shadow-md shadow-red-600/30 flex items-center gap-1.5 whitespace-nowrap cursor-pointer hover:scale-105 active:scale-95"
+              class="w-full sm:w-auto bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white font-subtitle font-bold text-xs px-5 py-2.5 rounded-xl transition-all shadow-md shadow-red-600/30 flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer hover:scale-[1.02] active:scale-95"
             >
               <span>இணையுங்கள்</span>
               <span class="material-symbols-outlined text-[16px]">send</span>
