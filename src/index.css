@@ -1,0 +1,316 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand-red: #DC2626;
+  --color-brand-redHover: #B91C1C;
+  --color-brand-blue: #1E3A8A;
+  --color-brand-amber: #F59E0B;
+}
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  :root {
+    --font-title: 'Noto Serif Tamil', serif;
+    --font-subtitle: 'Anek Tamil', 'Outfit', sans-serif;
+    --font-body: 'Hind Madurai', 'Noto Sans Tamil', sans-serif;
+    --font-brand-en: 'Rozha One', serif;
+  }
+}
+
+/* Custom Scrollbar & Animations */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+}
+::-webkit-scrollbar-thumb {
+  background: #DC2626;
+  border-radius: 4px;
+}
+.dark ::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* Dynamic Font Size Utilities */
+.font-size-sm { font-size: 0.9em; }
+.font-size-md { font-size: 1em; }
+.font-size-lg { font-size: 1.15em; }
+.font-size-xl { font-size: 1.25em; }
+
+/* 3-TIER NEWSPAPER FONT SYSTEM */
+.font-title, h1, h2, .news-headline-title {
+  font-family: var(--font-title) !important;
+}
+.font-title-en, .brand-logo-en {
+  font-family: var(--font-brand-en) !important;
+}
+.font-subtitle, h3, h4, .news-card-subtitle, .badge-font {
+  font-family: var(--font-subtitle) !important;
+}
+.font-body, p, body, .news-article-body {
+  font-family: var(--font-body) !important;
+}
+
+/* Glassmorphism & Micro Animations */
+.glass-nav {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+@keyframes pulseGlow {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(1.08); }
+}
+.live-pulse {
+  animation: pulseGlow 2s infinite ease-in-out;
+}
+
+/* Modal Smooth Fade */
+.modal-backdrop {
+  background-color: rgba(6, 9, 19, 0.85);
+  backdrop-filter: blur(8px);
+}
+
+/* =========================================================
+   METALLIC BRUSHED SILVER LIGHT THEME (EXACT ORIGINAL MATCH)
+   ========================================================= */
+html:not(.dark) body {
+  background-color: #E2E8F0 !important;
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(203, 213, 225, 0.65) 0px, transparent 55%),
+    radial-gradient(at 100% 0%, rgba(226, 232, 240, 0.75) 0px, transparent 55%),
+    radial-gradient(at 50% 100%, rgba(148, 163, 184, 0.35) 0px, transparent 55%),
+    linear-gradient(135deg, #E2E8F0 0%, #D4DEE8 50%, #ECEFF4 100%) !important;
+  background-attachment: fixed !important;
+  color: #0F172A !important;
+}
+
+html:not(.dark) header {
+  background: rgba(226, 232, 240, 0.96) !important;
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid #CBD5E1 !important;
+}
+
+html:not(.dark) article, 
+html:not(.dark) .silver-card {
+  background: linear-gradient(145deg, #FFFFFF 0%, #E8EEF5 100%) !important;
+  border: 1px solid #CBD5E1 !important;
+  box-shadow: 0 4px 16px rgba(148, 163, 184, 0.25) !important;
+}
+
+html:not(.dark) article:hover, 
+html:not(.dark) .silver-card:hover {
+  border-color: #94A3B8 !important;
+  box-shadow: 0 8px 24px rgba(148, 163, 184, 0.4) !important;
+}
+
+/* =========================================================
+   RESTORED LUXURY OBSIDIAN DARK THEME (EXACT ORIGINAL MATCH)
+   ========================================================= */
+html.dark {
+  color-scheme: dark;
+}
+
+html.dark body {
+  background-color: #060913 !important;
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(220, 38, 38, 0.12) 0px, transparent 55%),
+    radial-gradient(at 100% 0%, rgba(37, 99, 235, 0.15) 0px, transparent 55%),
+    radial-gradient(at 50% 100%, rgba(217, 119, 6, 0.08) 0px, transparent 55%) !important;
+  background-attachment: fixed !important;
+  color: #F1F5F9 !important;
+}
+
+html.dark header {
+  background: rgba(9, 14, 28, 0.92) !important;
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+html.dark article, 
+html.dark .silver-card {
+  background-color: #0D1424 !important;
+  border: 1px solid #1E2A4A !important;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.4) !important;
+}
+
+html.dark article:hover, 
+html.dark .silver-card:hover {
+  border-color: rgba(245, 158, 11, 0.5) !important;
+  box-shadow: 0 8px 25px rgba(220, 38, 38, 0.2) !important;
+}
+
+/* Bookmark Badge High Contrast Fix */
+.bookmark-count-badge {
+  background-color: #FFFFFF !important;
+  color: #DC2626 !important;
+  font-weight: 900 !important;
+  line-height: 1 !important;
+}
+
+/* Dark Mode Navigation Bar Pills */
+html.dark nav button:not(.bg-gradient-to-r):not(.bg-\[\#DC2626\]) {
+  color: #E2E8F0 !important;
+  background-color: rgba(20, 30, 52, 0.65) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Category Nav Buttons Hover -> Yellow Text (#FBBF24) in Light & Dark Mode */
+nav button:not(.bg-\[\#DC2626\]):hover,
+html.dark nav button:not(.bg-\[\#DC2626\]):hover,
+#categoryNav button:not(.bg-\[\#DC2626\]):hover {
+  color: #FBBF24 !important;
+}
+
+nav button:not(.bg-\[\#DC2626\]):hover *,
+html.dark nav button:not(.bg-\[\#DC2626\]):hover *,
+#categoryNav button:not(.bg-\[\#DC2626\]):hover * {
+  color: #FBBF24 !important;
+}
+
+/* =========================================================
+   TEXT SELECTION (YELLOW HIGHLIGHT)
+   ========================================================= */
+::selection {
+  background-color: #FBBF24 !important;
+  color: #0F172A !important;
+}
+::-moz-selection {
+  background-color: #FBBF24 !important;
+  color: #0F172A !important;
+}
+
+/* =========================================================
+   DARK THEME RED TITLE WITH YELLOW HOVER TRANSITION
+   ========================================================= */
+html.dark .font-title,
+html.dark h1,
+html.dark h2,
+html.dark h4,
+html.dark .brand-title-text {
+  color: #EF4444 !important;
+  transition: color 0.2s ease-in-out;
+}
+
+/* Hover effect in Light Theme -> Solid Red for Titles */
+.group:hover .font-title,
+.group:hover h1,
+.group:hover h2,
+.group:hover h4,
+.group:hover .news-headline-title {
+  color: #DC2626 !important;
+}
+
+/* Hover effect in Dark Theme -> Bright Yellow for Titles */
+html.dark .group:hover .font-title,
+html.dark .group:hover h1,
+html.dark .group:hover h2,
+html.dark .group:hover h4,
+html.dark .group:hover .brand-title-text,
+html.dark .group:hover .news-headline-title,
+html.dark .font-title:hover,
+html.dark h1:hover,
+html.dark h4:hover {
+  color: #FBBF24 !important;
+}
+
+/* =========================================================
+   YELLOW/AMBER BUTTON HOVER TEXT COLOR -> ALWAYS RED (#DC2626)
+   ========================================================= */
+.bg-amber-500:hover,
+.bg-amber-400:hover,
+.bg-yellow-500:hover,
+.bg-yellow-400:hover,
+html.dark .bg-amber-500:hover,
+html.dark .bg-amber-400:hover,
+html.dark .bg-yellow-500:hover,
+html.dark .bg-yellow-400:hover,
+button.bg-amber-500:hover,
+button.bg-amber-400:hover {
+  color: #DC2626 !important;
+}
+
+.bg-amber-500:hover *,
+.bg-amber-400:hover *,
+.bg-yellow-500:hover *,
+.bg-yellow-400:hover *,
+html.dark .bg-amber-500:hover *,
+html.dark .bg-amber-400:hover *,
+html.dark .bg-yellow-500:hover *,
+html.dark .bg-yellow-400:hover *,
+button.bg-amber-500:hover *,
+button.bg-amber-400:hover * {
+  color: #DC2626 !important;
+}
+
+/* =========================================================
+   VOICE NEWS BUTTON YELLOW HOVER EFFECT
+   ========================================================= */
+.voice-news-btn:hover,
+html.dark .voice-news-btn:hover {
+  background-color: #FBBF24 !important;
+  color: #0F172A !important;
+  border-color: #FBBF24 !important;
+}
+
+.voice-news-btn:hover *,
+html.dark .voice-news-btn:hover * {
+  color: #0F172A !important;
+}
+
+@keyframes marquee {
+  0% { transform: translateX(100%); }
+  100% { transform: translateX(-100%); }
+}
+
+.animate-marquee {
+  animation: marquee 28s linear infinite;
+}
+
+/* =========================================================
+   ULTRA HIGH VISIBILITY & CONTRAST BUTTON SYSTEM
+   ========================================================= */
+.load-more-btn,
+button.load-more-btn {
+  background: linear-gradient(135deg, #DC2626 0%, #B91C1C 100%) !important;
+  color: #FFFFFF !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  box-shadow: 0 4px 15px rgba(220, 38, 38, 0.4), 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.02em !important;
+}
+
+.load-more-btn:hover,
+button.load-more-btn:hover {
+  background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%) !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 8px 25px rgba(220, 38, 38, 0.55), 0 4px 8px rgba(0, 0, 0, 0.15) !important;
+  transform: translateY(-2px) scale(1.03) !important;
+}
+
+.load-more-btn:active,
+button.load-more-btn:active {
+  transform: translateY(0px) scale(0.97) !important;
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.3) !important;
+}
+
+.load-more-btn *,
+button.load-more-btn * {
+  color: #FFFFFF !important;
+}
+
+/* General Brand Red Button High Contrast Fallback */
+button.bg-brand-red,
+.bg-brand-red {
+  background-color: #DC2626 !important;
+  color: #FFFFFF !important;
+}
+
+button.bg-brand-red:hover {
+  background-color: #B91C1C !important;
+  color: #FFFFFF !important;
+}
+

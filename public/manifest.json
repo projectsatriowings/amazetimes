@@ -1,0 +1,65 @@
+{
+  "id": "/amaze-times",
+  "name": "அமேஸ் டைம்ஸ் | Amaze Times - தமிழ் நாளிதழ்",
+  "short_name": "அமேஸ் டைம்ஸ்",
+  "description": "உண்மை உடனுக்குடன் • தமிழ்நாட்டின் முதன்மை டிஜிட்டல் நாளிதழ் நேரலைச் செயலி",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "window-controls-overlay", "minimal-ui"],
+  "orientation": "any",
+  "theme_color": "#DC2626",
+  "background_color": "#0F172A",
+  "lang": "ta",
+  "dir": "ltr",
+  "categories": ["news", "magazines"],
+  "icons": [
+    {
+      "src": "/Amaze times.jpg",
+      "sizes": "192x192",
+      "type": "image/jpeg",
+      "purpose": "any"
+    },
+    {
+      "src": "/Amaze times.jpg",
+      "sizes": "192x192",
+      "type": "image/jpeg",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/Amaze times.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any"
+    },
+    {
+      "src": "/Amaze times.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "தமிழ்நாடு செய்திகள்",
+      "short_name": "தமிழ்நாடு",
+      "description": "தமிழ்நாட்டின் முக்கிய அரசியல் & சமூக செய்திகள்",
+      "url": "/?cat=tamilnadu",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "ஆன்மிக மலர்",
+      "short_name": "ஆன்மிகம்",
+      "description": "தினசரி பஞ்சாங்கம் & 12 ராசி பலன்கள்",
+      "url": "/?cat=spiritual",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "தலையங்கம்",
+      "short_name": "தலையங்கம்",
+      "description": "நடுநிலைக் கட்டுரைகள் மற்றும் சிந்தனைக் களம்",
+      "url": "/?cat=editorial",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}
