@@ -425,7 +425,20 @@ export default function App() {
   }
 
   // ROUTE 2: Dedicated Admin Console (/admin)
-  if (currentPath === '/admin' && currentUser && (currentUser.role === 'admin' || currentUser.role === 'reporter')) {
+  if (currentPath === '/admin') {
+    if (!currentUser || (currentUser.role !== 'admin' && currentUser.role !== 'reporter')) {
+      return (
+        <div class={`min-h-screen ${fontSizeClass}`}>
+          <LoginPage
+            onLoginSuccess={handleLoginSuccess}
+            onNavigateHome={() => navigateTo('/')}
+            onToast={addToast}
+          />
+          <Toast toasts={toasts} onRemoveToast={removeToast} />
+        </div>
+      );
+    }
+
     return (
       <div class={`min-h-screen ${fontSizeClass}`}>
         <AdminDashboardModal
@@ -463,6 +476,8 @@ export default function App() {
         onSpeak={speakTamilText}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
+        currentUser={currentUser}
+        onNavigate={navigateTo}
       />
 
       {/* Ticker Ribbons (Connected to Live Data & Neon DB) */}

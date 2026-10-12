@@ -21,7 +21,8 @@ export default function Header({
   onLogout,
   onOpenArticleEditor,
   onOpenVideoUploader,
-  onOpenZodiacDesk
+  onOpenZodiacDesk,
+  onNavigate
 }) {
   const [currentTamilDate, setCurrentTamilDate] = useState('புதன், 7 அக்டோபர் 2026');
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
@@ -232,6 +233,27 @@ export default function Header({
                 <span class="w-2 h-2 rounded-full bg-red-500 animate-ping"></span>
                 <span>நேரலை TV</span>
               </button>
+
+              {/* Admin / Staff Login Button */}
+              {currentUser ? (
+                <button
+                  onClick={() => onNavigate ? onNavigate('/admin') : (window.location.href = '/admin')}
+                  class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-subtitle font-black text-xs px-2.5 sm:px-3 py-1.5 rounded-lg transition-all shadow flex items-center gap-1 whitespace-nowrap cursor-pointer hover:scale-105"
+                  title="நிர்வாகக் குழு பக்கம்"
+                >
+                  <span class="material-symbols-outlined text-[16px]">admin_panel_settings</span>
+                  <span>{currentUser.role === 'admin' ? 'நிர்வாகம் (Admin)' : 'செய்தியாளர் (Desk)'}</span>
+                </button>
+              ) : (
+                <button
+                  onClick={() => onNavigate ? onNavigate('/login') : (window.location.href = '/login')}
+                  class="bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-subtitle font-bold text-xs px-2.5 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 transition-all flex items-center gap-1 whitespace-nowrap cursor-pointer"
+                  title="ஆசிரியர் & நிருபர் உள்நுழைவு"
+                >
+                  <span class="material-symbols-outlined text-[15px] text-amber-500">lock</span>
+                  <span class="hidden xl:inline">உள்நுழைவு</span>
+                </button>
+              )}
             </div>
 
           </div>
