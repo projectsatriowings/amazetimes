@@ -86,7 +86,7 @@ export const articlesData = {
     category: "மாவட்டங்கள்",
     author: "மாவட்ட நிருபர் • சேலம்",
     time: "5 மணி நேரத்திற்கு முன்",
-    image: "https://images.unsplash.com/photo-1504917599217-d4dc5ebe6122?auto=format&fit=crop&w=1000&q=80",
+    image: "https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=1000&q=80",
     desc: "ரயில்வே துறையின் தற்சார்பை வலுப்படுத்தும் வகையில் சேலம் உருக்காலை புதிய மைல்கல் எட்டியுள்ளது.",
     body: "சேலம் உருக்காலையில் துருப்பிடிக்காத எஃகு மூலம் வந்தே பாரத் அதிவேக ரயில்களுக்கான சக்கரங்களை உற்பத்தி செய்யும் சிறப்புப் பிரிவு செயல்பாட்டுக்கு வந்துள்ளது."
   },
@@ -136,7 +136,7 @@ export const articlesData = {
     category: "இந்தியா",
     author: "அறிவியல் நிருபர் • ஸ்ரீஹரிகோட்டா",
     time: "3 மணி நேரத்திற்கு முன்",
-    image: "https://images.unsplash.com/photo-1517976487502-5f6902409745?auto=format&fit=crop&w=1000&q=80",
+    image: "https://images.unsplash.com/photo-1516849841032-87cbac4d88f7?auto=format&fit=crop&w=1000&q=80",
     desc: "பூமிக்கு பாதுகாப்பாக திரும்பிய விண்கல பேழை - இந்திய விண்வெளி வீரர்கள் விண்ணில் பயணம் செய்ய அடித்தளம்.",
     body: "இஸ்ரோ ஸ்ரீஹரிகோட்டாவில் இருந்து செலுத்திய ககன்யான் ஆளில்லா சோதனை விண்கலம் விண்வெளிக்குச் சென்று வெற்றிகரமாக வங்கக் கடலில் திட்டமிட்ட இலக்கில் இறங்கியது."
   },
@@ -266,7 +266,7 @@ export const articlesData = {
     category: "ஆன்மிகம்",
     author: "ஆன்மிகப் பிரிவு",
     time: "இன்று காலை 06:00 IST",
-    image: "https://images.unsplash.com/photo-1600100397608-f010e423b971?auto=format&fit=crop&w=1000&q=80",
+    image: "https://images.unsplash.com/photo-1609766857041-ed402ea8069a?auto=format&fit=crop&w=1000&q=80",
     desc: "உலகப் புகழ்பெற்ற மதுரை சித்திரைத் திருவிழாவில் கள்ளழகர் வைகையாற்றில் எழுந்தருளும் மகோன்னத நிகழ்வுக்கான ஏற்பாடுகள் பிரம்மாண்டமாக நடைபெற்று வருகின்றன.",
     body: "சித்திரைத் திருவிழாவை முன்னிட்டு மதுரை மாநகரம் விழாக்கோலம் பூண்டுள்ளது. லட்சக்கணக்கான பக்தர்கள் வைகைக் கரையில் திரள உள்ளனர்."
   },
@@ -286,7 +286,7 @@ export const articlesData = {
     category: "ஆன்மிகம்",
     author: "ஆன்மிக நிருபர்",
     time: "இன்று காலை 08:00 IST",
-    image: "https://images.unsplash.com/photo-1609137144822-4911075677d2?auto=format&fit=crop&w=1000&q=80",
+    image: "https://images.unsplash.com/photo-1567157577867-05ccb1388e66?auto=format&fit=crop&w=1000&q=80",
     desc: "அறுபடை வீடுகளில் இரண்டாம் படை வீடான திருச்செந்தூர் கடற்கரையில் 10 லட்சம் பக்தர்கள் கூடுகின்றனர்.",
     body: "திருச்செந்தூர் சுப்பிரமணிய சுவாமி கோயிலில் கந்த சஷ்டி திருவிழா சூரசம்ஹார நிகழ்வுக்காக விரிவான பாதுகாப்பு மற்றும் மருத்துவ வசதிகள் செய்யப்பட்டுள்ளன."
   },
@@ -471,6 +471,6 @@ export const shortsStories = [
   { headline: "தமிழக பட்ஜெட் 2025 தாக்கல்!", desc: "கல்விக்கு ₹44,000 கோடி ஒதுக்கீடு செய்யப்பட்டது.", img: "https://images.unsplash.com/photo-1541872703-74c5e44368f9?auto=format&fit=crop&w=600&q=80" },
   { headline: "தங்கம் விலை சவரனுக்கு ₹320 சரிவு!", desc: "சென்னையில் திருமண சீசனில் நகை வாங்குவோர் மகிழ்ச்சி.", img: "https://images.unsplash.com/photo-1610375461246-83df859d849d?auto=format&fit=crop&w=600&q=80" },
   { headline: "CSK புதிய வியூகம்!", desc: "சேப்பாக்கத்தில் தோனி தலைமையில் தீவிர பயிற்சி ஆட்டம்.", img: "https://images.unsplash.com/photo-1531415074968-036ba1b575da?auto=format&fit=crop&w=600&q=80" },
-  { headline: "ககன்யான் சோதனை வெற்றி!", desc: "பூமிக்கு பாதுகாப்பாக திரும்பிய விண்கல பேழை.", img: "https://images.unsplash.com/photo-1517976487502-5f6902409745?auto=format&fit=crop&w=600&q=80" },
+  { headline: "ககன்யான் சோதனை வெற்றி!", desc: "பூமிக்கு பாதுகாப்பாக திரும்பிய விண்கல பேழை.", img: "https://images.unsplash.com/photo-1516849841032-87cbac4d88f7?auto=format&fit=crop&w=600&q=80" },
   { headline: "சென்செக்ஸ் 78,400 புதிய சாதனை!", desc: "பங்குச்சந்தை வரலாற்று உச்சத்தை எட்டியது.", img: "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&w=600&q=80" }
 ];
