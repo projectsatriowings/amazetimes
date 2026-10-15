@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { X, Home, Grid, Radio, FileText, Bookmark, User } from 'lucide-react';
 import Header from './components/Header';
 import Ticker from './components/Ticker';
 import LiveWire from './components/LiveWire';
@@ -16,13 +17,18 @@ import EPaperModal from './components/EPaperModal';
 import LiveTVModal from './components/LiveTVModal';
 import BookmarksDrawer from './components/BookmarksDrawer';
 import DemoGuideModal from './components/DemoGuideModal';
+import GoldCalculatorModal from './components/GoldCalculatorModal';
+import MagazineShowcase from './components/MagazineShowcase';
 import Toast from './components/Toast';
 
 import AuthModal from './components/admin/AuthModal';
 import AdminDashboardModal from './components/admin/AdminDashboardModal';
 import LoginPage from './components/admin/LoginPage';
+import { AdminDashboard } from './pages/AdminDashboard';
+import UserAuthModal from './components/modals/UserAuthModal';
+import UserProfileModal from './components/modals/UserProfileModal';
 
-import { api, getCurrentUser, setCurrentUser as persistCurrentUser, setToken } from './services/api';
+import { api, getCurrentUser, setCurrentUser as persistCurrentUser, setToken, getReaderUser, setReaderUser } from './services/api';
 import { articlesData as fallbackArticlesData, categoryNewsMap, shortsStories as fallbackShorts } from './data/newsData';
 
 export default function App() {
@@ -30,7 +36,51 @@ export default function App() {
   const [isDark, setIsDark] = useState(false);
   const [fontSizeClass, setFontSizeClass] = useState('font-size-md');
   const [searchQuery, setSearchQuery] = useState('');
-  const [savedBookmarks, setSavedBookmarks] = useState([]);
+  
+  // Persistent Bookmarks State
+  const [savedBookmarks, setSavedBookmarks] = useState(() => {
+    try {
+      const raw = localStorage.getItem('amaze_saved_bookmarks');
+      return raw ? JSON.parse(raw) : [];
+    } catch (_) {
+      return [];
+    }
+  });
+
+  useEffect(() => {
+    localStorage.setItem('amaze_saved_bookmarks', JSON.stringify(savedBookmarks));
+  }, [savedBookmarks]);
+
+  // Persistent Liked Articles State
+  const [likedArticles, setLikedArticles] = useState(() => {
+    try {
+      const raw = localStorage.getItem('amaze_liked_articles');
+      return raw ? JSON.parse(raw) : [];
+    } catch (_) {
+      return [];
+    }
+  });
+
+  useEffect(() => {
+    localStorage.setItem('amaze_liked_articles', JSON.stringify(likedArticles));
+  }, [likedArticles]);
+
+  // Reading History State
+  const [readingHistory, setReadingHistory] = useState(() => {
+    try {
+      const raw = localStorage.getItem('amaze_reading_history');
+      return raw ? JSON.parse(raw) : [];
+    } catch (_) {
+      return [];
+    }
+  });
+
+  useEffect(() => {
+    localStorage.setItem('amaze_reading_history', JSON.stringify(readingHistory));
+  }, [readingHistory]);
+  
+  // User / Reader Auth Modal State
+  const [isUserAuthOpen, setIsUserAuthOpen] = useState(false);
   
   // URL Routing State (/ , /login , /admin)
   const [currentPath, setCurrentPath] = useState(window.location.pathname || '/');
@@ -51,8 +101,53 @@ export default function App() {
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
+  // Reader (Authentication & Profile) State - Auto Purge temporary/mock users
+  const [readerUser, setReaderUserState] = useState(() => {
+    const u = getReaderUser();
+    // Auto purge any stale temporary mock accounts from previous sessions
+    if (u && (u.name === 'வாசகர் கண்ணன்' || u.full_name === 'வாசகர் கண்ணன்' || u.email?.includes('kannan') || u.id === 'goog_12345' || (typeof u.id === 'string' && u.id.startsWith('goog_')))) {
+      setReaderUser(null);
+      return null;
+    }
+    return u;
+  });
+
+  // Profile Modal State
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [profileModalInitialTab, setProfileModalInitialTab] = useState('profile');
+
+  const handleOpenProfileModal = (tab = 'profile') => {
+    setProfileModalInitialTab(tab);
+    setIsProfileModalOpen(true);
+  };
+
+  const handleGoogleLogin = () => {
+    setIsUserAuthOpen(true);
+  };
+
+  const handleReaderLogout = () => {
+    setReaderUser(null);
+    setReaderUserState(null);
+    setToken(null);
+    addToast('கணக்கிலிருந்து வெற்றிகரமாக வெளியேறிவிட்டீர்கள்.', 'logout');
+  };
+
   // Authentication & Admin Console State
   const [currentUser, setCurrentUser] = useState(getCurrentUser());
+
+  // Listen to 401 auth-expired event from API service
+  useEffect(() => {
+    const onAuthExpired = () => {
+      setCurrentUser(null);
+      if (currentPath === '/admin') {
+        navigateTo('/login');
+      }
+      addToast('அனுமதிச் சான்று காலாவதியாகிவிட்டது. மீண்டும் உள்நுழையவும்.', 'warning');
+    };
+    window.addEventListener('amaze:auth_expired', onAuthExpired);
+    return () => window.removeEventListener('amaze:auth_expired', onAuthExpired);
+  }, [currentPath]);
+
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isDashboardOpen, setIsDashboardOpen] = useState(false);
   const [dashboardInitialTab, setDashboardInitialTab] = useState('overview');
@@ -73,6 +168,7 @@ export default function App() {
   const [isLiveTVOpen, setIsLiveTVOpen] = useState(false);
   const [isDemoGuideOpen, setIsDemoGuideOpen] = useState(false);
   const [isBookmarksOpen, setIsBookmarksOpen] = useState(false);
+  const [isGoldCalculatorOpen, setIsGoldCalculatorOpen] = useState(false);
   const [activeStoryIndex, setActiveStoryIndex] = useState(null);
 
   // Extra loaded cards state for "Load More"
@@ -205,22 +301,87 @@ export default function App() {
 
   // Bookmark toggle
   const handleBookmark = (article) => {
-    if (!savedBookmarks.some((b) => b.id === article.id)) {
-      setSavedBookmarks([...savedBookmarks, { id: article.id, title: article.title }]);
-      addToast('செய்தி வெற்றியோடு சேமிக்கப்பட்டது!', 'bookmark_added');
+    if (!article || !article.id) return;
+    const exists = savedBookmarks.some((b) => String(b.id) === String(article.id));
+    if (!exists) {
+      setSavedBookmarks(prev => [
+        ...prev,
+        {
+          id: article.id,
+          title: article.title,
+          category: article.category || article.cat || 'செய்தி',
+          image: article.image || article.img || article.cover_image_url || '/Amaze times.jpg',
+          savedAt: new Date().toISOString()
+        }
+      ]);
+      addToast('செய்தி வெற்றியோடு சேமிக்கப்பட்டது! 🔖', 'bookmark_added');
     } else {
-      addToast('இச்செய்தி ஏற்கனவே சேமிக்கப்பட்டுள்ளது.', 'info');
+      setSavedBookmarks(prev => prev.filter((b) => String(b.id) !== String(article.id)));
+      addToast('சேமிப்பிலிருந்து நீக்கப்பட்டது.', 'delete');
     }
   };
 
   const handleRemoveBookmark = (id) => {
-    setSavedBookmarks(savedBookmarks.filter((b) => b.id !== id));
+    setSavedBookmarks(prev => prev.filter((b) => String(b.id) !== String(id)));
     addToast('சேமிப்பிலிருந்து நீக்கப்பட்டது.', 'delete');
   };
 
   const handleClearAllBookmarks = () => {
     setSavedBookmarks([]);
     addToast('அனைத்து சேமிப்புகளும் அழிக்கப்பட்டன.', 'delete_sweep');
+  };
+
+  // Liked Articles Handlers
+  const handleToggleLike = (article) => {
+    if (!article || !article.id) return;
+    setLikedArticles((prev) => {
+      const exists = prev.some(a => String(a.id) === String(article.id));
+      let updated;
+      if (exists) {
+        updated = prev.filter(a => String(a.id) !== String(article.id));
+        addToast('விருப்பப் பட்டியலிலிருந்து நீக்கப்பட்டது.', 'favorite_border');
+      } else {
+        updated = [{
+          id: article.id,
+          title: article.title,
+          category: article.category || article.cat || 'செய்தி',
+          image: article.image || article.img || article.cover_image_url || '/Amaze times.jpg',
+          likedAt: new Date().toISOString()
+        }, ...prev];
+        addToast('செய்திக்கு விருப்பம் தெரிவிக்கப்பட்டது! ❤️', 'favorite');
+      }
+      return updated;
+    });
+  };
+
+  const handleRemoveLikedArticle = (id) => {
+    setLikedArticles(prev => prev.filter(a => String(a.id) !== String(id)));
+    addToast('விருப்பப் பட்டியலிலிருந்து நீக்கப்பட்டது.', 'delete');
+  };
+
+  const handleClearAllLiked = () => {
+    setLikedArticles([]);
+    addToast('அனைத்து விருப்பங்களும் அழிக்கப்பட்டன.', 'delete_sweep');
+  };
+
+  // Reading History Handlers
+  const addToReadingHistory = (art) => {
+    if (!art || !art.id) return;
+    setReadingHistory((prev) => {
+      const filtered = prev.filter(item => String(item.id) !== String(art.id));
+      return [{
+        id: art.id,
+        title: art.title,
+        category: art.category || art.cat || 'செய்தி',
+        image: art.image || art.img || article?.cover_image_url || '/Amaze times.jpg',
+        readAt: new Date().toISOString()
+      }, ...filtered].slice(0, 50);
+    });
+  };
+
+  const handleClearReadingHistory = () => {
+    setReadingHistory([]);
+    addToast('வாசிப்பு வரலாறு அழிக்கப்பட்டது.', 'delete_sweep');
   };
 
   // Category select
@@ -279,33 +440,22 @@ export default function App() {
     window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
   };
 
-  // Open Full Article Modal
+  // Open Full Article Modal & Record History
   const openArticleModal = (articleOrId) => {
+    let target = null;
     if (typeof articleOrId === 'object' && articleOrId !== null) {
-      setActiveModalArticle(articleOrId);
-      return;
+      target = articleOrId;
+    } else {
+      const id = articleOrId;
+      target = backendArticles.find(a => a.id === id) || (backendLeadArticle?.id === id ? backendLeadArticle : null) || extraCards.find(a => a.id === id) || fallbackArticlesData[id] || Object.values(fallbackArticlesData).find(a => a.id === id) || {
+        id,
+        title: `செய்தி விவரம்`,
+        desc: 'செய்தி விவரங்கள் ஏற்றப்படுகின்றன...',
+        category: 'செய்தி'
+      };
     }
-
-    const id = articleOrId;
-    const fromBackend = backendArticles.find(a => a.id === id) || (backendLeadArticle?.id === id ? backendLeadArticle : null);
-    if (fromBackend) {
-      setActiveModalArticle(fromBackend);
-      return;
-    }
-
-    const fromExtra = extraCards.find(a => a.id === id);
-    if (fromExtra) {
-      setActiveModalArticle(fromExtra);
-      return;
-    }
-
-    const fallback = fallbackArticlesData[id] || Object.values(fallbackArticlesData).find(a => a.id === id) || {
-      id,
-      title: `செய்தி விவரம்`,
-      desc: 'செய்தி விவரங்கள் ஏற்றப்படுகின்றன...',
-      category: 'செய்தி'
-    };
-    setActiveModalArticle(fallback);
+    setActiveModalArticle(target);
+    addToReadingHistory(target);
   };
 
   // Protect /admin: if visited while not logged in, route to /login
@@ -413,7 +563,7 @@ export default function App() {
   // ROUTE 1: Dedicated Login Page (/login)
   if (currentPath === '/login') {
     return (
-      <div class={`min-h-screen ${fontSizeClass}`}>
+      <div className={`min-h-screen ${fontSizeClass}`}>
         <LoginPage
           onLoginSuccess={handleLoginSuccess}
           onNavigateHome={() => navigateTo('/')}
@@ -428,7 +578,7 @@ export default function App() {
   if (currentPath === '/admin') {
     if (!currentUser || (currentUser.role !== 'admin' && currentUser.role !== 'reporter')) {
       return (
-        <div class={`min-h-screen ${fontSizeClass}`}>
+        <div className={`min-h-screen ${fontSizeClass}`}>
           <LoginPage
             onLoginSuccess={handleLoginSuccess}
             onNavigateHome={() => navigateTo('/')}
@@ -440,26 +590,15 @@ export default function App() {
     }
 
     return (
-      <div class={`min-h-screen ${fontSizeClass}`}>
-        <AdminDashboardModal
-          isOpen={true}
-          isDedicatedPage={true}
-          currentUser={currentUser}
-          onClose={() => navigateTo('/')}
-          onNavigateHome={() => navigateTo('/')}
-          onLogout={handleLogout}
-          onToast={addToast}
-          onDataChanged={() => fetchBackendContent(activeCategory, true)}
-          initialTab={dashboardInitialTab}
-          articleToEdit={dashboardTargetArticle}
-        />
+      <div className={`min-h-screen ${fontSizeClass}`}>
+        <AdminDashboard />
         <Toast toasts={toasts} onRemoveToast={removeToast} />
       </div>
     );
   }
 
   return (
-    <div class={`min-h-screen flex flex-col ${fontSizeClass}`}>
+    <div className={`min-h-screen flex flex-col w-full max-w-full overflow-x-hidden min-w-0 ${fontSizeClass}`}>
       {/* Newspaper Top Bar & Header */}
       <Header
         activeCategory={activeCategory}
@@ -469,22 +608,31 @@ export default function App() {
         fontSizeClass={fontSizeClass}
         onChangeFontSize={handleChangeFontSize}
         savedBookmarksCount={savedBookmarks.length}
+        likedArticlesCount={likedArticles.length}
         onOpenBookmarks={() => setIsBookmarksOpen(true)}
+        onOpenProfileModal={handleOpenProfileModal}
         onOpenEPaper={() => setIsEPaperOpen(true)}
         onOpenLiveTV={() => setIsLiveTVOpen(true)}
         onOpenDemoGuide={() => setIsDemoGuideOpen(true)}
+        onOpenGoldCalculator={() => setIsGoldCalculatorOpen(true)}
         onSpeak={speakTamilText}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
-        currentUser={currentUser}
+        readerUser={readerUser}
+        onGoogleLogin={handleGoogleLogin}
+        onOpenUserAuth={() => setIsUserAuthOpen(true)}
+        onReaderLogout={handleReaderLogout}
         onNavigate={navigateTo}
       />
 
       {/* Ticker Ribbons (Connected to Live Data & Neon DB) */}
-      <Ticker tickers={backendTickers} />
+      <Ticker 
+        tickers={backendTickers} 
+        onOpenGoldCalculator={() => setIsGoldCalculatorOpen(true)}
+      />
 
       {/* Main Container */}
-      <main class="max-w-[1380px] mx-auto px-3 sm:px-4 py-3 sm:py-4 flex-1 w-full space-y-5 sm:space-y-6">
+      <main className="max-w-[1400px] mx-auto px-2.5 sm:px-4 py-3 sm:py-6 flex-1 w-full max-w-full min-w-0 overflow-x-hidden space-y-6 sm:space-y-10 pb-20 sm:pb-8">
         
         {/* If category is 'editorial', show dedicated prestigious Thalaiyangam Broadsheet View */}
         {activeCategory === 'editorial' ? (
@@ -496,7 +644,7 @@ export default function App() {
             savedBookmarks={savedBookmarks}
           />
         ) : activeCategory === 'spiritual' ? (
-          /* Dedicated Aanmegam Broadsheet View (Requested by user like Thalaiyangam) */
+          /* Dedicated Aanmegam Broadsheet View */
           <AanmegamView
             onOpenArticle={openArticleModal}
             onSpeak={speakTamilText}
@@ -504,58 +652,66 @@ export default function App() {
             savedBookmarks={savedBookmarks}
           />
         ) : (
-          /* Standard 3-Column Command Grid */
-          <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-            
-            {/* COL 1: Live Wire Sidebar (Connected to Neon DB) */}
-            <div class="lg:col-span-3">
-              <LiveWire
-                onOpenArticle={openArticleModal}
-                onSpeak={speakTamilText}
-                items={backendLiveWire}
-              />
-            </div>
+          <>
+            {/* 1. HERO SPOTLIGHT: Lead Story + Top 5 Reads (Exact Adutha Thalaimurai 2-Column Split) */}
+            <HeroSpotlight
+              leadData={leadData}
+              topArticles={displayCards}
+              onOpenArticle={openArticleModal}
+              onSpeak={speakTamilText}
+              onShareWhatsApp={handleShareWhatsApp}
+              onBookmark={handleBookmark}
+              savedBookmarks={savedBookmarks}
+              onToggleLike={handleToggleLike}
+              isLiked={likedArticles.some(a => String(a.id) === String(leadData?.id))}
+            />
 
-            {/* COL 2: Broadsheet Hero Spotlight, Zodiac Widget & News Grid (Clean - Admin actions only in /admin) */}
-            <div class="lg:col-span-6 space-y-6">
-              <HeroSpotlight
-                leadData={leadData}
-                onOpenArticle={openArticleModal}
-                onSpeak={speakTamilText}
-                onShareWhatsApp={handleShareWhatsApp}
-              />
+            {/* 2. DIGITAL MONTHLY MAGAZINE & E-PAPER BANNER */}
+            <MagazineShowcase
+              onOpenEPaper={() => setIsEPaperOpen(true)}
+              onToast={addToast}
+            />
 
-              {/* 12 Zodiac Signs Widget (Displayed on Home tab) */}
-              {activeCategory === 'all' && (
-                <ZodiacWidget
+            {/* 3. DISTRICTS & CATEGORY NEWS GRID (With City Filter Tabs) */}
+            <SecondaryNewsGrid
+              categoryTitle={currentFallback.title}
+              categorySubtitle={currentFallback.subtitle}
+              cards={displayCards}
+              onOpenArticle={openArticleModal}
+              onBookmark={handleBookmark}
+              savedBookmarks={savedBookmarks}
+              onToggleLike={handleToggleLike}
+              likedArticles={likedArticles}
+              onLoadMore={handleLoadMore}
+            />
+
+            {/* 4. MULTIMEDIA, COMMUNITY & LIVE FEEDS BAND */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6 items-start pt-2">
+              {/* Col A (4 cols): Live Wire Feed + Audio Brief */}
+              <div className="lg:col-span-4 space-y-6">
+                <LiveWire
+                  onOpenArticle={openArticleModal}
                   onSpeak={speakTamilText}
+                  items={backendLiveWire}
                 />
-              )}
+                <AudioBrief onSpeak={speakTamilText} />
+              </div>
 
-              <SecondaryNewsGrid
-                categoryTitle={currentFallback.title}
-                categorySubtitle={currentFallback.subtitle}
-                cards={displayCards}
-                onOpenArticle={openArticleModal}
-                onBookmark={handleBookmark}
-                savedBookmarks={savedBookmarks}
-                onLoadMore={handleLoadMore}
-              />
+              {/* Col B (4 cols): Video Shorts & Reels */}
+              <div className="lg:col-span-4">
+                <ShortsReels
+                  stories={storiesToDisplay}
+                  onOpenStory={(idx) => setActiveStoryIndex(idx)}
+                />
+              </div>
+
+              {/* Col C (4 cols): Zodiac Widget (12 Signs) & Reader Opinion Poll */}
+              <div className="lg:col-span-4 space-y-6">
+                <ZodiacWidget onSpeak={speakTamilText} />
+                <QuizPoll onToast={addToast} />
+              </div>
             </div>
-
-            {/* COL 3: Shorts Reels, Audio & Quiz/Poll */}
-            <div class="lg:col-span-3 space-y-6">
-              <ShortsReels
-                stories={storiesToDisplay}
-                onOpenStory={(idx) => setActiveStoryIndex(idx)}
-              />
-
-              <AudioBrief onSpeak={speakTamilText} />
-
-              <QuizPoll onToast={addToast} />
-            </div>
-
-          </div>
+          </>
         )}
       </main>
 
@@ -569,6 +725,84 @@ export default function App() {
         onNavigate={navigateTo}
       />
 
+      {/* 5. STICKY MOBILE BOTTOM NAVIGATION BAR */}
+      <div className="sm:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-[#070d1e]/95 backdrop-blur-xl border-t border-slate-200 dark:border-slate-800 shadow-[0_-4px_20px_rgba(0,0,0,0.1)] px-2 py-1.5 flex items-center justify-around safe-bottom">
+        
+        {/* Home Tab */}
+        <button
+          onClick={() => {
+            handleSelectCategory('all');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          className={`flex flex-col items-center justify-center py-1 px-2 rounded-xl transition-all cursor-pointer ${
+            activeCategory === 'all'
+              ? 'text-red-600 dark:text-red-400 font-black'
+              : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white font-semibold'
+          }`}
+        >
+          <Home className="w-4 h-4 mb-0.5" />
+          <span className="text-[10px] tracking-tight">முகப்பு</span>
+        </button>
+
+        {/* Categories Tab */}
+        <button
+          onClick={() => {
+            const navEl = document.querySelector('nav');
+            if (navEl) {
+              navEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+          }}
+          className="flex flex-col items-center justify-center py-1 px-2 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white font-semibold transition-all cursor-pointer"
+        >
+          <Grid className="w-4 h-4 mb-0.5" />
+          <span className="text-[10px] tracking-tight">பிரிவுகள்</span>
+        </button>
+
+        {/* Live 24x7 Tab */}
+        <button
+          onClick={() => setIsLiveTVOpen(true)}
+          className="flex flex-col items-center justify-center py-1 px-2 rounded-xl text-red-600 dark:text-red-400 font-extrabold transition-all cursor-pointer relative"
+        >
+          <div className="relative">
+            <Radio className="w-4 h-4 mb-0.5 animate-pulse" />
+            <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-red-600 animate-ping"></span>
+          </div>
+          <span className="text-[10px] tracking-tight">24x7 நேரலை</span>
+        </button>
+
+        {/* E-Paper Tab */}
+        <button
+          onClick={() => setIsEPaperOpen(true)}
+          className="flex flex-col items-center justify-center py-1 px-2 rounded-xl text-slate-500 dark:text-slate-400 hover:text-[#0e2a7a] dark:hover:text-amber-400 font-semibold transition-all cursor-pointer"
+        >
+          <FileText className="w-4 h-4 mb-0.5" />
+          <span className="text-[10px] tracking-tight">மின்-இதழ்</span>
+        </button>
+
+        {/* Bookmarks / Account Tab */}
+        <button
+          onClick={() => {
+            if (readerUser) {
+              setIsBookmarksOpen(true);
+            } else {
+              setIsUserAuthOpen(true);
+            }
+          }}
+          className="flex flex-col items-center justify-center py-1 px-2 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white font-semibold transition-all cursor-pointer relative"
+        >
+          <div className="relative">
+            {readerUser ? <Bookmark className="w-4 h-4 mb-0.5 text-amber-500" /> : <User className="w-4 h-4 mb-0.5" />}
+            {savedBookmarks.length > 0 && (
+              <span className="absolute -top-1 -right-2 bg-red-600 text-white text-[8px] font-black rounded-full w-3.5 h-3.5 flex items-center justify-center">
+                {savedBookmarks.length}
+              </span>
+            )}
+          </div>
+          <span className="text-[10px] tracking-tight">{readerUser ? 'சேமித்தவை' : 'கணக்கு'}</span>
+        </button>
+
+      </div>
+
       {/* Modals & Overlays */}
       <ArticleModal
         isOpen={Boolean(activeModalArticle)}
@@ -579,6 +813,10 @@ export default function App() {
         articleData={activeModalArticle}
         onSpeak={speakTamilText}
         onShareWhatsApp={handleShareWhatsApp}
+        onToggleBookmark={handleBookmark}
+        isBookmarked={savedBookmarks.some(b => String(b.id) === String(activeModalArticle?.id))}
+        onToggleLike={handleToggleLike}
+        isLiked={likedArticles.some(a => String(a.id) === String(activeModalArticle?.id))}
       />
 
       <EPaperModal
@@ -602,6 +840,12 @@ export default function App() {
         onClose={() => setIsDemoGuideOpen(false)}
       />
 
+      {/* Gold & Silver Rate Calculator Modal */}
+      <GoldCalculatorModal
+        isOpen={isGoldCalculatorOpen}
+        onClose={() => setIsGoldCalculatorOpen(false)}
+      />
+
       <BookmarksDrawer
         isOpen={isBookmarksOpen}
         onClose={() => setIsBookmarksOpen(false)}
@@ -609,6 +853,48 @@ export default function App() {
         onRemoveBookmark={handleRemoveBookmark}
         onClearAll={handleClearAllBookmarks}
         onOpenArticle={openArticleModal}
+      />
+
+      {/* Reader Profile Management Modal */}
+      <UserProfileModal
+        isOpen={isProfileModalOpen}
+        onClose={() => setIsProfileModalOpen(false)}
+        readerUser={readerUser}
+        onUpdateUser={(updated) => {
+          setReaderUserState(updated);
+          setReaderUser(updated);
+        }}
+        onLogout={handleReaderLogout}
+        savedBookmarks={savedBookmarks}
+        onRemoveBookmark={handleRemoveBookmark}
+        onClearAllBookmarks={handleClearAllBookmarks}
+        likedArticles={likedArticles}
+        onRemoveLikedArticle={handleRemoveLikedArticle}
+        onClearAllLiked={handleClearAllLiked}
+        readingHistory={readingHistory}
+        onClearReadingHistory={handleClearReadingHistory}
+        onOpenArticle={openArticleModal}
+        isDark={isDark}
+        onToggleDarkMode={toggleDarkMode}
+        fontSizeClass={fontSizeClass}
+        onChangeFontSize={handleChangeFontSize}
+        onToast={addToast}
+        initialTab={profileModalInitialTab}
+      />
+
+      {/* Reader User Sign-In & Sign-Up Modal */}
+      <UserAuthModal
+        isOpen={isUserAuthOpen}
+        onClose={() => setIsUserAuthOpen(false)}
+        onUserSuccess={(user) => {
+          setReaderUserState(user);
+          setReaderUser(user);
+          if (user.role === 'admin' || user.role === 'reporter') {
+            setCurrentUser(user);
+            persistCurrentUser(user);
+          }
+        }}
+        onToast={addToast}
       />
 
       {/* Admin / Reporter Login Modal */}
@@ -636,13 +922,13 @@ export default function App() {
 
       {/* Shorts Reel Story Video Modal */}
       {activeStory && (
-        <div class="fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-4">
-          <div class="relative max-w-sm w-full bg-slate-900 rounded-3xl overflow-hidden shadow-2xl border border-slate-700 text-white space-y-4 p-5">
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="relative max-w-sm w-full bg-slate-900 rounded-3xl overflow-hidden shadow-2xl border border-slate-700 text-white space-y-4 p-5">
             <button
               onClick={() => setActiveStoryIndex(null)}
-              class="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/60 text-white flex items-center justify-center cursor-pointer z-20"
+              className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/60 text-white flex items-center justify-center cursor-pointer z-20 hover:bg-black/80 transition-colors"
             >
-              <span class="material-symbols-outlined text-[20px]">close</span>
+              <X className="w-5 h-5" />
             </button>
             
             {activeStory.media_type === 'video' || activeStory.img?.match(/\.(mp4|webm|mov)(\?.*)?$/i) ? (
@@ -652,21 +938,21 @@ export default function App() {
                 controls
                 playsInline
                 loop
-                class="w-full aspect-[9/16] object-cover rounded-2xl bg-black"
+                className="w-full aspect-[9/16] object-cover rounded-2xl bg-black"
               />
             ) : (
               <img
                 src={activeStory.img}
                 alt={activeStory.headline}
-                class="w-full aspect-[9/16] object-cover rounded-2xl"
+                className="w-full aspect-[9/16] object-cover rounded-2xl"
               />
             )}
 
             <div>
-              <h3 class="font-title font-bold text-lg text-amber-300">
+              <h3 className="font-title font-bold text-lg text-amber-300">
                 {activeStory.headline}
               </h3>
-              <p class="font-body text-xs text-slate-300">
+              <p className="font-body text-xs text-slate-300">
                 {activeStory.desc}
               </p>
             </div>

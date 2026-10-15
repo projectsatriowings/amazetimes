@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
+import { Send, Mail, Phone, MapPin, ArrowUp, FileText, Sparkles, ShieldCheck, Newspaper, MessageSquare, Video } from 'lucide-react';
 
 export default function Footer({ onSelectCategory, onOpenEPaper, onOpenBookmarks, onSpeak, onToast, onNavigate }) {
   const [email, setEmail] = useState('');
 
   const handleSubscribe = () => {
     if (email && email.includes('@')) {
-      onToast(`நன்றி! உங்கள் மின்னஞ்சல் (${email}) பதிவு செய்யப்பட்டது.`, 'verified');
+      onToast(`நன்றி! உங்கள் மின்னஞ்சல் (${email}) வெற்றிகரமாகப் பதிவு செய்யப்பட்டது.`, 'check');
       setEmail('');
     } else {
       onToast('தயவுசெய்து சரியான மின்னஞ்சல் முகவரியை உள்ளிடவும்.', 'error');
@@ -13,131 +14,164 @@ export default function Footer({ onSelectCategory, onOpenEPaper, onOpenBookmarks
   };
 
   return (
-    <footer class="bg-[#050811] dark:bg-[#03050B] text-slate-300 text-xs border-t border-slate-800 mt-16 transition-all shadow-2xl">
-      <div class="max-w-[1340px] mx-auto px-4 pt-10 pb-8 space-y-10">
+    <footer className="bg-[#070d1e] text-slate-300 text-xs border-t border-slate-800 mt-12 sm:mt-16 transition-all shadow-2xl w-full max-w-full overflow-hidden">
+      <div className="max-w-[1400px] mx-auto px-3 sm:px-4 pt-8 sm:pt-10 pb-24 sm:pb-8 space-y-8 sm:space-y-10 w-full min-w-0">
         
-        {/* Newsletter & Social Community Banner */}
-        <div class="bg-gradient-to-r from-[#0C152B] via-[#142242] to-[#0A1124] border border-slate-700/80 rounded-2xl p-4 sm:p-6 shadow-2xl flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-5 overflow-hidden">
-          <div class="flex items-start sm:items-center gap-3.5 w-full min-w-0">
-            <div class="w-11 h-11 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-gradient-to-tr from-brand-red via-rose-600 to-amber-500 flex items-center justify-center text-white shadow-lg shadow-brand-red/30 flex-shrink-0 mt-0.5 sm:mt-0">
-              <span class="material-symbols-outlined text-[24px] sm:text-[26px]">mark_email_unread</span>
+        {/* Newsletter & WhatsApp Community Subscription Ribbon */}
+        <div className="bg-gradient-to-r from-[#0a1945] via-[#0e2a7a] to-[#0a1945] border border-amber-400/20 rounded-2xl p-5 sm:p-7 shadow-2xl flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-5 overflow-hidden">
+          <div className="flex items-start sm:items-center gap-4 w-full min-w-0">
+            <div className="w-12 h-12 rounded-2xl bg-amber-400 text-slate-950 flex items-center justify-center font-bold text-2xl shadow-lg flex-shrink-0">
+              <Newspaper className="w-6 h-6 text-slate-950" />
             </div>
-            <div class="min-w-0 flex-1 space-y-1">
-              <h3 class="font-subtitle font-bold text-sm sm:text-base text-white flex flex-wrap items-center gap-2">
+            <div className="min-w-0 flex-1 space-y-1">
+              <h3 className="font-title font-black text-base sm:text-lg text-white flex flex-wrap items-center gap-2">
                 <span>செய்திகளை உடனுக்குடன் பெற சந்தாதாரராகுங்கள்!</span>
-                <span class="bg-emerald-500/20 text-emerald-400 text-[10px] font-bold px-2 py-0.5 rounded border border-emerald-500/30 flex-shrink-0">இலவசம்</span>
+                <span className="bg-amber-400/20 text-amber-300 text-[10px] font-black px-2.5 py-0.5 rounded-full border border-amber-400/30">
+                  இலவசம்
+                </span>
               </h3>
-              <p class="font-body text-xs text-slate-400 break-words leading-relaxed">தினசரி முக்கிய செய்திகள் நேரடியாக உங்கள் மின்னஞ்சல் அல்லது வாட்ஸ்அப் எண்ணிற்கு உடனுக்குடன் வந்து சேரும்.</p>
+              <p className="text-slate-300 text-xs leading-relaxed">
+                தமிழ்நாடு, வணிகம், தங்கம் விலை மற்றும் முக்கிய நிகழ்வுகள் உங்கள் மின்னஞ்சலுக்கு உடனுக்குடன் அனுப்பப்படும்.
+              </p>
             </div>
           </div>
 
-          <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full lg:w-auto">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full lg:w-auto">
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="உங்கள் மின்னஞ்சல் முகவரி..."
-              class="w-full sm:flex-1 lg:w-64 bg-slate-900/90 border border-slate-700 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-red"
+              className="w-full sm:flex-1 lg:w-64 bg-slate-900/90 border border-slate-700 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-400"
             />
             <button
               onClick={handleSubscribe}
-              class="w-full sm:w-auto bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white font-subtitle font-bold text-xs px-5 py-2.5 rounded-xl transition-all shadow-md shadow-red-600/30 flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer hover:scale-[1.02] active:scale-95"
+              className="bg-red-600 hover:bg-red-700 text-white font-extrabold text-xs px-5 py-2.5 rounded-xl transition-all shadow-md shadow-red-600/30 flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer hover:scale-105 active:scale-95"
             >
               <span>இணையுங்கள்</span>
-              <span class="material-symbols-outlined text-[16px]">send</span>
+              <Send className="w-4 h-4 text-white" />
             </button>
           </div>
         </div>
 
-        {/* 4-Column Footer Grid */}
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-          <div class="space-y-4">
-            <div class="flex items-center gap-2.5">
-              <img src="/Amaze times.jpg" alt="அமேஸ் டைம்ஸ்" class="h-10 w-auto object-contain rounded-lg shadow-sm"/>
-              <div class="flex flex-col">
-                <span class="font-title font-extrabold text-xl text-white tracking-tight">அமேஸ் டைம்ஸ்</span>
-                <span class="font-subtitle text-[10px] text-amber-400 font-bold -mt-1">உண்மை உடனுக்குடன்</span>
+        {/* 4-Column Editorial Sitemap Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          
+          {/* Col 1: Brand & Registration */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="bg-white p-1 rounded-2xl shadow-md border border-slate-700 flex items-center justify-center">
+                <img src="/Amaze times.jpg" alt="அமேஸ் டைம்ஸ்" className="h-10 w-auto object-contain rounded-xl" />
+              </div>
+              <div className="flex flex-col">
+                <span className="font-title font-black text-xl text-white">அமேஸ் டைம்ஸ்</span>
+                <span className="text-[10px] text-amber-400 font-bold">உண்மையின் தீரக் குரல்</span>
               </div>
             </div>
-            <p class="font-body text-slate-400 text-xs leading-relaxed">
+
+            <p className="text-slate-400 text-xs leading-relaxed">
               நம்பகமான, துல்லியமான மற்றும் நடுநிலையான செய்திகளை 24 மணி நேரமும் உடனுக்குடன் வழங்கும் முன்னணி தமிழ் டிஜிட்டல் நாளிதழ் தளம்.
             </p>
-            
-            <div class="space-y-2 font-subtitle">
-              <span class="text-[11px] font-bold text-slate-300 uppercase tracking-wider block">சமூக வலைத்தளங்கள்:</span>
-              <div class="flex flex-wrap items-center gap-2">
-                <a href="https://whatsapp.com" target="_blank" rel="noreferrer" class="flex items-center gap-1.5 bg-emerald-950/60 hover:bg-emerald-600 text-emerald-400 hover:text-white px-3 py-1.5 rounded-xl border border-emerald-500/30 transition-all text-xs font-bold shadow-sm">
-                  <span class="material-symbols-outlined text-[16px]">chat</span>
-                  <span>வாட்ஸ்அப்</span>
-                </a>
-                <a href="https://telegram.org" target="_blank" rel="noreferrer" class="flex items-center gap-1.5 bg-sky-950/60 hover:bg-sky-600 text-sky-400 hover:text-white px-3 py-1.5 rounded-xl border border-sky-500/30 transition-all text-xs font-bold shadow-sm">
-                  <span class="material-symbols-outlined text-[16px]">send</span>
-                  <span>டெலிகிராம்</span>
-                </a>
-                <a href="https://youtube.com" target="_blank" rel="noreferrer" class="flex items-center gap-1.5 bg-red-950/60 hover:bg-red-600 text-red-400 hover:text-white px-3 py-1.5 rounded-xl border border-red-500/30 transition-all text-xs font-bold shadow-sm">
-                  <span class="material-symbols-outlined text-[16px]">smart_display</span>
-                  <span>யூடியூப்</span>
-                </a>
-              </div>
+
+            <div className="bg-white/5 border border-white/10 rounded-xl p-3 text-[11px] space-y-1">
+              <p className="font-bold text-amber-300 flex items-center gap-1.5">
+                <ShieldCheck className="w-3.5 h-3.5 text-amber-300" />
+                <span>மத்திய அரசு பத்திரிகைப் பதிவு:</span>
+              </p>
+              <p className="font-mono text-slate-200">PRGI TNBIL/2023/88656</p>
+            </div>
+
+            {/* Social Icons */}
+            <div className="flex items-center gap-2 pt-1">
+              <a href="https://whatsapp.com" target="_blank" rel="noreferrer" className="w-8 h-8 rounded-lg bg-emerald-950/80 text-emerald-400 hover:bg-emerald-600 hover:text-white flex items-center justify-center transition-all border border-emerald-500/30" title="WhatsApp">
+                <MessageSquare className="w-4 h-4" />
+              </a>
+              <a href="https://telegram.org" target="_blank" rel="noreferrer" className="w-8 h-8 rounded-lg bg-sky-950/80 text-sky-400 hover:bg-sky-600 hover:text-white flex items-center justify-center transition-all border border-sky-500/30" title="Telegram">
+                <Send className="w-4 h-4" />
+              </a>
+              <a href="https://youtube.com" target="_blank" rel="noreferrer" className="w-8 h-8 rounded-lg bg-red-950/80 text-red-400 hover:bg-red-600 hover:text-white flex items-center justify-center transition-all border border-red-500/30" title="YouTube">
+                <Video className="w-4 h-4" />
+              </a>
             </div>
           </div>
 
-          <div class="space-y-3 font-subtitle">
-            <h4 class="font-bold text-sm text-white border-b border-slate-800 pb-2 flex items-center gap-1.5">
-              <span class="material-symbols-outlined text-[18px] text-brand-red">newspaper</span>
+          {/* Col 2: Major News Sections */}
+          <div className="space-y-3">
+            <h4 className="font-title font-bold text-sm text-white border-b border-slate-800 pb-2 flex items-center gap-1.5">
+              <Newspaper className="w-4 h-4 text-red-500" />
               <span>செய்திப் பிரிவுகள்</span>
             </h4>
-            <ul class="space-y-2 text-slate-400">
-              <li><button onClick={() => onSelectCategory('tamilnadu')} class="hover:text-amber-400 transition-colors flex items-center gap-1.5 cursor-pointer"><span class="material-symbols-outlined text-[14px] text-slate-500">chevron_right</span>தமிழ்நாடு செய்திகள்</button></li>
-              <li><button onClick={() => onSelectCategory('districts')} class="hover:text-amber-400 transition-colors flex items-center gap-1.5 cursor-pointer"><span class="material-symbols-outlined text-[14px] text-slate-500">chevron_right</span>மாவட்டச் செய்திகள்</button></li>
-              <li><button onClick={() => onSelectCategory('business')} class="hover:text-amber-400 transition-colors flex items-center gap-1.5 cursor-pointer"><span class="material-symbols-outlined text-[14px] text-slate-500">chevron_right</span>வணிகம் &amp; பங்குச்சந்தை</button></li>
-              <li><button onClick={() => onSelectCategory('cinema')} class="hover:text-amber-400 transition-colors flex items-center gap-1.5 cursor-pointer"><span class="material-symbols-outlined text-[14px] text-slate-500">chevron_right</span>சினிமா &amp; பொழுதுபோக்கு</button></li>
-              <li><button onClick={() => onSelectCategory('sports')} class="hover:text-amber-400 transition-colors flex items-center gap-1.5 cursor-pointer"><span class="material-symbols-outlined text-[14px] text-slate-500">chevron_right</span>விளையாட்டு செய்திகள்</button></li>
+            <ul className="space-y-2 text-slate-400 text-xs">
+              <li><button onClick={() => onSelectCategory('tamilnadu')} className="hover:text-amber-400 transition-colors flex items-center gap-1.5 cursor-pointer">› தமிழ்நாடு செய்திகள்</button></li>
+              <li><button onClick={() => onSelectCategory('districts')} className="hover:text-amber-400 transition-colors flex items-center gap-1.5 cursor-pointer">› மாவட்டச் செய்திகள் (Districts)</button></li>
+              <li><button onClick={() => onSelectCategory('business')} className="hover:text-amber-400 transition-colors flex items-center gap-1.5 cursor-pointer">› வணிகம் & பங்குச்சந்தை</button></li>
+              <li><button onClick={() => onSelectCategory('spiritual')} className="hover:text-amber-400 transition-colors flex items-center gap-1.5 cursor-pointer">› ஆன்மிகம் & திருத்தலங்கள்</button></li>
+              <li><button onClick={() => onSelectCategory('cinema')} className="hover:text-amber-400 transition-colors flex items-center gap-1.5 cursor-pointer">› சினிமா & கலை உலகம்</button></li>
+              <li><button onClick={() => onSelectCategory('sports')} className="hover:text-amber-400 transition-colors flex items-center gap-1.5 cursor-pointer">› விளையாட்டு & ஐபிஎல்</button></li>
             </ul>
           </div>
 
-          <div class="space-y-3 font-subtitle">
-            <h4 class="font-bold text-sm text-white border-b border-slate-800 pb-2 flex items-center gap-1.5">
-              <span class="material-symbols-outlined text-[18px] text-amber-400">auto_awesome</span>
+          {/* Col 3: Special Services */}
+          <div className="space-y-3">
+            <h4 className="font-title font-bold text-sm text-white border-b border-slate-800 pb-2 flex items-center gap-1.5">
+              <Sparkles className="w-4 h-4 text-amber-400" />
               <span>சிறப்பு சேவைகள்</span>
             </h4>
-            <ul class="space-y-2 text-slate-400">
-              <li><button onClick={onOpenEPaper} class="hover:text-amber-400 transition-colors flex items-center gap-1.5 cursor-pointer"><span class="material-symbols-outlined text-[14px] text-brand-red">newspaper</span>அமேஸ் இ-பேப்பர் (E-Paper)</button></li>
-              <li><button onClick={() => onSpeak('அமேஸ் டைம்ஸ் குரல் செய்திகள் வசதி தயார் நிலையில் உள்ளது.')} class="hover:text-amber-400 transition-colors flex items-center gap-1.5 cursor-pointer"><span class="material-symbols-outlined text-[14px] text-sky-400">volume_up</span>தமிழ் குரல் செய்திகள்</button></li>
-              <li><button onClick={onOpenBookmarks} class="hover:text-amber-400 transition-colors flex items-center gap-1.5 cursor-pointer"><span class="material-symbols-outlined text-[14px] text-emerald-400">bookmark</span>சேமித்த செய்திகள்</button></li>
+            <ul className="space-y-2 text-slate-400 text-xs">
+              <li><button onClick={onOpenEPaper} className="hover:text-amber-400 transition-colors flex items-center gap-1.5 cursor-pointer">› அமேஸ் இ-பேப்பர் (E-Paper)</button></li>
+              <li><button onClick={() => onSelectCategory('magazine')} className="hover:text-amber-400 transition-colors flex items-center gap-1.5 cursor-pointer">› மாதாந்திர டிஜிட்டல் இதழ்</button></li>
+              <li><button onClick={() => onSpeak('அமேஸ் டைம்ஸ் குரல் செய்திகள் இயக்கப்படுகின்றன.')} className="hover:text-amber-400 transition-colors flex items-center gap-1.5 cursor-pointer">› AI செய்தி வாசிப்பாளர் (Audio)</button></li>
+              <li><button onClick={onOpenBookmarks} className="hover:text-amber-400 transition-colors flex items-center gap-1.5 cursor-pointer">› சேமித்த செய்திகள் (Bookmarks)</button></li>
+              <li><button onClick={() => onSelectCategory('editorial')} className="hover:text-amber-400 transition-colors flex items-center gap-1.5 cursor-pointer">› தலையங்கம் & பார்வை (Editorial)</button></li>
             </ul>
           </div>
 
-          <div class="space-y-3 font-body">
-            <h4 class="font-subtitle font-bold text-sm text-white border-b border-slate-800 pb-2 flex items-center gap-1.5">
-              <span class="material-symbols-outlined text-[18px] text-sky-400">contact_support</span>
-              <span>தொடர்புக்கு &amp; உதவி</span>
+          {/* Col 4: Contact & Office */}
+          <div className="space-y-3">
+            <h4 className="font-title font-bold text-sm text-white border-b border-slate-800 pb-2 flex items-center gap-1.5">
+              <Mail className="w-4 h-4 text-sky-400" />
+              <span>தலையங்க அலுவலகம்</span>
             </h4>
-            <div class="space-y-2 text-slate-400">
-              <p class="flex items-center gap-2"><span class="material-symbols-outlined text-[16px] text-brand-red">mail</span>editor@amazetimes.com</p>
-              <p class="flex items-center gap-2"><span class="material-symbols-outlined text-[16px] text-emerald-400">call</span>+91 44 2834 9000</p>
-              <p class="flex items-center gap-2"><span class="material-symbols-outlined text-[16px] text-amber-400">location_on</span>சென்னை தலைமைச் செயலகம் அருகாமையில்</p>
+            <div className="space-y-2 text-slate-400 text-xs">
+              <p className="flex items-center gap-2">
+                <Mail className="w-3.5 h-3.5 text-red-400" />
+                <span>editor@amazetimes.com</span>
+              </p>
+              <p className="flex items-center gap-2">
+                <Phone className="w-3.5 h-3.5 text-emerald-400" />
+                <span>+91 44 2834 9000</span>
+              </p>
+              <p className="flex items-center gap-2">
+                <MapPin className="w-3.5 h-3.5 text-amber-400" />
+                <span>தலைமை அலுவலகம், சென்னை, தமிழ்நாடு</span>
+              </p>
             </div>
           </div>
+
         </div>
 
-        <div class="pt-6 border-t border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-slate-500 font-body">
+        {/* Copyright Bar */}
+        <div className="pt-6 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-slate-500">
           <div>
             © 2026 Amaze Times (அமேஸ் டைம்ஸ்). அனைத்து உரிமைகளும் பாதுகாக்கப்பட்டவை. •{' '}
             <a
-              href="/login"
+              href="/admin"
               onClick={(e) => {
                 e.preventDefault();
-                if (onNavigate) onNavigate('/login');
+                if (onNavigate) onNavigate('/admin');
               }}
-              class="text-slate-400 hover:text-amber-400 underline underline-offset-2 transition-colors cursor-pointer"
+              className="text-slate-400 hover:text-amber-400 underline underline-offset-2 transition-colors cursor-pointer font-bold"
             >
-              ஆசிரியர் &amp; நிருபர் உள்நுழைவு (Staff Login)
+              பணியாளர் & நிருபர் உள்நுழைவு (Admin / Reporter Portal)
             </a>
           </div>
-          <button onClick={() => window.scrollTo({top: 0, behavior: 'smooth'})} class="bg-slate-800 hover:bg-brand-red text-slate-300 hover:text-white px-3 py-1.5 rounded-xl border border-slate-700 transition-all flex items-center gap-1 font-subtitle font-bold cursor-pointer">
+
+          <button
+            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+            className="bg-slate-800 hover:bg-[#0e2a7a] text-slate-300 hover:text-white px-3 py-1.5 rounded-xl border border-slate-700 transition-all flex items-center gap-1.5 font-bold cursor-pointer"
+          >
             <span>மேலே செல்ல</span>
-            <span class="material-symbols-outlined text-[14px]">arrow_upward</span>
+            <ArrowUp className="w-3.5 h-3.5" />
           </button>
         </div>
 

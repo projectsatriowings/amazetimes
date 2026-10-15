@@ -18,6 +18,8 @@ import analyticsRoutes from './routes/analytics.js';
 import uploadRoutes from './routes/upload.js';
 import marketRoutes from './routes/market.js';
 import zodiacRoutes from './routes/zodiac.js';
+import contentRoutes from './routes/content.js';
+import magazineRoutes from './routes/magazines.js';
 
 dotenv.config();
 
@@ -39,6 +41,10 @@ app.use('/uploads', express.static(uploadsPath));
 
 // API Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/users', (req, res, next) => {
+  req.url = '/users' + (req.url === '/' ? '' : req.url);
+  authRoutes(req, res, next);
+});
 app.use('/api/reporters', reporterRoutes);
 app.use('/api/articles', articleRoutes);
 app.use('/api/ticker', tickerRoutes);
@@ -51,6 +57,10 @@ app.use('/api/analytics', analyticsRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/market', marketRoutes);
 app.use('/api/zodiac', zodiacRoutes);
+app.use('/api/content', contentRoutes);
+app.use('/api/magazines', magazineRoutes);
+
+
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

@@ -171,7 +171,7 @@ async function seedAllSections() {
         author_id: reporterId,
         status: "published",
         is_lead: false,
-        cover_image_url: "https://images.unsplash.com/photo-1504917599217-d4dc5ebe6122?auto=format&fit=crop&w=1000&q=80",
+        cover_image_url: "https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=1000&q=80",
         tags: ["சேலம்", "உருக்காலை", "ரயில்வே"]
       },
 
@@ -201,7 +201,7 @@ async function seedAllSections() {
         author_id: reporterId,
         status: "published",
         is_lead: false,
-        cover_image_url: "https://images.unsplash.com/photo-1517976487502-5f6902409745?auto=format&fit=crop&w=1000&q=80",
+        cover_image_url: "https://images.unsplash.com/photo-1541185933-ef5d8ed016c2?auto=format&fit=crop&w=1000&q=80",
         tags: ["இஸ்ரோ", "ககன்யான்", "விண்வெளி"]
       },
       {
@@ -416,7 +416,7 @@ async function seedAllSections() {
         author_id: adminId,
         status: "published",
         is_lead: true,
-        cover_image_url: "https://images.unsplash.com/photo-1600100397608-f010e423b971?auto=format&fit=crop&w=1000&q=80",
+        cover_image_url: "https://images.unsplash.com/photo-1609766857041-ed402ea8069a?auto=format&fit=crop&w=1000&q=80",
         tags: ["ஆன்மிகம்", "மதுரை", "சித்திரைத்திருவிழா"]
       },
       {
@@ -442,7 +442,7 @@ async function seedAllSections() {
         author_id: reporterId,
         status: "published",
         is_lead: false,
-        cover_image_url: "https://images.unsplash.com/photo-1609137144822-4911075677d2?auto=format&fit=crop&w=1000&q=80",
+        cover_image_url: "https://images.unsplash.com/photo-1590050752117-238cb0fb12b1?auto=format&fit=crop&w=1000&q=80",
         tags: ["திருச்செந்தூர்", "முருகன்", "சூரசம்ஹாரம்"]
       },
       {

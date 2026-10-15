@@ -1,4 +1,39 @@
 import React, { useState, useEffect, useRef } from 'react';
+import {
+  ShieldCheck,
+  Calendar,
+  Clock,
+  CloudSun,
+  Sun,
+  Moon,
+  Calculator,
+  Bookmark,
+  Search,
+  X,
+  Radio,
+  FileText,
+  Sparkles,
+  Headphones,
+  Home,
+  Building2,
+  MapPin,
+  TrendingUp,
+  BookOpen,
+  Rss,
+  Flag,
+  Globe,
+  Film,
+  Trophy,
+  PenTool,
+  LogOut,
+  User,
+  ChevronDown,
+  Download,
+  Flame,
+  Coins,
+  Heart,
+  Sliders
+} from 'lucide-react';
 
 export default function Header({
   activeCategory,
@@ -7,74 +42,76 @@ export default function Header({
   isDark,
   fontSizeClass,
   onChangeFontSize,
-  savedBookmarksCount,
+  savedBookmarksCount = 0,
+  likedArticlesCount = 0,
   onOpenBookmarks,
+  onOpenProfileModal,
   onOpenEPaper,
   onOpenLiveTV,
   onOpenDemoGuide,
+  onOpenGoldCalculator,
   onSpeak,
   searchQuery,
   onSearchChange,
-  currentUser,
-  onOpenAuthModal,
-  onOpenAdminConsole,
-  onLogout,
-  onOpenArticleEditor,
-  onOpenVideoUploader,
-  onOpenZodiacDesk,
+  readerUser = null,
+  onGoogleLogin,
+  onOpenUserAuth,
+  onReaderLogout,
   onNavigate
 }) {
-  const [currentTamilDate, setCurrentTamilDate] = useState('புதன், 7 அக்டோபர் 2026');
-  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [currentTamilDate, setCurrentTamilDate] = useState('புதன், 14 அக்டோபர் 2026');
+  const [currentTamilTime, setCurrentTamilTime] = useState('');
+  const [panchangamDate, setPanchangamDate] = useState('புரட்டாசி 28');
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [isInstallModalOpen, setIsInstallModalOpen] = useState(false);
-  const [isInstallBannerVisible, setIsInstallBannerVisible] = useState(false);
-  const [isAppInstalled, setIsAppInstalled] = useState(false);
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
-  const userMenuRef = useRef(null);
+  const [isReaderDropdownOpen, setIsReaderDropdownOpen] = useState(false);
 
+  const dropdownRef = useRef(null);
+
+  // Close reader dropdown on outside click
   useEffect(() => {
-    const now = new Date();
-    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-    try {
-      const dateStr = now.toLocaleDateString('ta-IN', options);
-      if (dateStr) setCurrentTamilDate(dateStr);
-    } catch (e) {}
+    const handleOutsideClick = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setIsReaderDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, []);
 
-    // Check if app is already running as standalone PWA
-    if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
-      setIsAppInstalled(true);
-    }
+  // Tamil Clock and Calendar updater
+  useEffect(() => {
+    const updateTimeAndDate = () => {
+      const now = new Date();
+      const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+      try {
+        const dateStr = now.toLocaleDateString('ta-IN', options);
+        if (dateStr) setCurrentTamilDate(dateStr);
+      } catch (e) {}
 
-    // Capture PWA beforeinstallprompt event
+      // Tamil Time formatting
+      let hours = now.getHours();
+      const minutes = now.getMinutes().toString().padStart(2, '0');
+      const seconds = now.getSeconds().toString().padStart(2, '0');
+      const period = hours >= 12 ? (hours >= 18 ? 'இரவு' : 'மாலை') : (hours < 6 ? 'அதிகாலை' : 'காலை');
+      hours = hours % 12 || 12;
+      setCurrentTamilTime(`${hours}:${minutes}:${seconds} ${period}`);
+    };
+
+    updateTimeAndDate();
+    const timer = setInterval(updateTimeAndDate, 1000);
+
     const handleBeforeInstallPrompt = (e) => {
       e.preventDefault();
       setDeferredPrompt(e);
-      // Auto-trigger custom banner if not previously dismissed in session
-      if (!sessionStorage.getItem('amaze_install_banner_dismissed')) {
-        setIsInstallBannerVisible(true);
-      }
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    window.addEventListener('appinstalled', () => {
-      setIsAppInstalled(true);
-      setDeferredPrompt(null);
-      setIsInstallBannerVisible(false);
-      setIsInstallModalOpen(false);
-    });
-
-    // Close user menu on outside click
-    const handleClickOutside = (e) => {
-      if (userMenuRef.current && !userMenuRef.current.contains(e.target)) {
-        setIsUserMenuOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
 
     return () => {
+      clearInterval(timer);
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-      document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
 
@@ -85,9 +122,7 @@ export default function Header({
         const choice = await deferredPrompt.userChoice;
         if (choice.outcome === 'accepted') {
           setDeferredPrompt(null);
-          setIsAppInstalled(true);
           setIsInstallModalOpen(false);
-          setIsInstallBannerVisible(false);
         }
       } catch (err) {
         console.warn('Install prompt error:', err);
@@ -98,355 +133,519 @@ export default function Header({
   };
 
   const categories = [
-    { id: 'all', label: 'முகப்பு', icon: 'home' },
-    { id: 'tamilnadu', label: 'தமிழ்நாடு', icon: 'account_balance' },
-    { id: 'districts', label: 'மாவட்டங்கள்', icon: 'location_city' },
-    { id: 'india', label: 'இந்தியா', icon: 'flag' },
-    { id: 'world', label: 'உலகம்', icon: 'public' },
-    { id: 'business', label: 'வணிகம்', icon: 'trending_up' },
-    { id: 'sports', label: 'விளையாட்டு', icon: 'sports_cricket' },
-    { id: 'cinema', label: 'சினிமா', icon: 'movie' },
-    { id: 'spiritual', label: 'ஆன்மிகம்', icon: 'auto_awesome' },
-    { id: 'editorial', label: 'தலையங்கம்', icon: 'edit_note' }
+    { id: 'all', label: 'முகப்பு', icon: Home },
+    { id: 'tamilnadu', label: 'தமிழ்நாடு', icon: Building2 },
+    { id: 'districts', label: 'மாவட்டங்கள்', icon: MapPin, badge: 'HOT', badgeColor: 'bg-red-600' },
+    { id: 'business', label: 'வணிகம்', icon: TrendingUp },
+    { id: 'spiritual', label: 'ஆன்மிகம்', icon: Sparkles, badge: 'NEW', badgeColor: 'bg-amber-500' },
+    { id: 'magazine', label: 'மாத இதழ்', icon: BookOpen },
+    { id: 'blogs', label: 'வலைப்பதிவுகள்', icon: Rss },
+    { id: 'india', label: 'தேசியம்', icon: Flag },
+    { id: 'world', label: 'உலகம்', icon: Globe },
+    { id: 'cinema', label: 'சினிமா', icon: Film },
+    { id: 'sports', label: 'விளையாட்டு', icon: Trophy },
+    { id: 'editorial', label: 'தலையங்கம்', icon: PenTool }
+  ];
+
+  const trendingTags = [
+    '#தமிழக_செய்திகள்',
+    '#தங்கம்_விலை_நிலவரம்',
+    '#சென்னை_மெட்ரோ',
+    '#ஐபிஎல்_2026',
+    '#தொழில்_முதலீடு',
+    '#ஆன்மிக_சிறப்பு',
+    '#மாவட்ட_செய்திகள்'
   ];
 
   return (
     <>
-      {/* TOP COMPACT STRIP */}
-      <div class="bg-gradient-to-r from-slate-900 via-brand-blue to-slate-900 dark:from-[#03060C] dark:via-[#091124] dark:to-[#03060C] text-slate-200 text-xs py-1 px-3 sm:px-4 border-b border-white/10 dark:border-amber-500/20 shadow-sm">
-        <div class="max-w-[1380px] mx-auto flex items-center justify-between gap-2">
+      {/* 1. TOP UTILITY STRIP */}
+      <div className="bg-[#091538] text-slate-100 text-xs py-1.5 px-2.5 sm:px-4 border-b border-white/10 shadow-sm transition-colors w-full max-w-full relative z-50">
+        <div className="max-w-[1400px] mx-auto flex items-center justify-between gap-1.5 sm:gap-3 flex-nowrap min-w-0">
           
-          {/* Left: Tamil Date & Registration Badge */}
-          <div class="flex items-center gap-2 text-slate-300 text-[10px] sm:text-[11px] min-w-0">
-            <span class="inline-flex items-center gap-1 font-bold text-amber-300 bg-white/10 px-2 py-0.5 rounded border border-white/15 flex-shrink-0">
-              <span class="material-symbols-outlined text-[12px] sm:text-[13px]">verified</span>
+          {/* Left: Tamil Panchangam Date, Clock, Registration & Weather */}
+          <div className="flex items-center gap-1.5 sm:gap-3 text-slate-300 text-[11px] min-w-0 shrink">
+            {/* PRGI Verified Badge (Desktop & Tablet) */}
+            <span className="hidden sm:inline-flex items-center gap-1.5 font-bold text-amber-300 bg-white/10 px-2 py-0.5 rounded-lg border border-white/15 shrink-0">
+              <ShieldCheck className="w-3.5 h-3.5 text-amber-300" />
               <span>PRGI TNBIL/2023/88656</span>
             </span>
-            <span class="hidden sm:inline text-white/20">|</span>
-            <span class="hidden xs:inline-flex items-center gap-1 truncate">
-              <span class="material-symbols-outlined text-[13px] sm:text-[14px] text-red-400 flex-shrink-0">calendar_month</span>
-              <span class="truncate">{currentTamilDate}</span>
+
+            {/* Mobile Compact Date */}
+            <span className="inline-flex sm:hidden items-center gap-1 font-bold text-amber-300 text-[10px] truncate max-w-[110px]">
+              <Calendar className="w-3 h-3 text-amber-400 shrink-0" />
+              <span className="truncate">{panchangamDate || 'அமேஸ் டைம்ஸ்'}</span>
             </span>
+
+            <span className="hidden sm:inline text-white/20">|</span>
+
+            {/* Tamil Date & Panchangam (Desktop) */}
+            <span className="hidden md:inline-flex items-center gap-1.5 font-medium text-slate-200 truncate">
+              <Calendar className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+              <span>{currentTamilDate}</span>
+              <span className="text-amber-300 font-bold">({panchangamDate})</span>
+            </span>
+
+            {/* Running Clock */}
+            {currentTamilTime && (
+              <span className="hidden lg:inline-flex items-center gap-1.5 text-slate-300 font-mono text-[11px]">
+                <Clock className="w-3.5 h-3.5 text-emerald-400" />
+                <span>{currentTamilTime}</span>
+              </span>
+            )}
+
+            <span className="hidden xl:inline text-white/20">|</span>
+
+            {/* Multi-City Weather Pills */}
+            <div className="hidden xl:flex items-center gap-2 text-[11px] font-semibold text-slate-300">
+              <span className="inline-flex items-center gap-1 bg-white/5 px-2 py-0.5 rounded-lg border border-white/10">
+                <CloudSun className="w-3.5 h-3.5 text-amber-400" />
+                <span>சென்னை:</span>
+                <span className="text-amber-300 font-black">31°C</span>
+              </span>
+              <span className="inline-flex items-center gap-1 bg-white/5 px-2 py-0.5 rounded-lg border border-white/10">
+                <Sun className="w-3.5 h-3.5 text-amber-300" />
+                <span>மதுரை:</span>
+                <span className="text-amber-300 font-black">33°C</span>
+              </span>
+            </div>
           </div>
 
-          {/* Right: Accessibility & App Controls */}
-          <div class="flex items-center gap-1.5 sm:gap-2 font-subtitle text-xs flex-shrink-0">
-            {/* Text Size Resizer */}
-            <div class="flex items-center bg-white/10 rounded-lg px-1.5 sm:px-2 py-0.5 gap-0.5 sm:gap-1 border border-white/20 text-[10px] sm:text-[11px] text-slate-200" title="எழுத்து அளவு மாற்றம்">
-              <span class="hidden sm:inline text-[10px] text-slate-300 font-bold pr-0.5">எழுத்து:</span>
-              <button onClick={() => onChangeFontSize('font-size-sm')} class="hover:text-amber-300 font-bold px-1 rounded transition-colors cursor-pointer">A-</button>
-              <button onClick={() => onChangeFontSize('font-size-md')} class="hover:text-amber-300 font-bold px-1 rounded transition-colors cursor-pointer">A</button>
-              <button onClick={() => onChangeFontSize('font-size-lg')} class="hover:text-amber-300 font-bold px-1 rounded transition-colors cursor-pointer">A+</button>
+          {/* Right: Gold Rate Ticker with Calculator Button + Accessibility & Google User Auth */}
+          <div className="flex items-center gap-1.5 sm:gap-2.5 text-xs shrink-0 ml-auto">
+            
+            {/* Live Gold Rate + Calculator Trigger */}
+            <div className="flex items-center gap-1 sm:gap-1.5 bg-amber-500/20 text-amber-300 px-1.5 sm:px-2.5 py-0.5 rounded-lg border border-amber-400/30 text-[10px] sm:text-[11px] font-bold shrink-0">
+              <Coins className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-300 shrink-0" />
+              <span className="hidden sm:inline">தங்கம்:</span>
+              <span className="text-white font-black whitespace-nowrap">₹7,280</span>
+              <button
+                onClick={onOpenGoldCalculator}
+                className="bg-[#0e2a7a] hover:bg-[#0a1f5c] text-amber-300 border border-amber-400/40 px-1.5 sm:px-2 py-0.5 rounded text-[9px] sm:text-[10px] font-extrabold transition-all cursor-pointer shadow-sm flex items-center gap-0.5"
+                title="தங்கம் விலை கணக்கீட்டுக் கருவி"
+              >
+                <Calculator className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-amber-300" />
+                <span className="hidden xs:inline">கணக்கிடு</span>
+              </button>
             </div>
 
-            {/* Dark Mode Toggle */}
-            <button onClick={onToggleDarkMode} class="flex items-center gap-1 bg-white/10 hover:bg-white/20 hover:text-amber-300 px-2 sm:px-2.5 py-0.5 rounded-lg transition-all border border-white/20 text-slate-200 cursor-pointer text-[10px] sm:text-[11px] font-bold shadow-sm" title="இருள் / பகல் பார்வை">
-              <span class="material-symbols-outlined text-[15px] sm:text-[16px] text-amber-300">
-                {isDark ? 'light_mode' : 'dark_mode'}
-              </span>
-              <span class="hidden md:inline font-medium">
-                {isDark ? 'பகல் பார்வை' : 'இரவுப் பார்வை'}
-              </span>
+            <span className="hidden sm:inline text-white/20">|</span>
+
+            {/* Font Size Adjuster */}
+            <div className="hidden sm:flex items-center bg-white/10 rounded-lg px-2 py-0.5 gap-1 border border-white/20 text-[11px] text-slate-200" title="எழுத்து அளவு">
+              <button onClick={() => onChangeFontSize('font-size-sm')} className="hover:text-amber-300 font-bold px-1 cursor-pointer">A-</button>
+              <button onClick={() => onChangeFontSize('font-size-md')} className="hover:text-amber-300 font-bold px-1 cursor-pointer">A</button>
+              <button onClick={() => onChangeFontSize('font-size-lg')} className="hover:text-amber-300 font-bold px-1 cursor-pointer">A+</button>
+            </div>
+
+            {/* Dark / Light Mode Toggle */}
+            <button 
+              onClick={onToggleDarkMode} 
+              className="flex items-center gap-1 bg-white/10 hover:bg-white/20 hover:text-amber-300 px-1.5 sm:px-2.5 py-0.5 rounded-lg transition-all border border-white/20 text-slate-200 cursor-pointer text-[10px] sm:text-[11px] font-bold shrink-0"
+              title={isDark ? 'பகல் பார்வைக்கு மாறுக' : 'இரவு பார்வைக்கு மாறுக'}
+            >
+              {isDark ? (
+                <>
+                  <Sun className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-300" />
+                  <span className="hidden md:inline">பகல்</span>
+                </>
+              ) : (
+                <>
+                  <Moon className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-300" />
+                  <span className="hidden md:inline">இரவு</span>
+                </>
+              )}
             </button>
 
-            {/* Saved Articles Launcher with Star Icon */}
-            <button onClick={onOpenBookmarks} class="bg-[#DC2626] hover:bg-red-700 text-white px-2 sm:px-2.5 py-0.5 rounded-lg font-subtitle font-bold text-[10px] sm:text-[11px] transition-all shadow flex items-center gap-1 sm:gap-1.5 cursor-pointer" title="சேமித்த செய்திகள்">
-              <span class="material-symbols-outlined text-[14px] sm:text-[15px]">star</span>
-              <span class="hidden sm:inline">சேமிப்புகள்</span>
-              <span class="bookmark-count-badge text-[10px] font-black rounded-full w-4 h-4 flex items-center justify-center shadow-inner flex-shrink-0">
+            {/* Saved Bookmarks (Desktop / Tablet) - Royal Blue with Yellow Text */}
+            <button 
+              onClick={onOpenBookmarks} 
+              className="hidden sm:flex bg-[#0e2a7a] hover:bg-[#0a1f5c] text-amber-300 border border-blue-400/40 px-2.5 py-0.5 rounded-lg font-extrabold text-[11px] transition-all shadow-sm items-center gap-1.5 cursor-pointer shrink-0" 
+              title="சேமித்த செய்திகள்"
+            >
+              <Bookmark className="w-3.5 h-3.5 text-amber-400" />
+              <span className="hidden sm:inline">சேமித்தவை</span>
+              <span className="bg-amber-400 text-slate-950 text-[10px] font-black rounded-full w-4 h-4 flex items-center justify-center">
                 {savedBookmarksCount}
               </span>
             </button>
-          </div>
 
-        </div>
-      </div>
+            {/* Google Reader User Sign-In / Profile - Royal Blue with Yellow Text */}
+            <div className="relative shrink-0 z-50" ref={dropdownRef}>
+              {readerUser ? (
+                <div>
+                  <button
+                    onClick={() => setIsReaderDropdownOpen(!isReaderDropdownOpen)}
+                    className="flex items-center gap-1 sm:gap-1.5 bg-[#0e2a7a] hover:bg-[#0a1f5c] text-amber-300 font-extrabold text-[10px] sm:text-[11px] px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-lg border border-blue-400/40 transition-all cursor-pointer shadow-sm shrink-0"
+                  >
+                    <img
+                      src={readerUser.avatar_url || readerUser.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(readerUser.full_name || readerUser.name || 'User')}&background=DC2626&color=fff&size=128&bold=true`}
+                      alt={readerUser.full_name || readerUser.name}
+                      className="w-4 h-4 sm:w-5 sm:h-5 rounded-full object-cover ring-1 ring-amber-400 shrink-0"
+                    />
+                    <span className="font-extrabold max-w-[70px] sm:max-w-[120px] truncate">{readerUser.full_name || readerUser.name}</span>
+                    <ChevronDown className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-amber-300/80 shrink-0" />
+                  </button>
 
-      {/* COMPACT SINGLE-LINE BRAND HEADER */}
-      <header class="sticky top-0 z-50 bg-white/98 dark:bg-[#0D1424]/98 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800 shadow-sm transition-all">
-        <div class="max-w-[1380px] mx-auto px-3 sm:px-4 py-1.5 space-y-1 sm:space-y-1.5">
-          
-          {/* BRAND EMBLEM & TOOLBAR ROW */}
-          <div class="flex items-center justify-between gap-2 sm:gap-3">
-            
-            {/* Left: Compact Logo & Title */}
-            <div class="flex items-center gap-2 sm:gap-2.5 cursor-pointer group flex-shrink-0" onClick={() => window.scrollTo({top:0, behavior:'smooth'})}>
-              <div class="bg-white p-1 rounded-xl shadow-md ring-2 ring-brand-red/50 group-hover:ring-amber-400 transition-all border border-slate-200 dark:border-slate-700 flex items-center justify-center">
-                <img src="/Amaze times.jpg" alt="அமேஸ் டைம்ஸ்" class="h-8 sm:h-9 md:h-11 w-auto object-contain rounded-lg"/>
-              </div>
-              <div class="flex flex-col text-left">
-                <div class="flex items-center gap-1.5 sm:gap-2 flex-nowrap">
-                  <span class="font-title brand-title-text font-extrabold text-lg sm:text-2xl md:text-3xl text-slate-900 dark:text-red-500 group-hover:text-brand-red dark:group-hover:text-yellow-400 transition-colors whitespace-nowrap leading-none">
-                    அமேஸ் டைம்ஸ்
-                  </span>
-                  <span class="bg-[#DC2626] text-white text-[8px] sm:text-[10px] font-subtitle font-black px-1.5 sm:px-2 py-0.5 rounded-md uppercase tracking-wider flex-shrink-0 shadow-sm">
-                    DIGITAL
-                  </span>
+                  {/* Dropdown Menu */}
+                  {isReaderDropdownOpen && (
+                    <div className="absolute right-0 top-full mt-2 w-64 bg-white dark:bg-[#0c1427] text-slate-800 dark:text-slate-100 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 py-2 z-[9999] animate-in fade-in slide-in-from-top-1 duration-150">
+                      <div className="px-3.5 py-2.5 border-b border-slate-100 dark:border-slate-800/80">
+                        <div className="flex items-center gap-1.5">
+                          <p className="font-extrabold text-xs text-slate-900 dark:text-white truncate">
+                            {readerUser.full_name || readerUser.name}
+                          </p>
+                          <span className="bg-emerald-950/80 text-emerald-400 border border-emerald-600/60 text-[9px] font-bold px-1.5 py-0.2 rounded-full shrink-0">
+                            செயலில்
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-slate-500 dark:text-slate-400 font-sans truncate">{readerUser.email}</p>
+                      </div>
+
+                      <div className="py-1">
+                        <button
+                          onClick={() => {
+                            setIsReaderDropdownOpen(false);
+                            if (onOpenProfileModal) onOpenProfileModal('profile');
+                          }}
+                          className="w-full px-3.5 py-2 text-left text-xs font-bold hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2.5 text-slate-700 dark:text-slate-200 cursor-pointer transition"
+                        >
+                          <User className="w-3.5 h-3.5 text-blue-500" />
+                          <span>எனது சுயவிவரம் (My Profile)</span>
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            setIsReaderDropdownOpen(false);
+                            if (onOpenProfileModal) onOpenProfileModal('saved');
+                            else if (onOpenBookmarks) onOpenBookmarks();
+                          }}
+                          className="w-full px-3.5 py-2 text-left text-xs font-bold hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-between text-slate-700 dark:text-slate-200 cursor-pointer transition"
+                        >
+                          <div className="flex items-center gap-2.5">
+                            <Bookmark className="w-3.5 h-3.5 text-amber-500" />
+                            <span>சேமித்த செய்திகள்</span>
+                          </div>
+                          <span className="bg-amber-400 text-slate-950 font-black text-[10px] px-1.5 py-0.2 rounded-full font-mono">
+                            {savedBookmarksCount}
+                          </span>
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            setIsReaderDropdownOpen(false);
+                            if (onOpenProfileModal) onOpenProfileModal('liked');
+                          }}
+                          className="w-full px-3.5 py-2 text-left text-xs font-bold hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-between text-slate-700 dark:text-slate-200 cursor-pointer transition"
+                        >
+                          <div className="flex items-center gap-2.5">
+                            <Heart className="w-3.5 h-3.5 text-rose-500" />
+                            <span>விருப்பமான செய்திகள்</span>
+                          </div>
+                          <span className="bg-rose-500 text-white font-black text-[10px] px-1.5 py-0.2 rounded-full font-mono">
+                            {likedArticlesCount}
+                          </span>
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            setIsReaderDropdownOpen(false);
+                            if (onOpenProfileModal) onOpenProfileModal('history');
+                          }}
+                          className="w-full px-3.5 py-2 text-left text-xs font-bold hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2.5 text-slate-700 dark:text-slate-200 cursor-pointer transition"
+                        >
+                          <Clock className="w-3.5 h-3.5 text-indigo-400" />
+                          <span>படித்த வரலாறு (History)</span>
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            setIsReaderDropdownOpen(false);
+                            if (onOpenProfileModal) onOpenProfileModal('preferences');
+                          }}
+                          className="w-full px-3.5 py-2 text-left text-xs font-bold hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2.5 text-slate-700 dark:text-slate-200 cursor-pointer transition"
+                        >
+                          <Sliders className="w-3.5 h-3.5 text-emerald-400" />
+                          <span>வாசகர் விருப்பங்கள்</span>
+                        </button>
+                      </div>
+
+                      <div className="border-t border-slate-100 dark:border-slate-800/80 my-1"></div>
+
+                      <button
+                        onClick={() => {
+                          setIsReaderDropdownOpen(false);
+                          if (onReaderLogout) onReaderLogout();
+                        }}
+                        className="w-full px-3.5 py-2 text-left text-xs font-bold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 flex items-center gap-2.5 cursor-pointer transition"
+                      >
+                        <LogOut className="w-3.5 h-3.5 text-red-500" />
+                        <span>வெளியேறு (Logout)</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
-                <span class="text-slate-600 dark:text-slate-300 text-[9px] sm:text-xs font-subtitle font-bold flex items-center gap-1 mt-0.5 whitespace-nowrap group-hover:text-brand-red dark:group-hover:text-amber-400 transition-colors">
-                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                  <span>உண்மை உடனுக்குடன்</span>
-                  <span class="hidden md:inline">• தமிழ்நாட்டின் முதன்மை டிஜிட்டல் நாளிதழ்</span>
-                </span>
-              </div>
-            </div>
-
-            {/* Right: Action Bar */}
-            <div class="flex items-center gap-1 sm:gap-1.5 flex-nowrap justify-end flex-shrink-0">
-              
-              {/* Mobile Search Toggle Button */}
-              <button
-                onClick={() => setIsMobileSearchOpen(!isMobileSearchOpen)}
-                class="md:hidden w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 flex items-center justify-center hover:bg-brand-red hover:text-white transition-colors cursor-pointer"
-                title="செய்திகளைத் தேடுக"
-              >
-                <span class="material-symbols-outlined text-[18px]">
-                  {isMobileSearchOpen ? 'close' : 'search'}
-                </span>
-              </button>
-
-              {/* Desktop Search Bar */}
-              <div class="relative hidden md:block w-36 lg:w-52">
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => onSearchChange(e.target.value)}
-                  placeholder="செய்திகளைத் தேடுக..."
-                  class="w-full bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg pl-8 pr-2.5 py-1.5 text-xs font-semibold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-red/40 transition-all"
-                />
-                <span class="material-symbols-outlined absolute left-2 top-2 text-slate-400 text-[16px]">search</span>
-              </div>
-
-              {/* TTS Voice News Button */}
-              <button onClick={() => onSpeak('அமேஸ் டைம்ஸ் தலைப்புச் செய்தி: தமிழக பட்ஜெட் 2025 தாக்கல் செய்யப்பட்டது.')} class="voice-news-btn hidden lg:flex items-center gap-1 bg-blue-50 dark:bg-slate-800 hover:bg-amber-400 hover:text-slate-950 hover:border-amber-400 text-brand-blue dark:text-amber-300 text-xs font-subtitle font-bold px-2.5 py-1.5 rounded-lg border border-blue-200 dark:border-slate-700 transition-all cursor-pointer shadow-sm hover:shadow-md hover:scale-105" title="குரல் செய்திகள் கேட்க">
-                <span class="material-symbols-outlined text-[16px]">volume_up</span>
-                <span class="hidden xl:inline">குரல் செய்தி</span>
-              </button>
-
-              {/* Demo Showcase Button */}
-              <button onClick={onOpenDemoGuide} class="bg-amber-500 hover:bg-amber-400 text-slate-950 hover:text-red-600 font-subtitle font-extrabold text-[11px] sm:text-xs px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg transition-all shadow flex items-center gap-1 whitespace-nowrap cursor-pointer" title="தள வசதிகள் பார்க்க">
-                <span class="material-symbols-outlined text-[15px] sm:text-[16px]">auto_awesome</span>
-                <span class="hidden sm:inline">தள வசதிகள்</span>
-              </button>
-
-              {/* Solid Red E-Paper Button */}
-              <button onClick={onOpenEPaper} class="bg-[#DC2626] hover:bg-red-700 text-white font-subtitle text-[11px] sm:text-xs font-bold px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg transition-all shadow flex items-center gap-1 whitespace-nowrap cursor-pointer">
-                <span class="material-symbols-outlined text-[15px] sm:text-[16px]">newspaper</span>
-                <span>இ-பேப்பர்</span>
-              </button>
-
-              {/* Live TV Button */}
-              <button onClick={onOpenLiveTV} class="flex items-center gap-1 text-[11px] sm:text-xs font-subtitle font-bold text-amber-600 dark:text-amber-300 bg-amber-50 dark:bg-slate-800 hover:bg-amber-500 hover:text-white px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-lg border border-amber-300/50 transition-all cursor-pointer">
-                <span class="w-2 h-2 rounded-full bg-red-500 animate-ping"></span>
-                <span class="hidden sm:inline">நேரலை TV</span>
-                <span class="sm:hidden">Live</span>
-              </button>
-
-              {/* Admin / Staff Login Button */}
-              {currentUser ? (
-                <button
-                  onClick={() => onNavigate ? onNavigate('/admin') : (window.location.href = '/admin')}
-                  class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-subtitle font-black text-xs px-2.5 sm:px-3 py-1.5 rounded-lg transition-all shadow flex items-center gap-1 whitespace-nowrap cursor-pointer hover:scale-105"
-                  title="நிர்வாகக் குழு பக்கம்"
-                >
-                  <span class="material-symbols-outlined text-[16px]">admin_panel_settings</span>
-                  <span>{currentUser.role === 'admin' ? 'நிர்வாகம் (Admin)' : 'செய்தியாளர் (Desk)'}</span>
-                </button>
               ) : (
                 <button
-                  onClick={() => onNavigate ? onNavigate('/login') : (window.location.href = '/login')}
-                  class="bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-subtitle font-bold text-xs px-2.5 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 transition-all flex items-center gap-1 whitespace-nowrap cursor-pointer"
-                  title="ஆசிரியர் & நிருபர் உள்நுழைவு"
+                  onClick={onOpenUserAuth || onGoogleLogin}
+                  className="bg-[#0e2a7a] hover:bg-[#0a1f5c] text-amber-300 font-extrabold text-[10px] sm:text-[11px] px-2 sm:px-3 py-0.5 sm:py-1 rounded-lg border border-blue-400/40 transition-all flex items-center gap-1 cursor-pointer shadow-sm hover:scale-105 active:scale-95 shrink-0"
+                  title="உள்நுழைவு / புதிய வாசகர் பதிவு"
                 >
-                  <span class="material-symbols-outlined text-[15px] text-amber-500">lock</span>
-                  <span class="hidden xl:inline">உள்நுழைவு</span>
+                  <User className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-400 shrink-0" />
+                  <span className="font-extrabold hidden xs:inline">உள்நுழைவு / பதிவு</span>
                 </button>
               )}
             </div>
 
           </div>
 
+        </div>
+      </div>
+
+      {/* 2. MAIN BRAND HEADER */}
+      <header className="bg-white dark:bg-[#070d1e] border-b border-slate-200 dark:border-slate-800 transition-colors w-full max-w-full overflow-hidden">
+        <div className="max-w-[1400px] mx-auto px-2.5 sm:px-4 py-2 sm:py-2.5">
+          <div className="flex items-center justify-between gap-1.5 sm:gap-6 min-w-0">
+            
+            {/* Brand Logo & Editorial Title */}
+            <div 
+              className="flex items-center gap-2 sm:gap-3.5 cursor-pointer group shrink min-w-0"
+              onClick={() => {
+                if (onSelectCategory) onSelectCategory('all');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+            >
+              <div className="bg-white p-1 rounded-xl sm:rounded-2xl shadow-sm ring-1 sm:ring-2 ring-[#0e2a7a]/40 group-hover:ring-amber-400 transition-all border border-slate-200 flex items-center justify-center shrink-0">
+                <img src="/Amaze times.jpg" alt="அமேஸ் டைம்ஸ்" className="h-8 sm:h-12 md:h-14 w-auto object-contain rounded-lg sm:rounded-xl" />
+              </div>
+              <div className="flex flex-col text-left min-w-0">
+                <div className="flex items-center gap-1.5 sm:gap-2 flex-nowrap">
+                  <span className="font-title font-black text-lg sm:text-3xl md:text-4xl text-[#0a1945] dark:text-slate-100 group-hover:text-red-600 dark:group-hover:text-amber-400 transition-colors whitespace-nowrap leading-tight">
+                    அமேஸ் டைம்ஸ்
+                  </span>
+                  <span className="bg-red-600 text-white text-[8px] sm:text-[10px] font-black px-1 sm:px-2 py-0.5 rounded uppercase tracking-wider shadow-sm shrink-0">
+                    DIGITAL
+                  </span>
+                </div>
+                <span className="text-slate-600 dark:text-slate-300 text-[9px] sm:text-xs font-semibold hidden sm:flex items-center gap-1.5 mt-0.5 whitespace-nowrap">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                  <span className="font-bold text-red-600 dark:text-amber-400">உண்மையின் தீரக் குரல்</span>
+                  <span className="hidden sm:inline">• தமிழ்நாடு, வணிகம் & தங்கம் செய்திகள்</span>
+                </span>
+              </div>
+            </div>
+
+            {/* Center/Right Toolbar & Actions */}
+            <div className="flex items-center gap-1.5 sm:gap-3 justify-end shrink-0">
+              
+              {/* Desktop Search Bar */}
+              <div className="relative hidden md:block w-48 lg:w-64">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => onSearchChange(e.target.value)}
+                  placeholder="செய்திகளைத் தேடுக... (எ.கா. தங்கம், பட்ஜெட்)"
+                  className="w-full bg-slate-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 rounded-xl pl-9 pr-7 py-2 text-xs font-medium text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#0e2a7a] transition-all shadow-inner"
+                />
+                <Search className="w-4 h-4 text-slate-400 absolute left-2.5 top-2.5" />
+                {searchQuery && (
+                  <button
+                    onClick={() => onSearchChange('')}
+                    className="absolute right-2 top-2 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+
+              {/* Mobile Search Button */}
+              <button
+                onClick={() => setIsMobileSearchOpen(!isMobileSearchOpen)}
+                className="md:hidden w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 flex items-center justify-center hover:bg-red-600 hover:text-white transition-colors cursor-pointer shrink-0"
+                title="தேடுக"
+              >
+                {isMobileSearchOpen ? <X className="w-3.5 h-3.5" /> : <Search className="w-3.5 h-3.5" />}
+              </button>
+
+              {/* AI Voice Anchor Button (Desktop) */}
+              <button 
+                onClick={() => onSpeak('அமேஸ் டைம்ஸ் நேரலைச் செய்தி: தமிழ்நாடு மற்றும் வணிக உலக நிகழ்வுகள் உடனுக்குடன் வழங்கப்படுகின்றன.')} 
+                className="hidden xl:flex items-center gap-1.5 bg-blue-50 dark:bg-slate-800 hover:bg-amber-400 hover:text-slate-950 text-[#0e2a7a] dark:text-amber-300 text-xs font-bold px-3 py-2 rounded-xl border border-blue-200 dark:border-slate-700 transition-all cursor-pointer shadow-sm hover:scale-105" 
+                title="AI குரல் செய்திகள் கேட்க"
+              >
+                <Headphones className="w-4 h-4 text-amber-500" />
+                <span>AI செய்தி வாசிப்பாளர்</span>
+              </button>
+
+              {/* Live 24x7 Broadcast Button */}
+              <button 
+                onClick={onOpenLiveTV} 
+                className="flex items-center gap-1 bg-red-50 dark:bg-slate-800 hover:bg-red-600 hover:text-white text-red-600 dark:text-red-400 text-[11px] sm:text-xs font-bold px-2 sm:px-3 py-1.5 sm:py-2 rounded-xl border border-red-200 dark:border-red-900/40 transition-all cursor-pointer shadow-sm shrink-0"
+                title="24x7 நேரலை ஒளிபரப்பு"
+              >
+                <Radio className="w-3.5 h-3.5 text-red-500 animate-pulse shrink-0" />
+                <span className="font-extrabold hidden xs:inline">24x7</span>
+                <span className="font-extrabold hidden sm:inline"> நேரலை</span>
+              </button>
+
+              {/* E-Paper Digital Edition Button */}
+              <button 
+                onClick={onOpenEPaper} 
+                className="bg-[#0e2a7a] hover:bg-[#0a1f5c] text-white font-bold text-[11px] sm:text-xs px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl transition-all shadow-md flex items-center gap-1 sm:gap-1.5 cursor-pointer shrink-0"
+                title="டிஜிட்டல் இ-பேப்பர் படிக்க"
+              >
+                <FileText className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                <span>மின்-இதழ்</span>
+              </button>
+
+              {/* Feature Guide Showcase - Royal Blue with Yellow Text */}
+              <button 
+                onClick={onOpenDemoGuide} 
+                className="hidden lg:flex items-center gap-1.5 bg-[#0e2a7a] hover:bg-[#0a1f5c] text-amber-300 font-extrabold text-xs px-3 py-2 rounded-xl transition-all shadow-sm cursor-pointer hover:scale-105 border border-blue-400/40"
+                title="தளத்தின் புதிய சிறப்பம்சங்கள்"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                <span>தள வசதிகள்</span>
+              </button>
+
+            </div>
+
+          </div>
+
           {/* Expandable Mobile Search Bar */}
           {isMobileSearchOpen && (
-            <div class="md:hidden pt-1 pb-0.5 animate-in slide-in-from-top-1 duration-200">
-              <div class="relative w-full">
+            <div className="md:hidden pt-2 pb-1 animate-in slide-in-from-top-1 duration-200 w-full min-w-0">
+              <div className="relative w-full">
                 <input
                   type="text"
                   autoFocus
                   value={searchQuery}
                   onChange={(e) => onSearchChange(e.target.value)}
-                  placeholder="செய்திகளைத் தேடுக... (எ.கா. பட்ஜெட், சென்னை)"
-                  class="w-full bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl pl-9 pr-8 py-2 text-xs font-semibold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-red/50 shadow-inner"
+                  placeholder="செய்திகளைத் தேடுக... (எ.கா. தங்கம், சென்னை)"
+                  className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl pl-9 pr-8 py-2 text-xs font-semibold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-red-600 shadow-inner"
                 />
-                <span class="material-symbols-outlined absolute left-2.5 top-2.5 text-slate-400 text-[18px]">search</span>
+                <Search className="w-4 h-4 text-slate-400 absolute left-2.5 top-2.5" />
                 {searchQuery && (
                   <button
                     onClick={() => onSearchChange('')}
-                    class="absolute right-2.5 top-2 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
+                    className="absolute right-2.5 top-2 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
                   >
-                    <span class="material-symbols-outlined text-[16px]">close</span>
+                    <X className="w-3.5 h-3.5" />
                   </button>
                 )}
               </div>
             </div>
           )}
 
-          {/* MASTER CATEGORY NAVIGATION RIBBON */}
-          <div class="border-t border-slate-200 dark:border-slate-800 pt-1 -mx-3 sm:mx-0 px-3 sm:px-0 overflow-x-auto scrollbar-none">
-            <nav class="flex items-center gap-1 text-xs font-bold whitespace-nowrap min-w-max py-0.5">
-              {categories.map((cat) => {
-                const isActive = activeCategory === cat.id;
-                return (
-                  <button
-                    key={cat.id}
-                    onClick={() => onSelectCategory(cat.id)}
-                    class={
-                      isActive
-                        ? "px-2.5 sm:px-3 py-1 rounded-lg bg-[#DC2626] text-white shadow-sm transition-all flex items-center gap-1 font-bold text-xs flex-shrink-0"
-                        : "px-2 sm:px-2.5 py-1 rounded-lg text-slate-800 dark:text-slate-200 hover:text-amber-400 hover:bg-slate-900/90 dark:hover:bg-slate-800 transition-all flex items-center gap-1 font-bold text-xs cursor-pointer flex-shrink-0"
-                    }
-                  >
-                    <span class="material-symbols-outlined text-[14px] sm:text-[15px]">{cat.icon}</span>
-                    <span>{cat.label}</span>
-                  </button>
-                );
-              })}
-            </nav>
-          </div>
-
         </div>
       </header>
 
-      {/* PWA INSTALLATION POPUP MODAL (Requested with 'Install Now' button) */}
+      {/* 3. TRENDING HASHTAGS STRIP */}
+      <div className="bg-slate-100 dark:bg-[#0a1630] border-b border-slate-200 dark:border-slate-800/80 py-1.5 px-2.5 sm:px-4 text-xs font-bold w-full max-w-full overflow-hidden">
+        <div className="max-w-[1400px] mx-auto flex items-center gap-2 overflow-x-auto scrollbar-none touch-pan-x min-w-0">
+          <div className="flex items-center gap-1 text-red-600 dark:text-amber-400 uppercase text-[11px] font-black shrink-0 tracking-wider">
+            <Flame className="w-3.5 h-3.5 text-red-600 dark:text-amber-400" />
+            <span>டிரெண்டிங்:</span>
+          </div>
+          <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300 whitespace-nowrap text-xs font-semibold">
+            {trendingTags.map((tag, idx) => (
+              <button
+                key={idx}
+                onClick={() => onSearchChange(tag.replace('#', '').replace(/_/g, ' '))}
+                className="hover:text-red-600 dark:hover:text-amber-300 bg-white dark:bg-slate-800/90 text-slate-700 dark:text-slate-200 px-2.5 py-0.5 rounded-full border border-slate-200 dark:border-slate-700 shadow-2xs hover:shadow transition-all cursor-pointer shrink-0"
+              >
+                {tag}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* 4. STICKY CATEGORY NAVIGATION BAR */}
+      <nav className="sticky top-0 z-40 bg-white/95 dark:bg-[#070d1e]/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 shadow-xs transition-colors w-full max-w-full overflow-hidden">
+        <div className="max-w-[1400px] mx-auto px-2.5 sm:px-4 overflow-x-auto scrollbar-none touch-pan-x min-w-0">
+          <div className="flex items-center gap-1 sm:gap-1.5 text-xs font-bold whitespace-nowrap min-w-max py-1.5">
+            {categories.map((cat) => {
+              const isActive = activeCategory === cat.id;
+              const IconComponent = cat.icon;
+              return (
+                <button
+                  key={cat.id}
+                  onClick={() => onSelectCategory(cat.id)}
+                  className={`relative px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 font-bold text-xs shrink-0 cursor-pointer ${
+                    isActive
+                      ? 'bg-[#0e2a7a] text-white shadow-md'
+                      : 'text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-[#0e2a7a] dark:hover:text-amber-300'
+                  }`}
+                >
+                  <IconComponent className={`w-3.5 h-3.5 ${isActive ? 'text-amber-400' : 'text-slate-500 dark:text-slate-400'}`} />
+                  <span>{cat.label}</span>
+                  {cat.badge && (
+                    <span className={`text-[8px] font-black px-1.5 py-0.2 rounded-full text-white uppercase ml-0.5 ${cat.badgeColor || 'bg-red-600'}`}>
+                      {cat.badge}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </nav>
+
+      {/* PWA INSTALLATION POPUP MODAL */}
       {isInstallModalOpen && (
-        <div class="fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-4 animate-in fade-in">
-          <div class="bg-white dark:bg-[#0E1628] rounded-3xl max-w-md w-full p-6 text-center space-y-5 shadow-2xl border border-slate-200 dark:border-slate-800 relative">
-            
-            {/* Close Button */}
+        <div className="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in" onClick={() => setIsInstallModalOpen(false)}>
+          <div 
+            className="bg-white dark:bg-[#0d1627] rounded-3xl max-w-md w-full p-6 text-center space-y-4 shadow-2xl border border-slate-200 dark:border-slate-800 relative text-slate-900 dark:text-slate-100"
+            onClick={(e) => e.stopPropagation()}
+          >
             <button
               onClick={() => setIsInstallModalOpen(false)}
-              class="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-brand-red hover:text-white flex items-center justify-center transition-colors cursor-pointer text-slate-500"
+              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-red-600 hover:text-white flex items-center justify-center transition-colors cursor-pointer text-slate-500"
             >
-              <span class="material-symbols-outlined text-[18px]">close</span>
+              <X className="w-4 h-4" />
             </button>
 
-            {/* App Emblem */}
-            <div class="flex items-center justify-center gap-3">
-              <div class="w-16 h-16 rounded-2xl bg-white p-1.5 shadow-xl ring-2 ring-brand-red/40 flex items-center justify-center">
-                <img src="/Amaze times.jpg" alt="Amaze Times" class="w-full h-full object-contain rounded-xl" />
+            <div className="flex items-center justify-center">
+              <div className="w-16 h-16 rounded-2xl bg-white p-1.5 shadow-xl ring-2 ring-[#0e2a7a]/40 flex items-center justify-center">
+                <img src="/Amaze times.jpg" alt="Amaze Times" className="w-full h-full object-contain rounded-xl" />
               </div>
             </div>
 
             <div>
-              <h3 class="font-title font-extrabold text-lg sm:text-xl text-slate-900 dark:text-white">
+              <h3 className="font-title font-bold text-lg text-slate-900 dark:text-white">
                 அமேஸ் டைம்ஸ் செயலியை நிறுவுக!
               </h3>
-              <p class="font-subtitle text-xs text-slate-500 dark:text-slate-400 mt-1">
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                 தமிழ்நாட்டின் முதன்மை டிஜிட்டல் நாளிதழ் நேரலைச் செயலி (PWA)
               </p>
             </div>
 
-            {/* Feature Highlights */}
-            <div class="grid grid-cols-2 gap-2 text-left text-[11px] font-subtitle font-bold text-slate-700 dark:text-slate-300">
-              <div class="bg-slate-100 dark:bg-slate-800/60 p-2.5 rounded-xl flex items-center gap-2">
-                <span class="material-symbols-outlined text-amber-500 text-[18px]">bolt</span>
+            <div className="grid grid-cols-2 gap-2 text-left text-[11px] font-bold text-slate-700 dark:text-slate-300">
+              <div className="bg-slate-100 dark:bg-slate-800/60 p-2.5 rounded-xl flex items-center gap-2">
+                <span className="text-amber-500 text-base">⚡</span>
                 <span>அதிவேக பக்க ஏற்றம்</span>
               </div>
-              <div class="bg-slate-100 dark:bg-slate-800/60 p-2.5 rounded-xl flex items-center gap-2">
-                <span class="material-symbols-outlined text-emerald-500 text-[18px]">wifi_off</span>
+              <div className="bg-slate-100 dark:bg-slate-800/60 p-2.5 rounded-xl flex items-center gap-2">
+                <span className="text-emerald-500 text-base">📶</span>
                 <span>ஆஃப்லைன் வாசிப்பு</span>
               </div>
-              <div class="bg-slate-100 dark:bg-slate-800/60 p-2.5 rounded-xl flex items-center gap-2">
-                <span class="material-symbols-outlined text-brand-red text-[18px]">notifications_active</span>
+              <div className="bg-slate-100 dark:bg-slate-800/60 p-2.5 rounded-xl flex items-center gap-2">
+                <span className="text-red-500 text-base">🔔</span>
                 <span>பிரேக்கிங் செய்திகள்</span>
               </div>
-              <div class="bg-slate-100 dark:bg-slate-800/60 p-2.5 rounded-xl flex items-center gap-2">
-                <span class="material-symbols-outlined text-sky-500 text-[18px]">devices</span>
+              <div className="bg-slate-100 dark:bg-slate-800/60 p-2.5 rounded-xl flex items-center gap-2">
+                <span className="text-sky-500 text-base">📱</span>
                 <span>முழுத்திரை அனுபவம்</span>
               </div>
             </div>
 
-            {/* Primary Action: INSTALL NOW BUTTON */}
             <button
               onClick={handleInstallApp}
-              class="w-full bg-gradient-to-r from-brand-red via-red-600 to-amber-500 hover:from-red-600 hover:to-amber-600 text-white font-subtitle font-black text-sm py-3 rounded-2xl shadow-xl shadow-brand-red/30 flex items-center justify-center gap-2 cursor-pointer transition-all hover:scale-[1.02] active:scale-95"
+              className="w-full bg-[#0e2a7a] hover:bg-navy-800 text-white font-bold text-sm py-3 rounded-xl shadow-lg transition-all cursor-pointer hover:scale-[1.02]"
             >
-              <svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="2" y="3" width="20" height="14" rx="2"/>
-                <path d="M12 7v6m-3-3 3 3 3-3"/>
-                <path d="M8 21h8m-4-4v4"/>
-              </svg>
-              <span>இப்போதே நிறுவு (Install Now)</span>
+              இப்போதே நிறுவு (Install Now)
             </button>
-
-            {/* Device-Specific Direct Instructions */}
-            <div class="bg-amber-50 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-800/40 p-3 rounded-xl text-left text-[11px] text-slate-700 dark:text-slate-300 space-y-1 font-semibold">
-              <p class="font-bold text-amber-700 dark:text-amber-300">💡 நேரடி நிறுவல் வழிகாட்டி:</p>
-              <p>💻 <strong>PC / Laptop (Chrome / Edge):</strong> உலாவி முகவரிப் பட்டையின் வலதுபுறத்தில் உள்ள <strong>(⊕)</strong> குறியீட்டை அழுத்தவும்.</p>
-              <p>📱 <strong>Android (Chrome):</strong> மெனு (⋮) ➔ <strong>"Install app"</strong> தேர்ந்தெடுக்கவும்.</p>
-              <p>🍎 <strong>iPhone (Safari):</strong> பகிர் (Share) ➔ <strong>"Add to Home Screen"</strong> அழுத்தவும்.</p>
-            </div>
-
-            <button
-              onClick={() => setIsInstallModalOpen(false)}
-              class="text-xs font-bold text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 cursor-pointer"
-            >
-              பிறகு செய்கிறேன் (Maybe Later)
-            </button>
-
-          </div>
-        </div>
-      )}
-
-      {/* PWA FLOATING PROMPT BANNER (Triggers when beforeinstallprompt is captured or ready) */}
-      {isInstallBannerVisible && !isAppInstalled && (
-        <div class="fixed bottom-4 left-4 right-4 md:left-auto md:right-6 md:max-w-md z-40 bg-white/95 dark:bg-[#0E1628]/95 backdrop-blur-md rounded-2xl shadow-2xl border-2 border-brand-red/30 p-4 animate-in slide-in-from-bottom duration-300">
-          <div class="flex items-start gap-3">
-            <div class="w-12 h-12 rounded-xl bg-white p-1 shadow-md border border-slate-200 dark:border-slate-700 flex-shrink-0 flex items-center justify-center">
-              <img src="/icon-192.png" alt="Amaze Times" class="w-full h-full object-contain rounded-lg" onError={(e) => { e.target.src = '/Amaze times.jpg'; }} />
-            </div>
-            <div class="flex-1 min-w-0">
-              <div class="flex items-center justify-between gap-1">
-                <h4 class="font-title font-extrabold text-sm text-slate-900 dark:text-white leading-tight">
-                  அமேஸ் டைம்ஸ் செயலியை நிறுவுக!
-                </h4>
-                <button
-                  onClick={() => {
-                    setIsInstallBannerVisible(false);
-                    sessionStorage.setItem('amaze_install_banner_dismissed', 'true');
-                  }}
-                  class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5 cursor-pointer rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
-                  title="மூடுக"
-                >
-                  <span class="material-symbols-outlined text-[16px]">close</span>
-                </button>
-              </div>
-              <p class="font-subtitle text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-2">
-                டெஸ்க்டாப் அல்லது மொபைல் முகப்பில் சேமித்து அதிவேகமாக செய்திகளை வாசிக்கலாம்.
-              </p>
-              <div class="flex items-center gap-2 mt-2.5">
-                <button
-                  onClick={handleInstallApp}
-                  class="bg-brand-red hover:bg-red-700 text-white font-subtitle font-bold text-xs px-3.5 py-1.5 rounded-xl shadow-md flex items-center gap-1.5 cursor-pointer transition-transform hover:scale-105 active:scale-95"
-                >
-                  <svg class="w-3.5 h-3.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="2" y="3" width="20" height="14" rx="2"/>
-                    <path d="M12 7v6m-3-3 3 3 3-3"/>
-                    <path d="M8 21h8m-4-4v4"/>
-                  </svg>
-                  <span>இப்போதே நிறுவு (Install Now)</span>
-                </button>
-                <button
-                  onClick={() => {
-                    setIsInstallBannerVisible(false);
-                    sessionStorage.setItem('amaze_install_banner_dismissed', 'true');
-                  }}
-                  class="text-[11px] font-bold text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 px-2 py-1 cursor-pointer"
-                >
-                  பிறகு
-                </button>
-              </div>
-            </div>
           </div>
         </div>
       )}
