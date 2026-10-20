@@ -40,6 +40,10 @@ import { AdminExamsManager } from '../components/admin/AdminExamsManager';
 import { AdminEpaperManager } from '../components/admin/AdminEpaperManager';
 import { AdminMagazineManager } from '../components/admin/AdminMagazineManager';
 import { AdminVideoManager } from '../components/admin/AdminVideoManager';
+import { AdminHomePageBuilder } from '../components/admin/AdminHomePageBuilder';
+import { AdminSpecialDaysManager } from '../components/admin/AdminSpecialDaysManager';
+import { AdminSocialMediaManager } from '../components/admin/AdminSocialMediaManager';
+import { AdminCinemaSportsManager } from '../components/admin/AdminCinemaSportsManager';
 import {
   LayoutDashboard,
   FilePlus,
@@ -218,7 +222,7 @@ export const AdminDashboard = () => {
       const statsRes = await api.getNewsStats().catch(() => null);
       if (statsRes && statsRes.success) setStats(statsRes.stats);
 
-      const newsRes = await api.getNews({ limit: 500 }).catch(() => null);
+      const newsRes = await api.getNews({ limit: 'all', _t: Date.now() }).catch(() => null);
       const fetchedNews = (newsRes && newsRes.success && Array.isArray(newsRes.data)) ? newsRes.data : [];
       setArticles(fetchedNews);
       setStats(prev => ({
@@ -374,6 +378,7 @@ export const AdminDashboard = () => {
       if (result && result.data) {
         setArticles((prev) => [result.data, ...prev.filter(a => String(a.id || a._id) !== String(result.data.id || result.data._id))]);
       }
+      window.dispatchEvent(new CustomEvent('amaze:content_updated'));
       await loadAdminData();
       await fetchNews();
     } catch (err) {
@@ -386,6 +391,7 @@ export const AdminDashboard = () => {
       const res = await deleteNews(id);
       if (res && res.success) {
         setArticles(prev => prev.filter(n => String(n.id || n._id) !== String(id)));
+        window.dispatchEvent(new CustomEvent('amaze:content_updated'));
       }
       await loadAdminData();
       if (typeof fetchNews === 'function') fetchNews();
@@ -396,9 +402,27 @@ export const AdminDashboard = () => {
     const res = await updateNews(id, { status });
     if (res && res.success) {
       setArticles(prev => prev.map(n => String(n.id || n._id) === String(id) ? { ...n, status } : n));
+      showToast(status === 'published' ? 'செய்தி வெளியிடப்பட்டது!' : 'செய்தி நிலை மாற்றப்பட்டது');
+      window.dispatchEvent(new CustomEvent('amaze:content_updated'));
     }
     await loadAdminData();
     if (typeof fetchNews === 'function') fetchNews();
+  };
+
+  const handleMakeFirst = async (id) => {
+    try {
+      const res = await api.makeNewsFirst(id);
+      if (res && res.success) {
+        showToast('செய்தி #1 முதன்மை இடத்திற்கு மாற்றப்பட்டது!');
+        window.dispatchEvent(new CustomEvent('amaze:content_updated'));
+        await loadAdminData();
+        if (typeof fetchNews === 'function') fetchNews();
+      } else {
+        throw new Error(res?.message || 'Failed');
+      }
+    } catch (e) {
+      showToast('பிழை: ' + e.message);
+    }
   };
 
   // Handlers for User Management
@@ -661,6 +685,18 @@ export const AdminDashboard = () => {
                 <LayoutDashboard className="w-4 h-4" />
                 <span>முகப்பு (Dashboard)</span>
               </button>
+
+              <button
+                onClick={() => setActiveTab('home-builder')}
+                className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-xs sm:text-sm cursor-pointer transition ${
+                  activeTab === 'home-builder'
+                    ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 shadow-lg font-black'
+                    : 'text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30'
+                }`}
+              >
+                <Sliders className="w-4 h-4" />
+                <span>முகப்பு அமைப்பாளர் (Home Builder)</span>
+              </button>
             </div>
 
             {/* SECTION 1: NEWS MANAGEMENT */}
@@ -901,11 +937,51 @@ export const AdminDashboard = () => {
               </button>
 
               <button
-                onClick={() => setActiveTab('all-news')}
-                className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-300 hover:bg-slate-800/60 cursor-pointer transition"
+                onClick={() => setActiveTab('cinema-manager')}
+                className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold cursor-pointer transition ${
+                  activeTab === 'cinema-manager'
+                    ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-black shadow-lg'
+                    : 'text-slate-300 hover:bg-slate-800/60'
+                }`}
               >
-                <ImageIcon className="w-4 h-4 text-purple-400" />
-                <span>ஊடக நூலகம் (Media)</span>
+                <Tv className="w-4 h-4 text-purple-400" />
+                <span>சினிமா மேலாளர் (Cinema)</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('sports-manager')}
+                className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold cursor-pointer transition ${
+                  activeTab === 'sports-manager'
+                    ? 'bg-gradient-to-r from-amber-600 to-orange-600 text-white font-black shadow-lg'
+                    : 'text-slate-300 hover:bg-slate-800/60'
+                }`}
+              >
+                <Trophy className="w-4 h-4 text-amber-400" />
+                <span>விளையாட்டு மேலாளர் (Sports)</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('special-days')}
+                className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold cursor-pointer transition ${
+                  activeTab === 'special-days'
+                    ? 'bg-gradient-to-r from-pink-600 to-rose-600 text-white font-black shadow-lg'
+                    : 'text-slate-300 hover:bg-slate-800/60'
+                }`}
+              >
+                <Calendar className="w-4 h-4 text-pink-400" />
+                <span>சிறப்பு தினங்கள் & விழாக்கள்</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('social-media')}
+                className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold cursor-pointer transition ${
+                  activeTab === 'social-media'
+                    ? 'bg-gradient-to-r from-red-600 to-pink-600 text-white font-black shadow-lg'
+                    : 'text-slate-300 hover:bg-slate-800/60'
+                }`}
+              >
+                <Globe className="w-4 h-4 text-red-400" />
+                <span>சமூக ஊடகங்கள் (Social Media)</span>
               </button>
             </div>
 
@@ -945,6 +1021,17 @@ export const AdminDashboard = () => {
               <span>கணக்கு (ACCOUNT)</span>
             </div>
             <button
+              onClick={() => {
+                window.dispatchEvent(new CustomEvent('amaze:content_updated'));
+                navigate('/');
+              }}
+              className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-black bg-gradient-to-r from-emerald-600 to-teal-600 text-white hover:from-emerald-700 hover:to-teal-700 shadow-md shadow-emerald-600/20 cursor-pointer transition mb-1.5"
+            >
+              <Globe className="w-4 h-4 text-emerald-200" />
+              <span>நேரலை தளம் (View Live Site)</span>
+            </button>
+
+            <button
               onClick={() => setActiveTab('profile')}
               className={`w-full flex items-center gap-3 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold cursor-pointer transition ${
                 activeTab === 'profile' ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-black shadow-lg' : 'text-slate-300 hover:bg-slate-800/60'
@@ -981,13 +1068,26 @@ export const AdminDashboard = () => {
                   <p className="text-xs sm:text-sm text-slate-400 mt-0.5">தலைமை நிர்வாக கட்டுப்பாட்டு மையம் (Super Admin Master Panel)</p>
                 </div>
 
-                <button
-                  onClick={() => setActiveTab('pending')}
-                  className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-extrabold px-5 py-2.5 rounded-xl shadow-lg shadow-red-600/30 text-xs sm:text-sm flex items-center gap-2 cursor-pointer transition transform hover:scale-[1.02]"
-                >
-                  <Clock className="w-4 h-4" />
-                  <span>நிலுவையில் உள்ள செய்திகள் ({stats.pendingNews || 0})</span>
-                </button>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => {
+                      window.dispatchEvent(new CustomEvent('amaze:content_updated'));
+                      navigate('/');
+                    }}
+                    className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-extrabold px-5 py-2.5 rounded-xl shadow-lg shadow-emerald-600/30 text-xs sm:text-sm flex items-center gap-2 cursor-pointer transition transform hover:scale-[1.02]"
+                  >
+                    <Globe className="w-4 h-4 text-emerald-200" />
+                    <span>நேரலை தளம் (View Live Site)</span>
+                  </button>
+
+                  <button
+                    onClick={() => setActiveTab('pending')}
+                    className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-extrabold px-5 py-2.5 rounded-xl shadow-lg shadow-red-600/30 text-xs sm:text-sm flex items-center gap-2 cursor-pointer transition transform hover:scale-[1.02]"
+                  >
+                    <Clock className="w-4 h-4" />
+                    <span>நிலுவையில் உள்ள செய்திகள் ({stats.pendingNews || 0})</span>
+                  </button>
+                </div>
               </div>
 
               {/* STATS GRID */}
@@ -1234,24 +1334,40 @@ export const AdminDashboard = () => {
                               </span>
                             </td>
                             <td className="p-4 font-mono font-bold text-amber-400">{item.viewsCount || 0}</td>
-                            <td className="p-4 text-right space-x-2">
-                              {item.status === 'pending' && (
+                            <td className="p-4 text-right space-x-1.5 whitespace-nowrap">
+                              <button
+                                onClick={() => handleMakeFirst(item._id || item.id)}
+                                title="முகப்புப் பக்கத்தில் #1 முதன்மை இடத்திற்கு மாற்று"
+                                className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black px-2.5 py-1 rounded-lg text-xs cursor-pointer transition shadow inline-flex items-center gap-1"
+                              >
+                                <Star className="w-3.5 h-3.5 fill-slate-950" />
+                                <span>#1 முதன்மை</span>
+                              </button>
+                              {item.status !== 'published' && (
                                 <button
                                   onClick={() => handlePublishStatus(item._id || item.id, 'published')}
-                                  className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3 py-1 rounded-lg text-xs cursor-pointer transition"
+                                  className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-2.5 py-1 rounded-lg text-xs cursor-pointer transition"
                                 >
                                   வெளியிடு
                                 </button>
                               )}
+                              {item.status !== 'rejected' && (
+                                <button
+                                  onClick={() => handlePublishStatus(item._id || item.id, 'rejected')}
+                                  className="bg-slate-700 hover:bg-slate-600 text-rose-300 font-bold px-2.5 py-1 rounded-lg text-xs cursor-pointer transition"
+                                >
+                                  நிராகரி
+                                </button>
+                              )}
                               <button
                                 onClick={() => handleOpenNewsModal(item)}
-                                className="bg-blue-600 hover:bg-blue-500 text-white font-bold px-3 py-1 rounded-lg text-xs cursor-pointer transition"
+                                className="bg-blue-600 hover:bg-blue-500 text-white font-bold px-2.5 py-1 rounded-lg text-xs cursor-pointer transition"
                               >
                                 திருத்து
                               </button>
                               <button
                                 onClick={() => handleDeleteNews(item._id || item.id)}
-                                className="bg-red-600 hover:bg-red-500 text-white font-bold px-3 py-1 rounded-lg text-xs cursor-pointer transition"
+                                className="bg-red-600 hover:bg-red-500 text-white font-bold px-2.5 py-1 rounded-lg text-xs cursor-pointer transition"
                               >
                                 நீக்கு
                               </button>
@@ -1797,6 +1913,41 @@ export const AdminDashboard = () => {
           {activeTab === 'video-manager' && (
             <div className="max-w-6xl w-full">
               <AdminVideoManager />
+            </div>
+          )}
+
+          {/* VIEW: HOME PAGE BUILDER */}
+          {activeTab === 'home-builder' && (
+            <div className="max-w-6xl w-full">
+              <AdminHomePageBuilder showToast={showToast} />
+            </div>
+          )}
+
+          {/* VIEW: CINEMA MANAGER */}
+          {activeTab === 'cinema-manager' && (
+            <div className="max-w-6xl w-full">
+              <AdminCinemaSportsManager showToast={showToast} defaultTab="cinema" />
+            </div>
+          )}
+
+          {/* VIEW: SPORTS MANAGER */}
+          {activeTab === 'sports-manager' && (
+            <div className="max-w-6xl w-full">
+              <AdminCinemaSportsManager showToast={showToast} defaultTab="sports" />
+            </div>
+          )}
+
+          {/* VIEW: SPECIAL DAYS & FESTIVAL WISHES */}
+          {activeTab === 'special-days' && (
+            <div className="max-w-6xl w-full">
+              <AdminSpecialDaysManager showToast={showToast} />
+            </div>
+          )}
+
+          {/* VIEW: SOCIAL MEDIA SETTINGS */}
+          {activeTab === 'social-media' && (
+            <div className="max-w-6xl w-full">
+              <AdminSocialMediaManager showToast={showToast} />
             </div>
           )}
 

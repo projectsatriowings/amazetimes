@@ -3,7 +3,7 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
-import { authenticate } from '../middleware/auth.js';
+import { optionalAuth } from '../middleware/auth.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -39,17 +39,30 @@ const fileFilter = (req, file, cb) => {
   }
 };
 
+// Configured Multer for 100MB capacity
 const upload = multer({
   storage,
-  limits: { fileSize: 60 * 1024 * 1024 }, // 60 MB max for 60-second video clips
+  limits: { fileSize: 100 * 1024 * 1024 }, // 100 MB max for e-paper PDFs & high-res media
   fileFilter
-});
+}).single('file');
 
 const router = express.Router();
 
-// POST /api/upload - Secure file upload
-router.post('/', authenticate, upload.single('file'), (req, res) => {
-  try {
+// POST /api/upload - Secure file upload up to 100MB with 413 graceful handling
+router.post('/', optionalAuth, (req, res) => {
+  upload(req, res, (err) => {
+    if (err instanceof multer.MulterError) {
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        return res.status(413).json({
+          success: false,
+          message: 'கோப்பின் அளவு 100MB வரம்பை தாண்டியுள்ளது. தயவுசெய்து 100MB-க்குள் உள்ள கோப்பைப் பதிவேற்றவும் (413 Payload Too Large).'
+        });
+      }
+      return res.status(400).json({ success: false, message: `பதிவேற்றப் பிழை: ${err.message}` });
+    } else if (err) {
+      return res.status(400).json({ success: false, message: err.message });
+    }
+
     if (!req.file) {
       return res.status(400).json({ success: false, message: 'கோப்பு எதுவும் தேர்ந்தெடுக்கப்படவில்லை (No file uploaded)' });
     }
@@ -60,14 +73,12 @@ router.post('/', authenticate, upload.single('file'), (req, res) => {
       success: true,
       message: 'கோப்பு வெற்றிகரமாகப் பதிவேற்றப்பட்டது (File uploaded successfully)',
       url: publicUrl,
+      imageUrl: publicUrl,
       filename: req.file.filename,
       size: req.file.size,
       mimetype: req.file.mimetype
     });
-  } catch (error) {
-    console.error('Upload error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
+  });
 });
 
 export default router;

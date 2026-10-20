@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Eye, Clock, User, Heart, Bookmark, Share2, Volume2, ArrowRight, Flame } from 'lucide-react';
 
 export default function HeroSpotlight({
@@ -12,8 +12,15 @@ export default function HeroSpotlight({
   onToggleLike,
   isLiked = false
 }) {
-  const [likesCount, setLikesCount] = useState(142);
+  const initialLikes = leadData?.likesCount || leadData?.likes_count || 142;
+  const [likesCount, setLikesCount] = useState(initialLikes);
   const [hasLiked, setHasLiked] = useState(false);
+
+  useEffect(() => {
+    if (leadData?.likesCount !== undefined) {
+      setLikesCount(leadData.likesCount);
+    }
+  }, [leadData?.likesCount]);
 
   if (!leadData) return null;
 
@@ -111,7 +118,7 @@ export default function HeroSpotlight({
               <div className="absolute bottom-3 left-3 sm:bottom-4 sm:left-4 flex items-center gap-2 text-white text-xs font-semibold">
                 <span className="bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-xl flex items-center gap-1.5 border border-white/10">
                   <Eye className="w-3.5 h-3.5 text-amber-400" />
-                  <span>1.4k பார்வைகள்</span>
+                  <span>{(leadData.viewsCount || leadData.view_count || leadData.viewCount || 1420).toLocaleString('ta-IN')} பார்வைகள்</span>
                 </span>
                 <span className="bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-xl flex items-center gap-1.5 border border-white/10">
                   <Clock className="w-3.5 h-3.5 text-emerald-400" />
@@ -165,7 +172,7 @@ export default function HeroSpotlight({
                     title="விருப்பம் (Like)"
                   >
                     <Heart className={`w-3.5 h-3.5 ${userHasLiked ? 'fill-rose-600 text-rose-600' : ''}`} />
-                    <span>{userHasLiked ? 'விருப்பமானது' : 'விருப்பம்'}</span>
+                    <span>{userHasLiked ? 'விருப்பமானது' : 'விருப்பம்'} ({likesCount})</span>
                   </button>
 
                   {/* Bookmark Button */}

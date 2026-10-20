@@ -19,6 +19,8 @@ import BookmarksDrawer from './components/BookmarksDrawer';
 import DemoGuideModal from './components/DemoGuideModal';
 import GoldCalculatorModal from './components/GoldCalculatorModal';
 import MagazineShowcase from './components/MagazineShowcase';
+import SpecialDaysFestivalCard from './components/SpecialDaysFestivalCard';
+import CinemaSportsHub from './components/CinemaSportsHub';
 import Toast from './components/Toast';
 
 import AuthModal from './components/admin/AuthModal';
@@ -51,19 +53,8 @@ export default function App() {
     localStorage.setItem('amaze_saved_bookmarks', JSON.stringify(savedBookmarks));
   }, [savedBookmarks]);
 
-  // Persistent Liked Articles State
-  const [likedArticles, setLikedArticles] = useState(() => {
-    try {
-      const raw = localStorage.getItem('amaze_liked_articles');
-      return raw ? JSON.parse(raw) : [];
-    } catch (_) {
-      return [];
-    }
-  });
-
-  useEffect(() => {
-    localStorage.setItem('amaze_liked_articles', JSON.stringify(likedArticles));
-  }, [likedArticles]);
+  // Realtime Liked Articles State (Database synced, Zero LocalStorage)
+  const [likedArticles, setLikedArticles] = useState([]);
 
   // Reading History State
   const [readingHistory, setReadingHistory] = useState(() => {
@@ -186,68 +177,93 @@ export default function App() {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   };
 
-  // Track unique visitor on site load
+  // Track unique visitor and continuous 20s heartbeat to keep live reader stats accurate
   useEffect(() => {
     const device = window.innerWidth < 768 ? 'mobile' : window.innerWidth < 1024 ? 'tablet' : 'desktop';
     api.trackVisitor(device).catch(() => {});
+
+    const sendPing = () => {
+      api.sendHeartbeat().catch(() => {});
+    };
+    sendPing();
+    const heartbeatInterval = setInterval(sendPing, 20000);
+    return () => clearInterval(heartbeatInterval);
   }, []);
 
-  // Fetch live content from Neon PostgreSQL
+  // Fetch live content from Neon PostgreSQL (Unlimited News, Home Builder Layout, Zero Cache Delay)
   const fetchBackendContent = async (category = activeCategory, resetPage = true) => {
     try {
       const pageToFetch = resetPage ? 1 : currentPage;
       const params = {
         page: pageToFetch,
-        limit: 10,
-        status: 'published'
+        limit: 'all', // Unlimited news - displays every published article from PostgreSQL!
+        status: 'published',
+        _t: Date.now() // Cache-busting timestamp ensures instant updates
       };
       if (category !== 'all') {
         params.category = category;
       }
 
-      const [artRes, tickerRes, lwRes, shortsRes] = await Promise.all([
+      const [artRes, tickerRes, lwRes, shortsRes, layoutRes] = await Promise.all([
         api.getArticles(params),
-        api.getTickers(),
-        api.getLiveWire(),
-        api.getShorts()
+        api.getTickers().catch(() => ({ success: false })),
+        api.getLiveWire().catch(() => ({ success: false })),
+        api.getShorts().catch(() => ({ success: false })),
+        api.getHomeBuilderLayout().catch(() => ({ success: false }))
       ]);
 
-      if (artRes.success && artRes.articles.length > 0) {
+      if (artRes.success && Array.isArray(artRes.articles) && artRes.articles.length > 0) {
         const formattedArticles = artRes.articles.map(a => ({
           id: a.id,
+          _id: a._id || String(a.id),
           title: a.title,
-          category: a.category_name || a.category_id || 'செய்தி',
-          cat: a.category_name || a.category_id || 'செய்தி',
-          category_id: a.category_id,
-          subtitle: a.subtitle,
-          desc: a.excerpt || a.subtitle || (a.content ? a.content.substring(0, 150) + '...' : ''),
+          category: a.category || a.category_name || a.category_id || 'செய்தி',
+          cat: a.category || a.category_name || a.category_id || 'செய்தி',
+          category_id: a.category_id || a.category || 'all',
+          subtitle: a.subtitle || '',
+          desc: a.summary || a.desc || a.excerpt || a.subtitle || (a.content ? a.content.substring(0, 160) + '...' : ''),
           content: a.content,
-          image: a.cover_image_url || '/Amaze times.jpg',
-          img: a.cover_image_url || '/Amaze times.jpg',
-          cover_image_url: a.cover_image_url,
-          author: a.author_name || 'செய்தி ஆசிரியர்',
-          time: new Date(a.created_at).toLocaleDateString('ta-IN', { hour: '2-digit', minute: '2-digit' }),
-          tags: a.tags || [],
-          tag: (a.tags && a.tags[0]) || 'செய்தி',
-          isLead: Boolean(a.is_lead),
-          viewCount: a.view_count || 0
+          image: a.mainImage || a.cover_image_url || a.image || a.img || '/Amaze times.jpg',
+          img: a.mainImage || a.cover_image_url || a.image || a.img || '/Amaze times.jpg',
+          cover_image_url: a.mainImage || a.cover_image_url || a.image || a.img || '/Amaze times.jpg',
+          author: a.authorName || a.author || a.author_name || 'செய்தி ஆசிரியர்',
+          authorName: a.authorName || a.author || a.author_name || 'செய்தி ஆசிரியர்',
+          time: new Date(a.publishedAt || a.published_at || a.createdAt || a.created_at || Date.now()).toLocaleDateString('ta-IN', { hour: '2-digit', minute: '2-digit' }),
+          tags: Array.isArray(a.tags) ? a.tags : (a.tags ? String(a.tags).split(',').map(t => t.trim()) : []),
+          tag: (Array.isArray(a.tags) && a.tags[0]) || 'செய்தி',
+          isLead: Boolean(a.isLeadHero || a.is_lead_hero || a.isLead || a.is_lead),
+          isBreaking: Boolean(a.isBreaking || a.is_breaking),
+          isTopStory: Boolean(a.isTopStory || a.is_top_story),
+          displayOrder: a.displayOrder || a.display_order || 0,
+          viewCount: a.viewsCount || a.views_count || a.view_count || 0,
+          viewsCount: a.viewsCount || a.views_count || a.view_count || 0,
+          likesCount: a.likesCount || a.likes_count || 0,
+          likes_count: a.likesCount || a.likes_count || 0
         }));
 
-        const lead = formattedArticles.find(a => a.isLead) || formattedArticles[0];
-        const cards = formattedArticles.filter(a => a.id !== lead?.id);
+        // Determine Lead Hero (Priority: Home Builder setting -> isLeadHero flag -> first article)
+        let lead = null;
+        if (layoutRes && layoutRes.success && layoutRes.data?.leadHero) {
+          const heroMatch = formattedArticles.find(a => String(a.id) === String(layoutRes.data.leadHero.id));
+          if (heroMatch) lead = heroMatch;
+        }
+        if (!lead) {
+          lead = formattedArticles.find(a => a.isLead) || formattedArticles[0];
+        }
+        const cards = formattedArticles.filter(a => String(a.id) !== String(lead?.id));
 
         setBackendLeadArticle(lead);
         setBackendArticles(cards);
-        setHasMoreArticles(artRes.pagination.page < artRes.pagination.totalPages);
+        setHasMoreArticles(false);
       } else {
         setBackendLeadArticle(null);
         setBackendArticles([]);
         setHasMoreArticles(false);
       }
 
-      if (tickerRes.success) setBackendTickers(tickerRes.tickers);
-      if (lwRes.success) setBackendLiveWire(lwRes.items);
-      if (shortsRes.success && shortsRes.stories.length > 0) {
+      if (tickerRes?.success) setBackendTickers(tickerRes.tickers);
+      if (lwRes?.success) setBackendLiveWire(lwRes.items);
+      if (shortsRes?.success && Array.isArray(shortsRes.stories)) {
         setBackendShorts(shortsRes.stories.map(s => ({
           id: s.id,
           headline: s.headline,
@@ -257,14 +273,26 @@ export default function App() {
         })));
       }
     } catch (err) {
-      console.warn('Backend fetch fallback to local cache:', err.message);
+      console.warn('Backend fetch error:', err.message);
     }
   };
 
+  // Re-fetch whenever activeCategory or currentPath changes to '/' (instant return from Admin)
   useEffect(() => {
-    fetchBackendContent(activeCategory, true);
-    setExtraCards([]);
-    setCurrentPage(1);
+    if (currentPath === '/') {
+      fetchBackendContent(activeCategory, true);
+      setExtraCards([]);
+      setCurrentPage(1);
+    }
+  }, [activeCategory, currentPath]);
+
+  // Live listener: Instantly refresh homepage when admin modifies any content
+  useEffect(() => {
+    const handleLiveContentUpdate = () => {
+      fetchBackendContent(activeCategory, true);
+    };
+    window.addEventListener('amaze:content_updated', handleLiveContentUpdate);
+    return () => window.removeEventListener('amaze:content_updated', handleLiveContentUpdate);
   }, [activeCategory]);
 
   // Dark mode toggle
@@ -331,14 +359,17 @@ export default function App() {
     addToast('அனைத்து சேமிப்புகளும் அழிக்கப்பட்டன.', 'delete_sweep');
   };
 
-  // Liked Articles Handlers
-  const handleToggleLike = (article) => {
+  // Liked Articles Handlers with PostgreSQL persistence
+  const handleToggleLike = async (article) => {
     if (!article || !article.id) return;
+    const artId = article.id;
+    const exists = likedArticles.some(a => String(a.id) === String(artId));
+
+    // Optimistic UI updates
     setLikedArticles((prev) => {
-      const exists = prev.some(a => String(a.id) === String(article.id));
       let updated;
       if (exists) {
-        updated = prev.filter(a => String(a.id) !== String(article.id));
+        updated = prev.filter(a => String(a.id) !== String(artId));
         addToast('விருப்பப் பட்டியலிலிருந்து நீக்கப்பட்டது.', 'favorite_border');
       } else {
         updated = [{
@@ -352,6 +383,18 @@ export default function App() {
       }
       return updated;
     });
+
+    // Sync to PostgreSQL database
+    try {
+      const res = await api.toggleNewsLike(artId);
+      if (res && res.success && typeof res.likesCount === 'number') {
+        setBackendArticles(prev => prev.map(a => String(a.id) === String(artId) ? { ...a, likesCount: res.likesCount, likes_count: res.likesCount } : a));
+        setBackendLeadArticle(prev => prev && String(prev.id) === String(artId) ? { ...prev, likesCount: res.likesCount, likes_count: res.likesCount } : prev);
+        setActiveModalArticle(prev => prev && String(prev.id) === String(artId) ? { ...prev, likesCount: res.likesCount, likes_count: res.likesCount } : prev);
+      }
+    } catch (e) {
+      console.warn('Background like sync to PostgreSQL failed:', e);
+    }
   };
 
   const handleRemoveLikedArticle = (id) => {
@@ -440,8 +483,8 @@ export default function App() {
     window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
   };
 
-  // Open Full Article Modal & Record History
-  const openArticleModal = (articleOrId) => {
+  // Open Full Article Modal & Record History with permanent atomic view increment
+  const openArticleModal = async (articleOrId) => {
     let target = null;
     if (typeof articleOrId === 'object' && articleOrId !== null) {
       target = articleOrId;
@@ -456,6 +499,20 @@ export default function App() {
     }
     setActiveModalArticle(target);
     addToReadingHistory(target);
+
+    // Atomically increment views in Neon PostgreSQL
+    if (target && target.id) {
+      try {
+        const res = await api.recordNewsView(target.id);
+        if (res && res.success && typeof res.viewsCount === 'number') {
+          setActiveModalArticle(prev => prev ? { ...prev, viewCount: res.viewsCount, viewsCount: res.viewsCount } : prev);
+          setBackendArticles(prev => prev.map(a => String(a.id) === String(target.id) ? { ...a, viewCount: res.viewsCount, viewsCount: res.viewsCount } : a));
+          setBackendLeadArticle(prev => prev && String(prev.id) === String(target.id) ? { ...prev, viewCount: res.viewsCount, viewsCount: res.viewsCount } : prev);
+        }
+      } catch (e) {
+        console.warn('Background view increment failed:', e);
+      }
+    }
   };
 
   // Protect /admin: if visited while not logged in, route to /login
@@ -546,7 +603,7 @@ export default function App() {
 
   let displayCards = [
     ...backendList,
-    ...(backendList.length < 6 ? fallbackList : []),
+    ...(backendList.length === 0 ? fallbackList : []),
     ...extraCards
   ];
 
@@ -666,7 +723,13 @@ export default function App() {
               isLiked={likedArticles.some(a => String(a.id) === String(leadData?.id))}
             />
 
-            {/* 2. DIGITAL MONTHLY MAGAZINE & E-PAPER BANNER */}
+            {/* 2. SPECIAL DAYS FESTIVAL CARD WITH LIVE CONFETTI & WISHES */}
+            <SpecialDaysFestivalCard onToast={addToast} />
+
+            {/* 3. CINEMA & ENTERTAINMENT HUB / SPORTS ACTION ARENA */}
+            <CinemaSportsHub onOpenArticle={openArticleModal} />
+
+            {/* 4. DIGITAL MONTHLY MAGAZINE & E-PAPER BANNER */}
             <MagazineShowcase
               onOpenEPaper={() => setIsEPaperOpen(true)}
               onToast={addToast}

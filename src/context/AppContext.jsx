@@ -250,17 +250,8 @@ export const AppProvider = ({ children }) => {
   });
   const [token, setToken] = useState(() => localStorage.getItem('amaze_token') || localStorage.getItem('adutha_token') || '');
 
-  // Dynamic News Articles State
-  const [newsList, setNewsList] = useState(() => {
-    try {
-      const saved = localStorage.getItem('adutha_news_list');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
-    } catch (e) {}
-    return [];
-  });
+  // Dynamic News Articles State (Direct from Neon PostgreSQL, Zero LocalStorage)
+  const [newsList, setNewsList] = useState([]);
   const [goldRateData, setGoldRateData] = useState(() => {
     try {
       const saved = localStorage.getItem('adutha_gold_rate');
@@ -439,13 +430,10 @@ export const AppProvider = ({ children }) => {
 
   const fetchNews = async () => {
     try {
-      const res = await api.getNews({ limit: 500 });
+      const res = await api.getNews({ limit: 'all', _t: Date.now() });
       if (res && res.success && Array.isArray(res.data)) {
         const formatted = res.data.map(formatNewsAuthor);
         setNewsList(formatted);
-        try {
-          localStorage.setItem('adutha_news_list', JSON.stringify(formatted));
-        } catch (e) {}
       }
     } catch (e) {
       console.warn('Backend news fetch error:', e);
@@ -457,14 +445,9 @@ export const AppProvider = ({ children }) => {
       const res = await api.createNews(newsData);
       if (res && res.success && res.data) {
         const dbItem = formatNewsAuthor({ ...res.data, _id: String(res.data._id || res.data.id), id: String(res.data.id || res.data._id) });
-        setNewsList((prev) => {
-          const next = [dbItem, ...prev.filter((n) => String(n.id || n._id) !== String(dbItem.id))];
-          try {
-            localStorage.setItem('adutha_news_list', JSON.stringify(next));
-          } catch (e) {}
-          return next;
-        });
+        setNewsList((prev) => [dbItem, ...prev.filter((n) => String(n.id || n._id) !== String(dbItem.id))]);
         showToast('செய்தி DB-யில் வெற்றிகரமாக சேமிக்கப்பட்டது!');
+        window.dispatchEvent(new CustomEvent('amaze:content_updated'));
         return { success: true, data: dbItem };
       }
     } catch (e) {
@@ -480,14 +463,9 @@ export const AppProvider = ({ children }) => {
       const res = await api.updateNews(id, updatedFields);
       if (res && res.success && res.data) {
         const dbItem = formatNewsAuthor({ ...res.data, _id: String(res.data._id || res.data.id), id: String(res.data.id || res.data._id) });
-        setNewsList((prev) => {
-          const next = prev.map((item) => (String(item.id || item._id) === idStr ? dbItem : item));
-          try {
-            localStorage.setItem('adutha_news_list', JSON.stringify(next));
-          } catch (e) {}
-          return next;
-        });
+        setNewsList((prev) => prev.map((item) => (String(item.id || item._id) === idStr ? dbItem : item)));
         showToast('செய்தி DB-யில் புதுப்பிக்கப்பட்டது!');
+        window.dispatchEvent(new CustomEvent('amaze:content_updated'));
         return { success: true, data: dbItem };
       }
     } catch (e) {
@@ -502,14 +480,9 @@ export const AppProvider = ({ children }) => {
     try {
       const res = await api.deleteNews(id);
       if (res && res.success) {
-        setNewsList((prev) => {
-          const next = prev.filter((item) => String(item.id || item._id) !== idStr);
-          try {
-            localStorage.setItem('adutha_news_list', JSON.stringify(next));
-          } catch (e) {}
-          return next;
-        });
+        setNewsList((prev) => prev.filter((item) => String(item.id || item._id) !== idStr));
         showToast('செய்தி DB-யிலிருந்து நீக்கப்பட்டது!');
+        window.dispatchEvent(new CustomEvent('amaze:content_updated'));
         return { success: true };
       }
     } catch (e) {
@@ -728,75 +701,25 @@ export const AppProvider = ({ children }) => {
     }, 3500);
   };
 
-  // Article Views & Likes State (100% Realtime, 0 Fake Seed Defaults)
-  const [articleViews, setArticleViews] = useState(() => {
-    try {
-      const saved = localStorage.getItem('adutha_article_views');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed['1'] === 14280) {
-          localStorage.removeItem('adutha_article_views');
-          return {};
-        }
-        return parsed;
-      }
-      return {};
-    } catch (e) {
-      return {};
-    }
-  });
+  // Article Views & Likes State (100% Realtime Database Driven, Zero LocalStorage)
+  const [articleViews, setArticleViews] = useState({});
+  const [articleLikes, setArticleLikes] = useState({});
+  const [userLikedIds, setUserLikedIds] = useState([]);
 
-  const [articleLikes, setArticleLikes] = useState(() => {
-    try {
-      const saved = localStorage.getItem('adutha_article_likes');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed['1'] === 1840) {
-          localStorage.removeItem('adutha_article_likes');
-          return {};
-        }
-        return parsed;
-      }
-      return {};
-    } catch (e) {
-      return {};
-    }
-  });
-
-  const [userLikedIds, setUserLikedIds] = useState(() => {
-    try {
-      const saved = localStorage.getItem('adutha_user_liked');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && (parsed.includes('1') || parsed.includes('5')) && parsed.length <= 2) {
-          localStorage.removeItem('adutha_user_liked');
-          return [];
-        }
-        return parsed;
-      }
-      return [];
-    } catch (e) {
-      return [];
-    }
-  });
-
+  // Auto-purge all legacy cached news, views, and likes from localStorage on startup
   useEffect(() => {
     try {
-      localStorage.setItem('adutha_article_views', JSON.stringify(articleViews));
-    } catch (e) {}
-  }, [articleViews]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem('adutha_article_likes', JSON.stringify(articleLikes));
-    } catch (e) {}
-  }, [articleLikes]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem('adutha_user_liked', JSON.stringify(userLikedIds));
-    } catch (e) {}
-  }, [userLikedIds]);
+      const keysToPurge = [
+        'adutha_news_list', 'amaze_news_list',
+        'adutha_article_views', 'amaze_article_views',
+        'adutha_article_likes', 'amaze_article_likes',
+        'adutha_user_liked', 'amaze_liked_articles',
+        'adutha_magazines', 'adutha_birthday', 'adutha_quotes',
+        'adutha_competitions', 'adutha_exams', 'adutha_blogs', 'adutha_videos'
+      ];
+      keysToPurge.forEach(k => localStorage.removeItem(k));
+    } catch (_) {}
+  }, []);
 
   const getArticleViews = (id) => {
     if (!id) return 0;
@@ -822,14 +745,15 @@ export const AppProvider = ({ children }) => {
     return userLikedIds.includes(String(targetId)) || userLikedIds.includes(Number(targetId));
   };
 
-  const toggleLike = (id, e) => {
-    if (e) e.stopPropagation();
+  const toggleLike = async (id, e) => {
+    if (e && e.stopPropagation) e.stopPropagation();
     if (!id) return;
     const targetId = typeof id === 'object' ? (id.id || id._id || 1) : id;
     const strId = String(targetId);
     const numId = Number(targetId);
     const alreadyLiked = isLiked(targetId);
 
+    // Optimistic UI updates
     if (alreadyLiked) {
       setUserLikedIds(prev => prev.filter(item => String(item) !== strId && Number(item) !== numId));
       setArticleLikes(prev => ({
@@ -845,18 +769,77 @@ export const AppProvider = ({ children }) => {
       }));
       showToast('❤️ செய்திக்கு விருப்பம் தெரிவிக்கப்பட்டது!');
     }
+
+    // Background sync to Neon PostgreSQL news_likes table
+    try {
+      const res = await api.toggleNewsLike(targetId);
+      if (res && res.success) {
+        if (typeof res.likesCount === 'number') {
+          setArticleLikes(prev => ({
+            ...prev,
+            [strId]: res.likesCount
+          }));
+        }
+        if (res.liked) {
+          setUserLikedIds(prev => Array.from(new Set([...prev, strId])));
+        } else {
+          setUserLikedIds(prev => prev.filter(item => String(item) !== strId && Number(item) !== numId));
+        }
+      }
+    } catch (err) {
+      console.warn('Background like sync to PostgreSQL failed:', err);
+    }
   };
 
-  const openArticleModal = (id) => {
+  const openArticleModal = async (id) => {
     const targetId = typeof id === 'object' ? (id.id || id._id || 1) : id;
     setSelectedArticleId(targetId);
     setActiveModal('article');
 
     const strId = String(targetId);
+    // Optimistic view increment
     setArticleViews(prev => ({
       ...prev,
       [strId]: (getArticleViews(id) + 1)
     }));
+
+    // Record reading history
+    try {
+      const raw = localStorage.getItem('amaze_reading_history') || localStorage.getItem('adutha_reading_history');
+      const hist = raw ? JSON.parse(raw) : [];
+      const updated = [strId, ...hist.filter(i => String(i) !== strId)].slice(0, 50);
+      localStorage.setItem('amaze_reading_history', JSON.stringify(updated));
+      localStorage.setItem('adutha_reading_history', JSON.stringify(updated));
+    } catch (_) {}
+
+    // Atomic permanent increment in PostgreSQL
+    try {
+      const res = await api.recordNewsView(targetId);
+      if (res && res.success && typeof res.viewsCount === 'number') {
+        setArticleViews(prev => ({
+          ...prev,
+          [strId]: res.viewsCount
+        }));
+      }
+    } catch (err) {
+      console.warn('Background view sync to PostgreSQL failed:', err);
+    }
+  };
+
+  const makeNewsFirst = async (id) => {
+    try {
+      const res = await api.makeNewsFirst(id);
+      if (res && res.success) {
+        showToast('செய்தி #1 முதல் இடத்திற்கு கொண்டு செல்லப்பட்டது!');
+        await fetchNews();
+        window.dispatchEvent(new CustomEvent('amaze:content_updated'));
+        return { success: true };
+      }
+    } catch (err) {
+      console.error('Make news first error:', err);
+    }
+    showToast('முதல் இடத்திற்கு மாற்றுவதில் பிழை');
+    return { success: false };
   };
 
   const openVideoModal = (title, url) => {
@@ -1329,6 +1312,7 @@ export const AppProvider = ({ children }) => {
         getArticleLikes,
         isLiked,
         toggleLike,
+        makeNewsFirst,
         canInstallPWA,
         installPWA,
         quotesData,

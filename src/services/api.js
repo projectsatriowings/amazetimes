@@ -30,44 +30,67 @@ export const getMediaUrl = (url) => {
   return cleanUrl;
 };
 
-// Retrieve stored JWT token with role-aware separation
+// Retrieve stored JWT token with dual-token architecture support
 export function getToken() {
   const path = typeof window !== 'undefined' ? window.location.pathname : '';
   if (path.startsWith('/admin')) {
-    return localStorage.getItem('amaze_admin_token') || localStorage.getItem('amaze_token') || localStorage.getItem('amaze_reader_token') || null;
+    return localStorage.getItem('amaze_admin_token') || 
+           localStorage.getItem('adutha_admin_token') || 
+           localStorage.getItem('amaze_token') || 
+           localStorage.getItem('adutha_token') || 
+           localStorage.getItem('amaze_reader_token') || 
+           null;
   }
-  return localStorage.getItem('amaze_token') || localStorage.getItem('amaze_reader_token') || localStorage.getItem('amaze_admin_token') || null;
+  return localStorage.getItem('amaze_token') || 
+         localStorage.getItem('amaze_reader_token') || 
+         localStorage.getItem('adutha_reader_token') || 
+         localStorage.getItem('adutha_token') || 
+         localStorage.getItem('amaze_admin_token') || 
+         null;
 }
 
 export function getAdminToken() {
-  return localStorage.getItem('amaze_admin_token') || localStorage.getItem('amaze_token') || null;
+  return localStorage.getItem('amaze_admin_token') || 
+         localStorage.getItem('adutha_admin_token') || 
+         localStorage.getItem('amaze_token') || 
+         localStorage.getItem('adutha_token') || 
+         null;
 }
 
 export function getReaderToken() {
-  return localStorage.getItem('amaze_reader_token') || localStorage.getItem('amaze_token') || null;
+  return localStorage.getItem('amaze_reader_token') || 
+         localStorage.getItem('adutha_reader_token') || 
+         localStorage.getItem('amaze_token') || 
+         localStorage.getItem('adutha_token') || 
+         null;
 }
 
 export function setToken(token, role = 'reader') {
   if (token) {
     if (role === 'admin' || role === 'reporter') {
       localStorage.setItem('amaze_admin_token', token);
+      localStorage.setItem('adutha_admin_token', token);
       localStorage.setItem('amaze_token', token);
     } else {
       localStorage.setItem('amaze_reader_token', token);
+      localStorage.setItem('adutha_reader_token', token);
       if (!localStorage.getItem('amaze_admin_token')) {
         localStorage.setItem('amaze_token', token);
       }
     }
   } else {
     localStorage.removeItem('amaze_token');
+    localStorage.removeItem('adutha_token');
     localStorage.removeItem('amaze_reader_token');
+    localStorage.removeItem('adutha_reader_token');
     localStorage.removeItem('amaze_admin_token');
+    localStorage.removeItem('adutha_admin_token');
   }
 }
 
 export function getCurrentUser() {
   try {
-    const raw = localStorage.getItem('amaze_user');
+    const raw = localStorage.getItem('amaze_user') || localStorage.getItem('adutha_user');
     return raw ? JSON.parse(raw) : null;
   } catch (_) {
     return null;
@@ -77,14 +100,16 @@ export function getCurrentUser() {
 export function setCurrentUser(user) {
   if (user) {
     localStorage.setItem('amaze_user', JSON.stringify(user));
+    localStorage.setItem('adutha_user', JSON.stringify(user));
   } else {
     localStorage.removeItem('amaze_user');
+    localStorage.removeItem('adutha_user');
   }
 }
 
 // Generate or retrieve persistent visitor UUID
 export function getVisitorId() {
-  let vid = localStorage.getItem('amaze_visitor_id');
+  let vid = localStorage.getItem('amaze_visitor_id') || localStorage.getItem('adutha_visitor_id');
   if (!vid) {
     vid = 'v_' + Math.random().toString(36).substring(2, 15) + '_' + Date.now().toString(36);
     localStorage.setItem('amaze_visitor_id', vid);
@@ -95,7 +120,7 @@ export function getVisitorId() {
 // Reader (Google / Public) User helpers
 export function getReaderUser() {
   try {
-    const raw = localStorage.getItem('amaze_reader_user');
+    const raw = localStorage.getItem('amaze_reader_user') || localStorage.getItem('adutha_reader_user');
     return raw ? JSON.parse(raw) : null;
   } catch (_) {
     return null;
@@ -105,9 +130,18 @@ export function getReaderUser() {
 export function setReaderUser(user) {
   if (user) {
     localStorage.setItem('amaze_reader_user', JSON.stringify(user));
+    localStorage.setItem('adutha_reader_user', JSON.stringify(user));
   } else {
     localStorage.removeItem('amaze_reader_user');
+    localStorage.removeItem('adutha_reader_user');
   }
+}
+
+// Regex YouTube ID extraction helper
+export function extractYouTubeId(url) {
+  if (!url || typeof url !== 'string') return '';
+  const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|shorts\/|live\/|.+[?&]v=))([\w-]{11})/i);
+  return match ? match[1] : '';
 }
 
 async function request(endpoint, options = {}) {
@@ -130,7 +164,6 @@ async function request(endpoint, options = {}) {
   const data = await response.json().catch(() => ({ success: false, message: 'Invalid JSON response' }));
   if (!response.ok) {
     if (response.status === 401) {
-      // Clear stale/expired token to avoid spamming 401 errors
       setToken(null);
       setCurrentUser(null);
       window.dispatchEvent(new CustomEvent('amaze:auth_expired'));
@@ -141,13 +174,20 @@ async function request(endpoint, options = {}) {
 }
 
 export const api = {
+  // Real-Time Heartbeat Ping
+  sendHeartbeat: (visitorId) => request('/analytics/heartbeat', {
+    method: 'POST',
+    body: JSON.stringify({ visitorId: visitorId || getVisitorId() })
+  }),
+
   // Visitor Tracking
   trackVisitor: (deviceType) => request('/analytics/track', {
     method: 'POST',
     body: JSON.stringify({ visitor_id: getVisitorId(), device_type: deviceType })
   }),
 
-  // Analytics Stats (Admin / Reporter)
+  // Analytics Stats
+  getAnalyticsStats: () => request('/analytics/stats'),
   getDashboardStats: () => request('/analytics/dashboard-stats'),
 
   // Auth & User Registration
@@ -190,8 +230,8 @@ export const api = {
     body: JSON.stringify({ is_active })
   }),
 
-  // Articles & News Aliases
-  getArticles: async (params = {}) => {
+  // News & Articles
+  getNews: async (params = {}) => {
     const cleanParams = {};
     for (const [key, val] of Object.entries(params)) {
       if (val !== undefined && val !== null && val !== '' && val !== 'undefined' && val !== 'all') {
@@ -199,24 +239,61 @@ export const api = {
       }
     }
     const query = new URLSearchParams(cleanParams).toString();
-    const res = await request(`/articles${query ? `?${query}` : ''}`);
-    if (res && res.articles && !res.data) {
-      res.data = res.articles;
-    }
+    const res = await request(`/news${query ? `?${query}` : ''}`);
+    if (res && res.news && !res.data) res.data = res.news;
+    if (res && res.news && !res.articles) res.articles = res.news;
     return res;
   },
-  getNews: function(params = {}) { return this.getArticles(params); },
+  getArticles: function(params = {}) { return this.getNews(params); },
+  getNewsById: (id) => request(`/news/${id}`),
+  getArticle: function(id) { return this.getNewsById(id); },
+
+  // Permanent View Count Engine
+  recordNewsView: (id) => request(`/news/${id}/view`, { method: 'POST' }),
+
+  // Permanent Unique Likes Engine
+  toggleNewsLike: (id, userIdentifier) => request(`/news/${id}/like`, {
+    method: 'POST',
+    body: JSON.stringify({ userIdentifier: userIdentifier || getVisitorId() })
+  }),
+
+  // #1 Priority Make First Action
+  makeNewsFirst: (id) => request(`/news/${id}/make-first`, { method: 'POST' }),
+
+  // News CRUD
+  createNews: (newsData) => request('/news', {
+    method: 'POST',
+    body: JSON.stringify(newsData)
+  }),
+  createArticle: function(data) { return this.createNews(data); },
+  addNews: function(data) { return this.createNews(data); },
+
+  updateNews: (id, newsData) => request(`/news/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(newsData)
+  }),
+  updateArticle: function(id, data) { return this.updateNews(id, data); },
+
+  updateNewsStatus: (id, status) => request(`/news/${id}/status`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status })
+  }),
+  updateArticleStatus: function(id, status) { return this.updateNewsStatus(id, status); },
+
+  deleteNews: (id) => request(`/news/${id}`, { method: 'DELETE' }),
+  deleteArticle: function(id) { return this.deleteNews(id); },
+
   getNewsStats: async function() {
     try {
-      const res = await this.getDashboardStats();
+      const res = await this.getAnalyticsStats();
       if (res && res.success && res.data) {
         return {
           success: true,
           stats: {
-            totalNews: res.data.articles?.total || 0,
-            publishedNews: res.data.articles?.published || 0,
-            pendingNews: res.data.articles?.pending || 0,
-            draftNews: res.data.articles?.draft || 0
+            totalNews: res.data.totalNews || 0,
+            publishedNews: res.data.publishedNews || 0,
+            pendingNews: res.data.pendingNews || 0,
+            draftNews: res.data.draftNews || 0
           },
           data: res.data
         };
@@ -224,6 +301,41 @@ export const api = {
     } catch (_) {}
     return { success: false, stats: { totalNews: 0, publishedNews: 0, pendingNews: 0, draftNews: 0 } };
   },
+
+  // Home Page Builder
+  getHomeBuilderLayout: () => request('/home-builder'),
+  saveHomeBuilderLayout: (layoutData) => request('/home-builder', {
+    method: 'PUT',
+    body: JSON.stringify(layoutData)
+  }),
+
+  // Special Days & Festival Wishes
+  getSpecialDays: () => request('/special-days'),
+  getAllSpecialDays: () => request('/special-days/all'),
+  createSpecialDay: (data) => request('/special-days', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  }),
+  updateSpecialDay: (id, data) => request(`/special-days/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data)
+  }),
+  deleteSpecialDay: (id) => request(`/special-days/${id}`, {
+    method: 'DELETE'
+  }),
+  sendSpecialDayWish: (id) => request(`/special-days/${id}/wish`, {
+    method: 'POST'
+  }),
+
+  // Social Media & Featured Media
+  getSocialMediaSettings: () => request('/social-media'),
+  updateSocialMediaSettings: (data) => request('/social-media', {
+    method: 'PUT',
+    body: JSON.stringify(data)
+  }),
+
+  // Gold & Market Rates
+  getMarketRates: () => request('/market'),
   getGoldRate: async function() {
     try {
       const res = await request('/market');
@@ -243,42 +355,6 @@ export const api = {
     } catch (_) {}
     return { success: false, data: null };
   },
-  getArticle: (id) => request(`/articles/${id}`),
-  createArticle: (articleData) => request('/articles', {
-    method: 'POST',
-    body: JSON.stringify(articleData)
-  }),
-  addNews: function(data) { return this.createArticle(data); },
-  updateArticle: (id, articleData) => request(`/articles/${id}`, {
-    method: 'PUT',
-    body: JSON.stringify(articleData)
-  }),
-  updateNews: function(id, data) { return this.updateArticle(id, data); },
-  deleteArticle: (id) => request(`/articles/${id}`, {
-    method: 'DELETE'
-  }),
-  deleteNews: function(id) { return this.deleteArticle(id); },
-  updateArticleStatus: (id, status, rejection_reason = '') => request(`/articles/${id}/status`, {
-    method: 'PATCH',
-    body: JSON.stringify({ status, rejection_reason })
-  }),
-  deleteArticle: (id) => request(`/articles/${id}`, {
-    method: 'DELETE'
-  }),
-
-  // Reporters (Admin only)
-  getReporters: () => request('/reporters'),
-  createReporter: (reporterData) => request('/reporters', {
-    method: 'POST',
-    body: JSON.stringify(reporterData)
-  }),
-  updateReporter: (id, reporterData) => request(`/reporters/${id}`, {
-    method: 'PUT',
-    body: JSON.stringify(reporterData)
-  }),
-  deleteReporter: (id) => request(`/reporters/${id}`, {
-    method: 'DELETE'
-  }),
 
   // Breaking Ticker
   getTickers: () => request('/ticker'),
@@ -307,13 +383,21 @@ export const api = {
   // E-Paper
   getLatestEPaper: () => request('/epaper/latest'),
   getEPaperArchive: () => request('/epaper/archive'),
+  getEpapers: () => request('/epaper').catch(() => ({ epapers: [] })),
   createEPaper: (epaperData) => request('/epaper', {
     method: 'POST',
     body: JSON.stringify(epaperData)
   }),
+  updateEpaper: (id, data) => request(`/epaper/${id}`, { method: 'PUT', body: JSON.stringify(data) }).catch(() => ({ success: true })),
   deleteEPaper: (id) => request(`/epaper/${id}`, {
     method: 'DELETE'
   }),
+
+  // Digital Magazines
+  getMagazines: () => request('/magazines').catch(() => ({ magazines: [] })),
+  createMagazine: (data) => request('/magazines', { method: 'POST', body: JSON.stringify(data) }).catch(() => ({ success: true })),
+  updateMagazine: (id, data) => request(`/magazines/${id}`, { method: 'PUT', body: JSON.stringify(data) }).catch(() => ({ success: true })),
+  deleteMagazine: (id) => request(`/magazines/${id}`, { method: 'DELETE' }).catch(() => ({ success: true })),
 
   // Shorts / Reels
   getShorts: () => request('/shorts'),
@@ -329,9 +413,6 @@ export const api = {
   deleteShort: (id) => request(`/shorts/${id}`, {
     method: 'DELETE'
   }),
-
-  // Market Rates (Sensex, Nifty, Gold)
-  getMarketRates: () => request('/market'),
 
   // Zodiac (Aanmegam / 12 Rasi Palan)
   getZodiacToday: () => request('/zodiac'),
@@ -362,7 +443,7 @@ export const api = {
     body: JSON.stringify(pollData)
   }),
 
-  // File Upload
+  // File Upload (100MB capacity)
   uploadFile: async (file) => {
     const formData = new FormData();
     formData.append('file', file);
@@ -380,7 +461,12 @@ export const api = {
     });
 
     const data = await res.json();
-    if (!res.ok) throw new Error(data.message || 'File upload failed');
+    if (!res.ok) {
+      if (res.status === 413) {
+        throw new Error('கோப்பின் அளவு 100MB வரம்பை தாண்டியுள்ளது (413 Payload Too Large).');
+      }
+      throw new Error(data.message || 'கோப்புப் பதிவேற்றத்தில் பிழை');
+    }
     return data;
   },
 
@@ -392,18 +478,6 @@ export const api = {
     }
     return res;
   },
-
-  // Epaper APIs
-  getEpapers: () => request('/epaper').catch(() => ({ epapers: [] })),
-  createEpaper: (data) => request('/epaper', { method: 'POST', body: JSON.stringify(data) }).catch(() => ({ success: true })),
-  updateEpaper: (id, data) => request(`/epaper/${id}`, { method: 'PUT', body: JSON.stringify(data) }).catch(() => ({ success: true })),
-  deleteEpaper: (id) => request(`/epaper/${id}`, { method: 'DELETE' }).catch(() => ({ success: true })),
-
-  // Magazine APIs
-  getMagazines: () => request('/magazines').catch(() => ({ magazines: [] })),
-  createMagazine: (data) => request('/magazines', { method: 'POST', body: JSON.stringify(data) }).catch(() => ({ success: true })),
-  updateMagazine: (id, data) => request(`/magazines/${id}`, { method: 'PUT', body: JSON.stringify(data) }).catch(() => ({ success: true })),
-  deleteMagazine: (id) => request(`/magazines/${id}`, { method: 'DELETE' }).catch(() => ({ success: true })),
 
   // Dynamic Site Content APIs
   getAllContent: async () => {
@@ -450,3 +524,4 @@ export const api = {
   }
 };
 
+export default api;
