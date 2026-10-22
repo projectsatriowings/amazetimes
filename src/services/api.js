@@ -109,11 +109,14 @@ export function setCurrentUser(user) {
 
 // Generate or retrieve persistent visitor UUID
 export function getVisitorId() {
-  let vid = localStorage.getItem('amaze_visitor_id') || localStorage.getItem('adutha_visitor_id');
+  let vid = localStorage.getItem('amaze_unique_visitor_id') ||
+            localStorage.getItem('amaze_visitor_id') ||
+            localStorage.getItem('adutha_visitor_id');
   if (!vid) {
     vid = 'v_' + Math.random().toString(36).substring(2, 15) + '_' + Date.now().toString(36);
-    localStorage.setItem('amaze_visitor_id', vid);
   }
+  localStorage.setItem('amaze_unique_visitor_id', vid);
+  localStorage.setItem('amaze_visitor_id', vid);
   return vid;
 }
 

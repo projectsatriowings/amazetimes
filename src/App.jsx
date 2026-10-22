@@ -22,6 +22,7 @@ import MagazineShowcase from './components/MagazineShowcase';
 import SpecialDaysFestivalCard from './components/SpecialDaysFestivalCard';
 import CinemaSportsHub from './components/CinemaSportsHub';
 import Toast from './components/Toast';
+import { normalizeTamilSpeech, chunkTamilText } from './utils/tamilSpeechNormalizer';
 
 import AuthModal from './components/admin/AuthModal';
 import AdminDashboardModal from './components/admin/AdminDashboardModal';
@@ -313,17 +314,51 @@ export default function App() {
     addToast('எழுத்து அளவு மாற்றப்பட்டது.', 'format_size');
   };
 
-  // Speech synthesis
+  // Speech synthesis with normalization & sentence chunking
   const speakTamilText = (text) => {
+    if (!text) return;
+    const normalized = normalizeTamilSpeech(text);
+
+    // Try HTML5 Audio Stream if online
+    if (typeof navigator !== 'undefined' && navigator.onLine) {
+      try {
+        const streamUrl = `/api/tts/stream?text=${encodeURIComponent(normalized)}`;
+        const audio = new Audio(streamUrl);
+        audio.play().then(() => {
+          addToast('குரல் செய்தி வாசிக்கப்படுகிறது...', 'volume_up');
+        }).catch(() => {
+          speakFallback(normalized);
+        });
+        return;
+      } catch (_) {}
+    }
+    speakFallback(normalized);
+  };
+
+  const speakFallback = (normalized) => {
     if (!window.speechSynthesis) {
       addToast('உங்கள் உலாவியில் குரல் வசதி ஆதரிக்கப்படவில்லை.', 'error');
       return;
     }
     window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'ta-IN';
-    utterance.rate = 0.95;
-    window.speechSynthesis.speak(utterance);
+    const chunks = chunkTamilText(normalized, 140);
+    let idx = 0;
+    const speakNext = () => {
+      if (idx >= chunks.length) return;
+      const utterance = new SpeechSynthesisUtterance(chunks[idx]);
+      utterance.lang = 'ta-IN';
+      utterance.rate = 0.95;
+      utterance.onend = () => {
+        idx++;
+        speakNext();
+      };
+      utterance.onerror = () => {
+        idx++;
+        speakNext();
+      };
+      window.speechSynthesis.speak(utterance);
+    };
+    speakNext();
     addToast('குரல் செய்தி வாசிக்கப்படுகிறது...', 'volume_up');
   };
 

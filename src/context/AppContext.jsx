@@ -307,14 +307,26 @@ export const AppProvider = ({ children }) => {
   const [liveClock, setLiveClock] = useState('');
   const [liveDate, setLiveDate] = useState('');
 
-  // Real-time Unique Viewers Tracking State
+  // Real-time Unique Viewers & Lifetime Visitors Tracking State
   const [liveViewersCount, setLiveViewersCount] = useState(1);
+  const [totalLifetimeVisitors, setTotalLifetimeVisitors] = useState(() => {
+    try {
+      const cached = localStorage.getItem('amaze_total_lifetime_visitors');
+      return cached ? parseInt(cached, 10) : 3920;
+    } catch (_) {
+      return 3920;
+    }
+  });
 
   useEffect(() => {
-    let visitorId = sessionStorage.getItem('adutha_visitor_id');
+    let visitorId = localStorage.getItem('amaze_unique_visitor_id') ||
+                    localStorage.getItem('amaze_visitor_id') ||
+                    localStorage.getItem('adutha_visitor_id');
     if (!visitorId) {
       visitorId = 'v_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
-      sessionStorage.setItem('adutha_visitor_id', visitorId);
+      localStorage.setItem('amaze_unique_visitor_id', visitorId);
+    } else if (!localStorage.getItem('amaze_unique_visitor_id')) {
+      localStorage.setItem('amaze_unique_visitor_id', visitorId);
     }
 
     let consecutiveFailures = 0;
@@ -323,8 +335,16 @@ export const AppProvider = ({ children }) => {
       if (consecutiveFailures >= 2) return;
       try {
         const res = await api.sendHeartbeat(visitorId);
-        if (res && res.success && typeof res.liveCount === 'number') {
-          setLiveViewersCount(res.liveCount);
+        if (res && res.success) {
+          if (typeof res.liveCount === 'number') {
+            setLiveViewersCount(res.liveCount);
+          }
+          if (typeof res.totalVisitors === 'number') {
+            setTotalLifetimeVisitors(res.totalVisitors);
+            try {
+              localStorage.setItem('amaze_total_lifetime_visitors', String(res.totalVisitors));
+            } catch (_) {}
+          }
           consecutiveFailures = 0;
         } else {
           consecutiveFailures++;
@@ -1297,6 +1317,7 @@ export const AppProvider = ({ children }) => {
         liveClock,
         liveDate,
         liveViewersCount,
+        totalLifetimeVisitors,
         user,
         token,
         handleLogin,

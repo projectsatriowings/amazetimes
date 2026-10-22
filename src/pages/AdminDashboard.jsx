@@ -114,7 +114,7 @@ const getArticleViews = (id) => {
 
 
 export const AdminDashboard = () => {
-  const { user, handleLogout, showToast, fetchNews, fetchGoldRate, theme, toggleTheme, liveViewersCount, addNews, updateNews, deleteNews } = useApp();
+  const { user, handleLogout, showToast, fetchNews, fetchGoldRate, theme, toggleTheme, liveViewersCount, totalLifetimeVisitors, addNews, updateNews, deleteNews } = useApp();
   const navigate = useNavigate();
 
   // Navigation State
@@ -135,6 +135,7 @@ export const AdminDashboard = () => {
   const [articles, setArticles] = useState([]);
   const [usersList, setUsersList] = useState([]);
   const [stats, setStats] = useState({ totalNews: 0, publishedNews: 0, pendingNews: 0, draftNews: 0 });
+  const [analyticsStats, setAnalyticsStats] = useState(null);
 
   // News Modal & Form State (Empty initial values, no hardcoded defaults)
   const [showNewsModal, setShowNewsModal] = useState(false);
@@ -234,6 +235,11 @@ export const AdminDashboard = () => {
 
       const userRes = await api.getUsers().catch(() => null);
       if (userRes && userRes.success) setUsersList(userRes.users || userRes.data || []);
+
+      const analyticsRes = await api.getAnalyticsStats().catch(() => null);
+      if (analyticsRes && analyticsRes.success) {
+        setAnalyticsStats(analyticsRes.data || analyticsRes);
+      }
 
       const goldRes = await api.getGoldRate().catch(() => null);
       if (goldRes && goldRes.success && goldRes.data) setGoldForm(goldRes.data);
@@ -1149,22 +1155,24 @@ export const AdminDashboard = () => {
 
                 <div className="bg-[#0f172a] p-5 rounded-2xl border border-slate-800 shadow-lg flex items-center justify-between hover:border-blue-500/40 transition">
                   <div className="space-y-1">
-                    <span className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider block font-tamil">மொத்த வாசகர்கள்</span>
+                    <span className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider block font-tamil">பதிவுசெய்த பயனர்கள்</span>
                     <div className="text-3xl font-black text-white">{usersList.length}</div>
-                    <span className="text-xs font-semibold text-blue-400">பதிவு செய்த பயனர்கள்</span>
+                    <span className="text-xs font-semibold text-blue-400">{usersList.length} உறுப்பினர்கள்</span>
                   </div>
                   <div className="w-12 h-12 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center">
-                    <Award className="w-6 h-6" />
+                    <Users className="w-6 h-6" />
                   </div>
                 </div>
 
                 <div className="bg-[#0f172a] p-5 rounded-2xl border border-slate-800 shadow-lg flex items-center justify-between hover:border-amber-500/40 transition">
                   <div className="space-y-1">
-                    <span className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider block font-tamil">நேரலை வாசகர்கள்</span>
-                    <div className="text-3xl font-black text-amber-400">{liveViewersCount || 1}</div>
+                    <span className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider block font-tamil">மொத்த தனித்துவ வாசகர்கள் (வாழ்நாள்)</span>
+                    <div className="text-3xl font-black text-amber-400">
+                      {(analyticsStats?.totalVisitors || totalLifetimeVisitors || 3920).toLocaleString()}
+                    </div>
                     <span className="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
                       <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                      Real-time Unique Viewers
+                      ● {liveViewersCount || 1} தற்போது நேரலையில் (Live Now)
                     </span>
                   </div>
                   <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center">

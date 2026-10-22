@@ -8,6 +8,38 @@ const router = express.Router();
 // Sliding-window in-memory store for active live visitors
 const activeVisitors = new Map(); // visitorId -> lastPingTimestamp
 
+// Pre-cached set of unique visitor IDs to prevent duplicate database writes and preserve lifetime counts
+const knownVisitorsSet = new Set();
+let isVisitorsPreloaded = false;
+
+// Pre-cache existing visitor_ids from visitor_logs on boot
+async function preCacheKnownVisitors() {
+  try {
+    const res = await query('SELECT DISTINCT visitor_id FROM visitor_logs WHERE visitor_id IS NOT NULL');
+    if (res && res.rows) {
+      for (const row of res.rows) {
+        if (row.visitor_id) {
+          knownVisitorsSet.add(String(row.visitor_id).trim());
+        }
+      }
+    }
+    isVisitorsPreloaded = true;
+    console.log(`📡 [Analytics] Pre-cached ${knownVisitorsSet.size} unique visitors from visitor_logs into memory`);
+
+    // Ensure site_analytics reflects at least the count of known unique visitors
+    const statsRes = await query('SELECT total_visitors FROM site_analytics WHERE id = 1');
+    const dbTotal = statsRes.rows[0]?.total_visitors || 0;
+    if (knownVisitorsSet.size > dbTotal) {
+      await query('UPDATE site_analytics SET total_visitors = $1, updated_at = CURRENT_TIMESTAMP WHERE id = 1', [knownVisitorsSet.size]);
+    }
+  } catch (err) {
+    console.warn('⚠️ [Analytics] Pre-cache visitor_logs initialization notice:', err.message);
+  }
+}
+
+// Initialize on server start
+preCacheKnownVisitors();
+
 // Purge sessions older than 45 seconds
 const cleanupInactiveVisitors = () => {
   const now = Date.now();
@@ -25,47 +57,59 @@ router.post('/heartbeat', async (req, res) => {
   try {
     const visitorId = req.body.visitorId || req.body.visitor_id || req.headers['x-visitor-id'] || 'v_anon';
     const now = Date.now();
-    const isNewSession = !activeVisitors.has(visitorId);
 
+    // Register active viewer in sliding window
     activeVisitors.set(visitorId, now);
     cleanupInactiveVisitors();
 
-    const clientIp = req.ip || req.headers['x-forwarded-for'] || '';
+    const clientIp = req.ip || req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '';
     const userAgent = req.headers['user-agent'] || '';
 
-    // If new session, log to visitor_logs & update site_analytics
-    if (isNewSession) {
+    // Check if visitor is already known in memory set
+    if (!knownVisitorsSet.has(visitorId)) {
       try {
-        await query(`
-          INSERT INTO visitor_logs (visitor_id, ip_address, user_agent)
-          VALUES ($1, $2, $3);
-        `, [visitorId, clientIp, userAgent]);
+        // Double-check database in case another instance or pre-cache was pending
+        const checkRes = await query('SELECT 1 FROM visitor_logs WHERE visitor_id = $1 LIMIT 1', [visitorId]);
+        if (checkRes.rows.length === 0) {
+          // New unique lifetime visitor: insert log & increment site_analytics
+          await query(`
+            INSERT INTO visitor_logs (visitor_id, ip_address, user_agent)
+            VALUES ($1, $2, $3);
+          `, [visitorId, clientIp, userAgent]);
 
-        await query(`
-          UPDATE site_analytics
-          SET total_visitors = total_visitors + 1, updated_at = CURRENT_TIMESTAMP
-          WHERE id = 1;
-        `);
+          await query(`
+            UPDATE site_analytics
+            SET total_visitors = total_visitors + 1, updated_at = CURRENT_TIMESTAMP
+            WHERE id = 1;
+          `);
+        }
+        knownVisitorsSet.add(visitorId);
       } catch (e) {
-        // Non-critical background log error
+        console.warn('[Analytics] Error recording unique visitor log:', e.message);
       }
     }
 
     // Retrieve current stats
     const statsRes = await query(`SELECT total_views, total_visitors FROM site_analytics WHERE id = 1;`);
     const totalViews = statsRes.rows[0]?.total_views || 14850;
-    const totalVisitors = statsRes.rows[0]?.total_visitors || 3920;
+    const totalVisitors = statsRes.rows[0]?.total_visitors || Math.max(knownVisitorsSet.size, 3920);
+    const liveCount = Math.max(1, activeVisitors.size);
 
     res.json({
       success: true,
-      liveCount: Math.max(1, activeVisitors.size),
-      live_count: Math.max(1, activeVisitors.size),
+      liveCount,
+      live_count: liveCount,
       totalViews: parseInt(totalViews, 10),
       totalVisitors: parseInt(totalVisitors, 10)
     });
   } catch (err) {
     console.error('Heartbeat error:', err);
-    res.status(500).json({ success: false, message: err.message, liveCount: Math.max(1, activeVisitors.size) });
+    res.status(500).json({
+      success: false,
+      message: err.message,
+      liveCount: Math.max(1, activeVisitors.size),
+      totalVisitors: Math.max(knownVisitorsSet.size, 3920)
+    });
   }
 });
 
@@ -87,7 +131,7 @@ router.get('/stats', optionalAuth, async (req, res) => {
 
     const analyticsRes = await query(`SELECT total_views, total_visitors FROM site_analytics WHERE id = 1;`);
     const totalViews = analyticsRes.rows[0]?.total_views || 14850;
-    const totalVisitors = analyticsRes.rows[0]?.total_visitors || 3920;
+    const totalVisitors = analyticsRes.rows[0]?.total_visitors || Math.max(knownVisitorsSet.size, 3920);
 
     const todayVisitorRes = await query(`
       SELECT COUNT(DISTINCT visitor_id) AS today_visitors
@@ -97,11 +141,15 @@ router.get('/stats', optionalAuth, async (req, res) => {
 
     const nRow = newsStatsRes.rows[0] || {};
     const todayVisitors = parseInt(todayVisitorRes.rows[0]?.today_visitors || 1, 10);
+    const liveCount = Math.max(1, activeVisitors.size);
 
     res.json({
       success: true,
+      liveCount,
+      totalVisitors: parseInt(totalVisitors, 10),
+      totalViews: parseInt(totalViews, 10),
       data: {
-        liveCount: Math.max(1, activeVisitors.size),
+        liveCount,
         totalNews: parseInt(nRow.total_news || 0, 10),
         publishedNews: parseInt(nRow.published_news || 0, 10),
         pendingNews: parseInt(nRow.pending_news || 0, 10),

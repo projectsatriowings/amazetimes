@@ -23,6 +23,7 @@ import marketRoutes from './routes/market.js';
 import zodiacRoutes from './routes/zodiac.js';
 import contentRoutes from './routes/content.js';
 import magazineRoutes from './routes/magazines.js';
+import ttsRoutes from './routes/ttsRoutes.js';
 
 dotenv.config();
 
@@ -71,6 +72,7 @@ app.use('/api/market', marketRoutes);
 app.use('/api/zodiac', zodiacRoutes);
 app.use('/api/content', contentRoutes);
 app.use('/api/magazines', magazineRoutes);
+app.use('/api/tts', ttsRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
