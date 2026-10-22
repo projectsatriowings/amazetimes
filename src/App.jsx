@@ -214,8 +214,9 @@ export default function App() {
         api.getHomeBuilderLayout().catch(() => ({ success: false }))
       ]);
 
-      if (artRes.success && Array.isArray(artRes.articles) && artRes.articles.length > 0) {
-        const formattedArticles = artRes.articles.map(a => ({
+      const articlesArr = (artRes && (artRes.articles || artRes.data || artRes.news)) || [];
+      if (artRes?.success && Array.isArray(articlesArr) && articlesArr.length > 0) {
+        const formattedArticles = articlesArr.map(a => ({
           id: a.id,
           _id: a._id || String(a.id),
           title: a.title,
@@ -224,7 +225,8 @@ export default function App() {
           category_id: a.category_id || a.category || 'all',
           subtitle: a.subtitle || '',
           desc: a.summary || a.desc || a.excerpt || a.subtitle || (a.content ? a.content.substring(0, 160) + '...' : ''),
-          content: a.content,
+          content: a.content || a.body || a.summary || '',
+          body: a.content || a.body || a.summary || '',
           image: a.mainImage || a.cover_image_url || a.image || a.img || '/Amaze times.jpg',
           img: a.mainImage || a.cover_image_url || a.image || a.img || '/Amaze times.jpg',
           cover_image_url: a.mainImage || a.cover_image_url || a.image || a.img || '/Amaze times.jpg',
@@ -483,20 +485,22 @@ export default function App() {
       if (activeCategory !== 'all') params.category = activeCategory;
 
       const artRes = await api.getArticles(params);
-      if (artRes.success && artRes.articles.length > 0) {
-        const moreFormatted = artRes.articles.map(a => ({
+      const moreArticles = (artRes && (artRes.articles || artRes.data || artRes.news)) || [];
+      if (artRes?.success && Array.isArray(moreArticles) && moreArticles.length > 0) {
+        const moreFormatted = moreArticles.map(a => ({
           id: a.id,
           title: a.title,
-          category: a.category_name || a.category_id || 'செய்தி',
-          cat: a.category_name || a.category_id || 'செய்தி',
-          category_id: a.category_id,
-          subtitle: a.subtitle,
-          desc: a.excerpt || a.subtitle || (a.content ? a.content.substring(0, 150) + '...' : ''),
-          content: a.content,
-          image: a.cover_image_url || '/Amaze times.jpg',
-          img: a.cover_image_url || '/Amaze times.jpg',
-          cover_image_url: a.cover_image_url,
-          author: a.author_name || 'செய்தி ஆசிரியர்',
+          category: a.category || a.category_name || a.category_id || 'செய்தி',
+          cat: a.category || a.category_name || a.category_id || 'செய்தி',
+          category_id: a.category_id || a.category || 'all',
+          subtitle: a.subtitle || '',
+          desc: a.summary || a.desc || a.excerpt || a.subtitle || (a.content ? a.content.substring(0, 150) + '...' : ''),
+          content: a.content || a.body || a.summary || '',
+          body: a.content || a.body || a.summary || '',
+          image: a.mainImage || a.cover_image_url || a.image || a.img || '/Amaze times.jpg',
+          img: a.mainImage || a.cover_image_url || a.image || a.img || '/Amaze times.jpg',
+          cover_image_url: a.mainImage || a.cover_image_url || a.image || a.img || '/Amaze times.jpg',
+          author: a.authorName || a.author || a.author_name || 'செய்தி ஆசிரியர்',
           time: new Date(a.created_at).toLocaleDateString('ta-IN', { hour: '2-digit', minute: '2-digit' }),
           tags: a.tags || [],
           tag: (a.tags && a.tags[0]) || 'செய்தி',

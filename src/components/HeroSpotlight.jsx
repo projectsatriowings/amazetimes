@@ -94,10 +94,11 @@ export default function HeroSpotlight({
           <article className="bg-white dark:bg-[#0d1627] rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col h-full group hover:shadow-md transition-all">
             
             {/* Visual Image Banner with 16:9 Aspect Ratio */}
-            <div className="relative w-full aspect-[16/9] overflow-hidden bg-slate-900 cursor-pointer" onClick={() => onOpenArticle(leadData.id)}>
+            <div className="relative w-full aspect-[16/9] overflow-hidden bg-slate-900 cursor-pointer" onClick={() => onOpenArticle(leadData)}>
               <img
                 src={leadData.image || leadData.cover_image_url || '/Amaze times.jpg'}
                 alt={leadData.title}
+                decoding="async"
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                 onError={(e) => { e.target.src = '/Amaze times.jpg'; }}
               />
@@ -218,7 +219,7 @@ export default function HeroSpotlight({
 
                 {/* Primary Read Full Story Button */}
                 <button
-                  onClick={() => onOpenArticle(leadData.id)}
+                  onClick={() => onOpenArticle(leadData)}
                   className="bg-[#0e2a7a] hover:bg-[#0a1f5c] text-white font-extrabold text-xs sm:text-sm px-4 py-2 rounded-xl transition-all shadow-md flex items-center gap-1.5 cursor-pointer hover:scale-105 active:scale-95"
                 >
                   <span>முழுதாகப் படிக்க</span>
@@ -272,7 +273,7 @@ export default function HeroSpotlight({
                 return (
                   <div
                     key={item.id || index}
-                    onClick={() => onOpenArticle(item.id)}
+                    onClick={() => onOpenArticle(item)}
                     className="py-2.5 first:pt-0 last:pb-0 flex items-center gap-3 group cursor-pointer hover:bg-red-50/60 dark:hover:bg-slate-800/60 px-2 rounded-xl transition-all"
                   >
                     {/* Rank Badge */}
@@ -298,6 +299,8 @@ export default function HeroSpotlight({
                         <img
                           src={item.image}
                           alt={item.title}
+                          loading="lazy"
+                          decoding="async"
                           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                           onError={(e) => { e.target.src = '/Amaze times.jpg'; }}
                         />

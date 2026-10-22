@@ -451,8 +451,9 @@ export const AppProvider = ({ children }) => {
   const fetchNews = async () => {
     try {
       const res = await api.getNews({ limit: 'all', _t: Date.now() });
-      if (res && res.success && Array.isArray(res.data)) {
-        const formatted = res.data.map(formatNewsAuthor);
+      const list = (res && (res.data || res.news || res.articles)) || [];
+      if (res && res.success && Array.isArray(list)) {
+        const formatted = list.map(formatNewsAuthor);
         setNewsList(formatted);
       }
     } catch (e) {

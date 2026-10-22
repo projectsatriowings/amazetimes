@@ -54,7 +54,7 @@ export default function ArticleReaderModal({
   // Combine title and body for complete reading experience
   const fullArticleContent = [
     articleData.title,
-    articleData.body || articleData.desc || ''
+    articleData.content || articleData.body || articleData.desc || ''
   ].filter(Boolean).join('. ');
 
   return (
@@ -175,8 +175,14 @@ export default function ArticleReaderModal({
         )}
 
         {/* Article Body Content */}
-        <div className="font-body text-slate-800 dark:text-slate-200 text-sm sm:text-base leading-relaxed space-y-3">
-          <p>{articleData.body || articleData.desc}</p>
+        <div className="font-body text-slate-800 dark:text-slate-200 text-sm sm:text-base leading-relaxed space-y-4 whitespace-pre-line">
+          {articleData.content ? (
+            articleData.content.split('\n\n').map((para, idx) => (
+              <p key={idx}>{para}</p>
+            ))
+          ) : (
+            <p>{articleData.body || articleData.desc}</p>
+          )}
           <p className="text-xs text-slate-500 italic pt-2 border-t border-slate-100 dark:border-slate-800">
             அமேஸ் டைம்ஸ் நாளிதழின் பிரத்யேக கள நிலவரப்படி இச்செய்தி உறுதி செய்யப்பட்டுள்ளது.
           </p>

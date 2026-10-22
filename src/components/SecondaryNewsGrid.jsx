@@ -84,11 +84,13 @@ export default function SecondaryNewsGrid({
                 {/* Thumbnail */}
                 <div 
                   className="relative aspect-[16/10] overflow-hidden bg-slate-100 dark:bg-slate-900 cursor-pointer"
-                  onClick={() => onOpenArticle(c.id)}
+                  onClick={() => onOpenArticle(c)}
                 >
                   <img
                     src={c.img || c.image || c.cover_image_url || '/Amaze times.jpg'}
                     alt={c.title}
+                    loading="lazy"
+                    decoding="async"
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     onError={(e) => { e.target.src = '/Amaze times.jpg'; }}
                   />
@@ -105,7 +107,7 @@ export default function SecondaryNewsGrid({
                   </div>
 
                   <h3
-                    onClick={() => onOpenArticle(c.id)}
+                    onClick={() => onOpenArticle(c)}
                     className="font-title font-bold text-sm sm:text-base text-slate-900 dark:text-slate-100 group-hover:text-red-600 dark:group-hover:text-amber-400 cursor-pointer line-clamp-2 leading-snug transition-colors"
                   >
                     {c.title}
@@ -120,7 +122,7 @@ export default function SecondaryNewsGrid({
               {/* Bottom Engagement Bar */}
               <div className="p-4 pt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-xs">
                 <button
-                  onClick={() => onOpenArticle(c.id)}
+                  onClick={() => onOpenArticle(c)}
                   className="text-[#0e2a7a] dark:text-amber-400 hover:text-red-600 font-bold flex items-center gap-1.5 group-hover:translate-x-0.5 transition-transform cursor-pointer"
                 >
                   <span>முழுதாகப் படிக்க</span>

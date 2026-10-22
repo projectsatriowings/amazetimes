@@ -147,6 +147,20 @@ export function extractYouTubeId(url) {
   return match ? match[1] : '';
 }
 
+// High-performance In-Memory News Cache with instant invalidation on Admin mutations
+const newsCache = new Map();
+const NEWS_CACHE_TTL_MS = 25000; // 25s TTL for blazing fast load times
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('amaze:content_updated', () => {
+    newsCache.clear();
+  });
+}
+
+export const clearNewsCache = () => {
+  newsCache.clear();
+};
+
 async function request(endpoint, options = {}) {
   const headers = {
     'Content-Type': 'application/json',
@@ -237,14 +251,30 @@ export const api = {
   getNews: async (params = {}) => {
     const cleanParams = {};
     for (const [key, val] of Object.entries(params)) {
-      if (val !== undefined && val !== null && val !== '' && val !== 'undefined' && val !== 'all') {
+      if (val !== undefined && val !== null && val !== '' && val !== 'undefined' && val !== 'all' && key !== '_t') {
         cleanParams[key] = val;
       }
     }
     const query = new URLSearchParams(cleanParams).toString();
+    const cacheKey = `news_${query}`;
+    const now = Date.now();
+    const bypassCache = Boolean(params._t);
+
+    if (!bypassCache && newsCache.has(cacheKey)) {
+      const cached = newsCache.get(cacheKey);
+      if (now - cached.time < NEWS_CACHE_TTL_MS) {
+        return cached.data;
+      }
+    }
+
     const res = await request(`/news${query ? `?${query}` : ''}`);
-    if (res && res.news && !res.data) res.data = res.news;
-    if (res && res.news && !res.articles) res.articles = res.news;
+    const list = (res && (res.data || res.news || res.articles)) || [];
+    if (res) {
+      res.data = list;
+      res.news = list;
+      res.articles = list;
+      newsCache.set(cacheKey, { time: now, data: res });
+    }
     return res;
   },
   getArticles: function(params = {}) { return this.getNews(params); },
