@@ -23,7 +23,16 @@ export default function ZodiacWidget({ onSpeak }) {
       }
     };
     fetchZodiac();
-    return () => { isMounted = false; };
+
+    const handleUpdated = () => {
+      if (isMounted) fetchZodiac();
+    };
+    window.addEventListener('amaze:content_updated', handleUpdated);
+
+    return () => {
+      isMounted = false;
+      window.removeEventListener('amaze:content_updated', handleUpdated);
+    };
   }, []);
 
   const activeSign = signs.find(s => s.id === selectedSignId) || signs[0];

@@ -44,6 +44,9 @@ import { AdminHomePageBuilder } from '../components/admin/AdminHomePageBuilder';
 import { AdminSpecialDaysManager } from '../components/admin/AdminSpecialDaysManager';
 import { AdminSocialMediaManager } from '../components/admin/AdminSocialMediaManager';
 import { AdminCinemaSportsManager } from '../components/admin/AdminCinemaSportsManager';
+import { AdminErrorBoundary } from '../components/admin/AdminErrorBoundary';
+import { AdminTickerLiveWireManager } from '../components/admin/AdminTickerLiveWireManager';
+import { AdminPollsManager } from '../components/admin/AdminPollsManager';
 import {
   LayoutDashboard,
   FilePlus,
@@ -100,7 +103,9 @@ import {
   ShieldCheck,
   UserCheck,
   UserX,
-  Calendar
+  Calendar,
+  Radio,
+  Vote
 } from 'lucide-react';
 
 const getArticleViews = (id) => {
@@ -668,7 +673,7 @@ export const AdminDashboard = () => {
           }`}
         >
           {/* Scrollable Upper Navigation */}
-          <div className="flex-1 p-3.5 space-y-3 overflow-y-auto no-scrollbar hover:scrollbar-thin scrollbar-thumb-slate-800">
+          <div className="flex-1 p-3.5 space-y-3 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-700/80 scrollbar-track-transparent">
             {/* Logo & Brand Header */}
             <div className="flex items-center gap-3 px-2 py-1 border-b border-slate-800/60 pb-4">
               <img src="/Amaze times.jpg" alt="Amaze Times Logo" className="w-10 h-10 rounded-xl border-2 border-red-500 object-contain shadow-lg bg-white p-0.5" />
@@ -766,6 +771,26 @@ export const AdminDashboard = () => {
               >
                 <Zap className="w-4 h-4 text-red-500" />
                 <span>பிரேக்கிங் செய்திகள்</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('ticker-livewire')}
+                className={`w-full flex items-center gap-3 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold cursor-pointer transition ${
+                  activeTab === 'ticker-livewire' ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40 font-bold' : 'text-slate-300 hover:bg-slate-800/60'
+                }`}
+              >
+                <Radio className="w-4 h-4 text-rose-400" />
+                <span>Ticker & நேரலைச் செய்தி</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('polls-manager')}
+                className={`w-full flex items-center gap-3 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold cursor-pointer transition ${
+                  activeTab === 'polls-manager' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold' : 'text-slate-300 hover:bg-slate-800/60'
+                }`}
+              >
+                <Vote className="w-4 h-4 text-emerald-400" />
+                <span>கருத்துக் கணிப்பு (Polls)</span>
               </button>
             </div>
 
@@ -1390,160 +1415,18 @@ export const AdminDashboard = () => {
             </div>
           )}
 
-          {/* VIEW 3: USERS MANAGEMENT */}
-          {activeTab === 'users' && (
-            <div className="space-y-6 font-tamil">
-              <div>
-                <h1 className="text-2xl sm:text-3xl font-black text-white flex items-center gap-2">
-                  <Users className="w-7 h-7 text-amber-400" />
-                  நிருபர்கள் &amp; வாசகர்கள் மேலாண்மை
-                </h1>
-                <p className="text-xs sm:text-sm text-slate-400 mt-1 font-sans">Manage Reporters, Readers, and Admin Accounts for Amaze Times.</p>
-              </div>
+          {/* VIEW: TICKER & LIVEWIRE FEED MANAGER */}
+          {activeTab === 'ticker-livewire' && (
+            <AdminErrorBoundary sectionName="Ticker & நேரலைச் செய்தி (LiveWire)" onResetTab={() => setActiveTab('dashboard')}>
+              <AdminTickerLiveWireManager showToast={showToast} />
+            </AdminErrorBoundary>
+          )}
 
-              {/* CREATE USER CARD FORM */}
-              <div className="bg-[#0f172a] rounded-2xl border border-slate-800 p-5 sm:p-6 shadow-xl space-y-4">
-                <h3 className="font-bold text-amber-400 text-sm sm:text-base border-b border-slate-800 pb-3">
-                  + புதிய பயனர் / நிருபர் கணக்கு உருவாக்கு
-                </h3>
-
-                <form onSubmit={handleCreateUser} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-300 mb-1.5">பெயர் (Full Name)</label>
-                    <input
-                      type="text"
-                      placeholder="எ.கா. கதிரவன்"
-                      required
-                      value={createUserForm.name}
-                      onChange={(e) => setCreateUserForm({ ...createUserForm, name: e.target.value })}
-                      className="w-full bg-[#050915] border border-slate-700 focus:border-amber-500 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-white focus:outline-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-slate-300 mb-1.5">மின்னஞ்சல் (Email)</label>
-                    <input
-                      type="email"
-                      placeholder="reporter@amazetimes.com"
-                      required
-                      value={createUserForm.email}
-                      onChange={(e) => setCreateUserForm({ ...createUserForm, email: e.target.value })}
-                      className="w-full bg-[#050915] border border-slate-700 focus:border-amber-500 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-white focus:outline-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-slate-300 mb-1.5">கடவுச்சொல் (Password)</label>
-                    <input
-                      type="password"
-                      placeholder="••••••••••••"
-                      required
-                      value={createUserForm.password}
-                      onChange={(e) => setCreateUserForm({ ...createUserForm, password: e.target.value })}
-                      className="w-full bg-[#050915] border border-slate-700 focus:border-amber-500 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-white focus:outline-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-slate-300 mb-1.5">பதவி / பங்கு (System Role)</label>
-                    <div className="flex gap-2">
-                      <select
-                        value={createUserForm.role}
-                        onChange={(e) => setCreateUserForm({ ...createUserForm, role: e.target.value })}
-                        className="w-full bg-[#050915] border border-slate-700 focus:border-amber-500 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-white focus:outline-none"
-                      >
-                        <option value="reporter">நிருபர் (Reporter)</option>
-                        <option value="editor">ஆசிரியர் (Editor)</option>
-                        <option value="admin">நிர்வாகி (Admin)</option>
-                        <option value="user">வாசகர் (Reader)</option>
-                      </select>
-
-                      <button
-                        type="submit"
-                        className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-extrabold px-4 py-2.5 rounded-xl text-xs sm:text-sm shadow-md shadow-red-600/30 whitespace-nowrap cursor-pointer transition"
-                      >
-                        உருவாக்கு
-                      </button>
-                    </div>
-                  </div>
-                </form>
-              </div>
-
-              {/* USERS TABLE */}
-              <div className="bg-[#0f172a] rounded-2xl border border-slate-800 overflow-hidden shadow-xl">
-                <table className="w-full text-left text-xs sm:text-sm text-slate-300">
-                  <thead className="bg-slate-900/90 text-amber-400 font-extrabold uppercase text-[11px] tracking-wider border-b border-slate-800">
-                    <tr>
-                      <th className="p-4">பயனர் பெயர்</th>
-                      <th className="p-4">மின்னஞ்சல்</th>
-                      <th className="p-4">பங்கு (ROLE)</th>
-                      <th className="p-4">பதிவு முறை (PROVIDER)</th>
-                      <th className="p-4">பதிவு செய்த தேதி</th>
-                      <th className="p-4 text-right">செயல்கள்</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-800/60">
-                    {usersList.length === 0 ? (
-                      <tr>
-                        <td colSpan="6" className="p-8 text-center text-slate-500">
-                          பயனர்கள் தரவு ஏற்றப்படுகிறது அல்லது காணப்படவில்லை...
-                        </td>
-                      </tr>
-                    ) : (
-                      usersList.map((usr) => {
-                        const isReader = usr.role === 'reader' || usr.role === 'user';
-                        const isReporter = usr.role === 'reporter';
-                        const isAdmin = usr.role === 'admin';
-                        const isEditor = usr.role === 'editor';
-                        const displayName = usr.full_name || usr.name || usr.username || 'அநாமதேய வாசகர்';
-                        const createdDate = usr.created_at ? new Date(usr.created_at).toLocaleDateString('ta-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
-
-                        return (
-                          <tr key={usr._id || usr.id} className="hover:bg-slate-800/40 transition">
-                            <td className="p-4 font-bold text-white text-sm flex items-center gap-2.5">
-                              <div className="w-8 h-8 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-xs font-black text-amber-400 uppercase">
-                                {displayName.charAt(0)}
-                              </div>
-                              <div>
-                                <span className="block font-bold">{displayName}</span>
-                                {usr.username && <span className="block text-[11px] text-slate-500 font-mono">@{usr.username}</span>}
-                              </div>
-                            </td>
-                            <td className="p-4 text-slate-300 font-mono text-xs">{usr.email}</td>
-                            <td className="p-4">
-                              <span
-                                className={`px-3 py-1 rounded-full text-[10px] font-extrabold tracking-wider border uppercase ${
-                                  isAdmin
-                                    ? 'bg-amber-950/60 text-amber-400 border-amber-500/50'
-                                    : isReporter
-                                    ? 'bg-blue-950/60 text-blue-300 border-blue-500/50'
-                                    : isEditor
-                                    ? 'bg-purple-950/60 text-purple-300 border-purple-500/50'
-                                    : 'bg-emerald-950/60 text-emerald-400 border-emerald-500/50'
-                                }`}
-                              >
-                                {isAdmin ? 'நிர்வாகி (Admin)' : isReporter ? 'நிருபர் (Reporter)' : isEditor ? 'ஆசிரியர் (Editor)' : 'வாசகர் (Reader)'}
-                              </span>
-                            </td>
-                            <td className="p-4">
-                              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-slate-800 text-slate-300 border border-slate-700">
-                                {usr.provider === 'google' ? 'Google கணக்கு' : 'வழக்கமான பதிவு'}
-                              </span>
-                            </td>
-                            <td className="p-4 text-xs text-slate-400 font-mono">{createdDate}</td>
-                            <td className="p-4 text-right space-x-3 font-bold text-xs">
-                              <button onClick={() => handleDeleteUser(usr._id || usr.id)} className="text-red-500 hover:text-red-400 cursor-pointer">
-                                நீக்கு
-                              </button>
-                            </td>
-                          </tr>
-                        );
-                      })
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+          {/* VIEW: POLLS & QUIZ MANAGER */}
+          {activeTab === 'polls-manager' && (
+            <AdminErrorBoundary sectionName="வாசகர் கருத்துக் கணிப்பு (Polls)" onResetTab={() => setActiveTab('dashboard')}>
+              <AdminPollsManager showToast={showToast} />
+            </AdminErrorBoundary>
           )}
 
           {/* VIEW 4: MY PROFILE */}
@@ -1863,105 +1746,134 @@ export const AdminDashboard = () => {
 
           {/* VIEW 6: AANMEEGAM & HOROSCOPE MANAGER */}
           {activeTab === 'aanmeegam-rasi' && (
-            <div className="max-w-6xl w-full">
-              <AdminAanmeegamManager initialSubTab={aanmeegamSubTab} />
-            </div>
+            <AdminErrorBoundary sectionName="ஆன்மீகம் & ராசி பலன்கள் மேலாளர்" onResetTab={() => setActiveTab('dashboard')}>
+              <div className="max-w-6xl w-full">
+                <AdminAanmeegamManager initialSubTab={aanmeegamSubTab} />
+              </div>
+            </AdminErrorBoundary>
           )}
 
           {/* VIEW 7: GOVT OFFICIALS BIRTHDAY MANAGER */}
           {activeTab === 'gov-birthdays' && (
-            <div className="max-w-6xl w-full">
-              <AdminBirthdayManager />
-            </div>
+            <AdminErrorBoundary sectionName="அரசு பிறந்தநாள் வாழ்த்துகள்" onResetTab={() => setActiveTab('dashboard')}>
+              <div className="max-w-6xl w-full">
+                <AdminBirthdayManager />
+              </div>
+            </AdminErrorBoundary>
           )}
 
           {/* VIEW 8: BLOGS & LITERARY COMPOSITIONS MANAGER */}
           {activeTab === 'blogs-manager' && (
-            <div className="max-w-6xl w-full">
-              <AdminBlogManager />
-            </div>
+            <AdminErrorBoundary sectionName="வலைப்பதிவுகள் & கதைகள் மேலாளர்" onResetTab={() => setActiveTab('dashboard')}>
+              <div className="max-w-6xl w-full">
+                <AdminBlogManager />
+              </div>
+            </AdminErrorBoundary>
           )}
 
           {/* VIEW 9: FAMOUS PERSONS QUOTES MANAGER */}
           {activeTab === 'quotes-manager' && (
-            <div className="max-w-6xl w-full">
-              <AdminQuotesManager />
-            </div>
+            <AdminErrorBoundary sectionName="சான்றோர் பொன்மொழிகள்" onResetTab={() => setActiveTab('dashboard')}>
+              <div className="max-w-6xl w-full">
+                <AdminQuotesManager />
+              </div>
+            </AdminErrorBoundary>
           )}
 
           {/* VIEW 10: COMPETITIONS MANAGER */}
           {activeTab === 'competitions-manager' && (
-            <div className="max-w-6xl w-full">
-              <AdminCompetitionsManager />
-            </div>
+            <AdminErrorBoundary sectionName="மாணவர் & இளைஞர் போட்டிகள்" onResetTab={() => setActiveTab('dashboard')}>
+              <div className="max-w-6xl w-full">
+                <AdminCompetitionsManager />
+              </div>
+            </AdminErrorBoundary>
           )}
 
           {/* VIEW 11: GOVT EXAMS & TNPSC MANAGER */}
           {activeTab === 'exams-manager' && (
-            <div className="max-w-6xl w-full">
-              <AdminExamsManager />
-            </div>
+            <AdminErrorBoundary sectionName="அரசுத் தேர்வுகள் & TNPSC" onResetTab={() => setActiveTab('dashboard')}>
+              <div className="max-w-6xl w-full">
+                <AdminExamsManager />
+              </div>
+            </AdminErrorBoundary>
           )}
 
           {/* VIEW 12: MONTH-WISE E-PAPER MANAGER */}
           {activeTab === 'epaper-manager' && (
-            <div className="max-w-6xl w-full">
-              <AdminEpaperManager />
-            </div>
+            <AdminErrorBoundary sectionName="மின்-இதழ் மேலாண்மை (E-Paper)" onResetTab={() => setActiveTab('dashboard')}>
+              <div className="max-w-6xl w-full">
+                <AdminEpaperManager />
+              </div>
+            </AdminErrorBoundary>
           )}
 
           {/* VIEW 13: DIGITAL MAGAZINE MANAGER */}
           {activeTab === 'magazine-manager' && (
-            <div className="max-w-6xl w-full">
-              <AdminMagazineManager />
-            </div>
+            <AdminErrorBoundary sectionName="மாத இதழ்கள் (Magazine Manager)" onResetTab={() => setActiveTab('dashboard')}>
+              <div className="max-w-6xl w-full">
+                <AdminMagazineManager />
+              </div>
+            </AdminErrorBoundary>
           )}
 
           {/* VIEW 14: VIDEO GALLERY MANAGER */}
           {activeTab === 'video-manager' && (
-            <div className="max-w-6xl w-full">
-              <AdminVideoManager />
-            </div>
+            <AdminErrorBoundary sectionName="வீடியோ செய்திகள் (Video News)" onResetTab={() => setActiveTab('dashboard')}>
+              <div className="max-w-6xl w-full">
+                <AdminVideoManager />
+              </div>
+            </AdminErrorBoundary>
           )}
 
           {/* VIEW: HOME PAGE BUILDER */}
           {activeTab === 'home-builder' && (
-            <div className="max-w-6xl w-full">
-              <AdminHomePageBuilder showToast={showToast} />
-            </div>
+            <AdminErrorBoundary sectionName="முகப்பு அமைப்பாளர் (Home Builder)" onResetTab={() => setActiveTab('dashboard')}>
+              <div className="max-w-6xl w-full">
+                <AdminHomePageBuilder showToast={showToast} />
+              </div>
+            </AdminErrorBoundary>
           )}
 
           {/* VIEW: CINEMA MANAGER */}
           {activeTab === 'cinema-manager' && (
-            <div className="max-w-6xl w-full">
-              <AdminCinemaSportsManager showToast={showToast} defaultTab="cinema" />
-            </div>
+            <AdminErrorBoundary sectionName="சினிமா மேலாளர் (Cinema)" onResetTab={() => setActiveTab('dashboard')}>
+              <div className="max-w-6xl w-full">
+                <AdminCinemaSportsManager showToast={showToast} defaultTab="cinema" />
+              </div>
+            </AdminErrorBoundary>
           )}
 
           {/* VIEW: SPORTS MANAGER */}
           {activeTab === 'sports-manager' && (
-            <div className="max-w-6xl w-full">
-              <AdminCinemaSportsManager showToast={showToast} defaultTab="sports" />
-            </div>
+            <AdminErrorBoundary sectionName="விளையாட்டு மேலாளர் (Sports)" onResetTab={() => setActiveTab('dashboard')}>
+              <div className="max-w-6xl w-full">
+                <AdminCinemaSportsManager showToast={showToast} defaultTab="sports" />
+              </div>
+            </AdminErrorBoundary>
           )}
 
           {/* VIEW: SPECIAL DAYS & FESTIVAL WISHES */}
           {activeTab === 'special-days' && (
-            <div className="max-w-6xl w-full">
-              <AdminSpecialDaysManager showToast={showToast} />
-            </div>
+            <AdminErrorBoundary sectionName="சிறப்பு தினங்கள் & விழாக்கள்" onResetTab={() => setActiveTab('dashboard')}>
+              <div className="max-w-6xl w-full">
+                <AdminSpecialDaysManager showToast={showToast} />
+              </div>
+            </AdminErrorBoundary>
           )}
 
           {/* VIEW: SOCIAL MEDIA SETTINGS */}
           {activeTab === 'social-media' && (
-            <div className="max-w-6xl w-full">
-              <AdminSocialMediaManager showToast={showToast} />
-            </div>
+            <AdminErrorBoundary sectionName="சமூக ஊடகங்கள் (Social Media)" onResetTab={() => setActiveTab('dashboard')}>
+              <div className="max-w-6xl w-full">
+                <AdminSocialMediaManager showToast={showToast} />
+              </div>
+            </AdminErrorBoundary>
           )}
 
           {/* VIEW 15: USERS & REPORTERS MANAGEMENT */}
           {activeTab === 'users' && (
-            <div className="space-y-6 font-tamil max-w-6xl w-full">
+            <AdminErrorBoundary sectionName="நிருபர்கள் & வாசகர்கள் மேலாண்மை" onResetTab={() => setActiveTab('dashboard')}>
+              <div className="space-y-6 font-tamil max-w-6xl w-full">
               {/* Header Banner */}
               <div className="bg-[#0f172a] rounded-3xl border border-slate-800 p-6 shadow-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div className="space-y-1">
@@ -2263,6 +2175,7 @@ export const AdminDashboard = () => {
                 </div>
               </div>
             </div>
+            </AdminErrorBoundary>
           )}
         </main>
       </div>

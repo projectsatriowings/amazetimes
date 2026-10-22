@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Volume2, Calendar, Sparkles, Landmark, ArrowRight, BookOpen, HelpCircle, HeartHandshake } from 'lucide-react';
 import { api } from '../services/api';
+import { useApp } from '../context/AppContext';
 
 export default function AanmegamView({ onOpenArticle, onSpeak, onBookmark, savedBookmarks = [] }) {
+  const { panchangamData: contextPanchangam, templeFestivals: contextTemples } = useApp();
   // 12 Zodiac signs state
   const [signs, setSigns] = useState([]);
   const [activeSignIndex, setActiveSignIndex] = useState(0);
@@ -32,41 +34,52 @@ export default function AanmegamView({ onOpenArticle, onSpeak, onBookmark, saved
   ];
 
   useEffect(() => {
+    let isMounted = true;
     const fetchZodiac = async () => {
       setIsLoadingZodiac(true);
       try {
         const res = await api.getZodiacToday();
-        if (res.success && res.signs?.length > 0) {
+        if (isMounted && res.success && res.signs?.length > 0) {
           setSigns(res.signs);
-        } else {
+        } else if (isMounted) {
           setSigns(fallbackSigns);
         }
       } catch (err) {
-        setSigns(fallbackSigns);
+        if (isMounted) setSigns(fallbackSigns);
       } finally {
-        setIsLoadingZodiac(false);
+        if (isMounted) setIsLoading(false);
       }
     };
     fetchZodiac();
+
+    const handleUpdated = () => {
+      if (isMounted) fetchZodiac();
+    };
+    window.addEventListener('amaze:content_updated', handleUpdated);
+
+    return () => {
+      isMounted = false;
+      window.removeEventListener('amaze:content_updated', handleUpdated);
+    };
   }, []);
 
   const activeSignsList = signs.length > 0 ? signs : fallbackSigns;
   const activeSign = activeSignsList[activeSignIndex] || activeSignsList[0];
 
-  // Panchangam Data
+  // Panchangam Data (Live Database Synced with AppContext)
   const panchangamData = {
-    year: 'குரோதி வருடம்',
-    ayanam: 'தட்சிணாயனம்',
-    month: 'புரட்டாசி 26',
-    tithi: 'சுக்ல பக்ஷ தசமி (இரவு 08:42 வரை)',
-    nakshatra: 'திருவோணம் (பிற்பகல் 03:15 வரை)',
-    yogam: 'சித்த யோகம்',
-    nallaNeram: 'காலை 09:15 - 10:15 | மாலை 04:45 - 05:45',
-    gowriNeram: 'காலை 10:45 - 11:45 | இரவு 07:30 - 08:30',
-    rahuKalam: 'பிற்பகல் 01:30 - 03:00',
-    yamakandam: 'காலை 06:00 - 07:30',
-    kuligai: 'காலை 09:00 - 10:30',
-    chandrashtamam: 'அஸ்வினி, பரணி'
+    year: contextPanchangam?.tamilYear || contextPanchangam?.year || 'குரோதி வருடம்',
+    ayanam: contextPanchangam?.ayanam || 'தட்சிணாயனம்',
+    month: contextPanchangam?.tamilDate || contextPanchangam?.month || 'புரட்டாசி 26',
+    tithi: contextPanchangam?.tithi || 'சுக்ல பக்ஷ தசமி (இரவு 08:42 வரை)',
+    nakshatra: contextPanchangam?.natchathiram || contextPanchangam?.nakshatra || 'திருவோணம் (பிற்பகல் 03:15 வரை)',
+    yogam: contextPanchangam?.yogam || 'சித்த யோகம்',
+    nallaNeram: contextPanchangam?.nallaNeram || 'காலை 09:15 - 10:15 | மாலை 04:45 - 05:45',
+    gowriNeram: contextPanchangam?.gowriNeram || 'காலை 10:45 - 11:45 | இரவு 07:30 - 08:30',
+    rahuKalam: contextPanchangam?.rahuKalam || 'பிற்பகல் 01:30 - 03:00',
+    yamakandam: contextPanchangam?.yamagandam || contextPanchangam?.yamakandam || 'காலை 06:00 - 07:30',
+    kuligai: contextPanchangam?.kuligai || 'காலை 09:00 - 10:30',
+    chandrashtamam: contextPanchangam?.chandrashtamam || 'அஸ்வினி, பரணி'
   };
 
   // Famous Temples Directory
@@ -180,9 +193,24 @@ export default function AanmegamView({ onOpenArticle, onSpeak, onBookmark, saved
     setTimeout(() => setIsPrayerSubmitted(false), 5000);
   };
 
+  const dynamicTemples = (contextTemples && contextTemples.length > 0)
+    ? contextTemples.map((t, idx) => ({
+        id: t.id || `ctx_temple_${idx}`,
+        title: t.title || t.templeName,
+        category: t.category || 'முக்கிய திருத்தலம்',
+        location: t.location || 'தமிழ்நாடு',
+        image: t.image || 'https://images.unsplash.com/photo-1609766857041-ed402ea8069a?auto=format&fit=crop&w=800&q=80',
+        desc: t.details || t.darshanTimings || 'சிறப்பு திருத்தலம்',
+        deity: t.templeName || t.title,
+        history: t.details || ''
+      }))
+    : [];
+
+  const allTemples = dynamicTemples.length > 0 ? [...dynamicTemples, ...templesList] : templesList;
+
   const filteredTemples = activeTempleCategory === 'all'
-    ? templesList
-    : templesList.filter(t => t.category.includes(activeTempleCategory));
+    ? allTemples
+    : allTemples.filter(t => (t.category || '').includes(activeTempleCategory));
 
   return (
     <div className="space-y-8 max-w-[1380px] mx-auto py-2 selection:bg-amber-500 selection:text-slate-950 font-subtitle">

@@ -28,6 +28,7 @@ import AuthModal from './components/admin/AuthModal';
 import AdminDashboardModal from './components/admin/AdminDashboardModal';
 import LoginPage from './components/admin/LoginPage';
 import { AdminDashboard } from './pages/AdminDashboard';
+import { AdminErrorBoundary } from './components/admin/AdminErrorBoundary';
 import UserAuthModal from './components/modals/UserAuthModal';
 import UserProfileModal from './components/modals/UserProfileModal';
 
@@ -683,7 +684,9 @@ export default function App() {
 
     return (
       <div className={`min-h-screen ${fontSizeClass}`}>
-        <AdminDashboard />
+        <AdminErrorBoundary sectionName="அமேஸ் டைம்ஸ் நிர்வாக மையம் (Admin Dashboard)" onResetTab={() => navigateTo('/')}>
+          <AdminDashboard />
+        </AdminErrorBoundary>
         <Toast toasts={toasts} onRemoveToast={removeToast} />
       </div>
     );

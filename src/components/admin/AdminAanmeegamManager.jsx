@@ -43,6 +43,11 @@ const getTamilDayName = (dateStr) => {
   const dayIdx = isNaN(dt.getDay()) ? 0 : dt.getDay();
   return days[dayIdx];
 };
+const getTodayPeriod = () => {
+  const d = new Date();
+  const todayISO = getTodayISO();
+  return `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()} ${getTamilDayName(todayISO)}`;
+};
 
 
 export const AdminAanmeegamManager = ({ initialSubTab }) => {
@@ -359,6 +364,29 @@ export const AdminAanmeegamManager = ({ initialSubTab }) => {
       }
     });
 
+    // Sync to PostgreSQL table zodiac_horoscopes so main page ZodiacWidget and AanmegamView update instantly!
+    const signsToSync = [];
+    rasiKeysList.forEach((r, idx) => {
+      const detailObj = getRasiObj(directForm.predictions, r);
+      if (detailObj.prediction) {
+        signsToSync.push({
+          id: idx + 1,
+          prediction_text: detailObj.prediction,
+          lucky_number: detailObj.luckyNumber || r.defaultLuckyNo,
+          lucky_color: detailObj.luckyColor || r.defaultLuckyColor,
+          lucky_direction: detailObj.luckyDirection || r.defaultLuckyDir
+        });
+      }
+    });
+
+    if (signsToSync.length > 0) {
+      api.bulkUpdateZodiac({ signs: signsToSync })
+        .then(() => {
+          window.dispatchEvent(new CustomEvent('amaze:content_updated'));
+        })
+        .catch(err => console.warn('Zodiac DB sync failed:', err));
+    }
+
     setRasiViewMode('list');
   };
 
@@ -465,6 +493,12 @@ export const AdminAanmeegamManager = ({ initialSubTab }) => {
   const handlePanchangamSubmit = (e) => {
     e.preventDefault();
     updatePanchangamData(panchangamForm);
+    api.saveSiteContent('panchangam', panchangamForm).then(() => {
+      showToast('பஞ்சாங்கம் நேரலைத் தளத்தில் வெற்றிகரமாக சேமிக்கப்பட்டது!');
+      window.dispatchEvent(new CustomEvent('amaze:content_updated'));
+    }).catch(() => {
+      showToast('பஞ்சாங்கம் சேமிக்கப்பட்டது');
+    });
   };
 
   // --- 3. TEMPLE FESTIVALS MODAL STATE ---
@@ -536,6 +570,9 @@ export const AdminAanmeegamManager = ({ initialSubTab }) => {
       addTempleFestival(templeForm);
     }
     setShowTempleModal(false);
+    setTimeout(() => {
+      window.dispatchEvent(new CustomEvent('amaze:content_updated'));
+    }, 100);
   };
 
   // --- 4. REMEDIES MODAL STATE ---
