@@ -270,6 +270,12 @@ app.use((req, res, next) => {
     cleanPath.startsWith('/admin') ||
     cleanPath.startsWith('/login') ||
     cleanPath.startsWith('/social-media') ||
+    cleanPath.startsWith('/editorial') ||
+    cleanPath.startsWith('/thalaiyangam') ||
+    cleanPath.startsWith('/blogs') ||
+    cleanPath.startsWith('/valaipathivugal') ||
+    cleanPath.startsWith('/spiritual') ||
+    cleanPath.startsWith('/aanmeegam') ||
     cleanPath.startsWith('/category') ||
     cleanPath.startsWith('/news') ||
     cleanPath.startsWith('/article');

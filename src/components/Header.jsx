@@ -687,6 +687,9 @@ export default function Header({
                       else window.location.href = '/social-media';
                       return;
                     }
+                    if (onNavigate && window.location.pathname !== '/') {
+                      onNavigate('/');
+                    }
                     onSelectCategory(cat.id);
                   }}
                   className={`relative px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 font-bold text-xs shrink-0 cursor-pointer ${

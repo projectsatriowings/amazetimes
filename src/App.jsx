@@ -11,6 +11,7 @@ import QuizPoll from './components/QuizPoll';
 import ZodiacWidget from './components/ZodiacWidget';
 import EditorialView from './components/EditorialView';
 import AanmegamView from './components/AanmegamView';
+import BlogsView from './components/BlogsView';
 import Footer from './components/Footer';
 import ArticleModal from './components/ArticleModal';
 import EPaperModal from './components/EPaperModal';
@@ -101,6 +102,18 @@ export default function App() {
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
+
+  // Sync category state with direct URL paths
+  useEffect(() => {
+    const p = (window.location.pathname || '').toLowerCase().replace(/\/$/, '');
+    if (p === '/editorial' || p === '/thalaiyangam') {
+      setActiveCategory('editorial');
+    } else if (p === '/blogs' || p === '/valaipathivugal') {
+      setActiveCategory('blogs');
+    } else if (p === '/spiritual' || p === '/aanmeegam') {
+      setActiveCategory('spiritual');
+    }
+  }, [currentPath]);
 
   // Reader (Authentication & Profile) State - Auto Purge temporary/mock users
   const [readerUser, setReaderUserState] = useState(() => {
@@ -476,6 +489,9 @@ export default function App() {
   // Category select
   const handleSelectCategory = (catId) => {
     setActiveCategory(catId);
+    if (currentPath !== '/') {
+      navigateTo('/');
+    }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -752,14 +768,14 @@ export default function App() {
       {/* Main Container */}
       <main className="max-w-[1400px] mx-auto px-2.5 sm:px-4 py-3 sm:py-6 flex-1 w-full max-w-full min-w-0 overflow-x-hidden space-y-8 sm:space-y-12 pb-20 sm:pb-8">
         
-        {/* Route Handlers: Social Media Hub, Known Routes & 404 Error Page */}
-        {currentPath !== '/' ? (
+        {/* Route Handlers: Social Media Hub, Editorial, Blogs, Aanmeegam, Known Routes & 404 Error Page */}
+        {(currentPath !== '/' && currentPath !== '/editorial' && currentPath !== '/blogs' && currentPath !== '/spiritual' && currentPath !== '/thalaiyangam' && currentPath !== '/valaipathivugal' && currentPath !== '/aanmeegam') ? (
           currentPath === '/social-media' ? (
             <SocialMediaPage onNavigate={navigateTo} onToast={addToast} />
           ) : (
             <NotFoundPage onNavigate={navigateTo} onSelectCategory={handleSelectCategory} />
           )
-        ) : activeCategory === 'editorial' ? (
+        ) : (activeCategory === 'editorial' || currentPath === '/editorial' || currentPath === '/thalaiyangam') ? (
           <EditorialView
             articles={backendArticles.length > 0 ? backendArticles : (currentFallback.cards || [])}
             onOpenArticle={openArticleModal}
@@ -767,7 +783,15 @@ export default function App() {
             onBookmark={handleBookmark}
             savedBookmarks={savedBookmarks}
           />
-        ) : activeCategory === 'spiritual' ? (
+        ) : (activeCategory === 'blogs' || currentPath === '/blogs' || currentPath === '/valaipathivugal') ? (
+          <BlogsView
+            onOpenArticle={openArticleModal}
+            onSpeak={speakTamilText}
+            onBookmark={handleBookmark}
+            savedBookmarks={savedBookmarks}
+            onToast={addToast}
+          />
+        ) : (activeCategory === 'spiritual' || currentPath === '/spiritual' || currentPath === '/aanmeegam') ? (
           /* Dedicated Aanmegam Broadsheet View */
           <AanmegamView
             onOpenArticle={openArticleModal}
