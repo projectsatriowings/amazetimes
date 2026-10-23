@@ -105,7 +105,8 @@ import {
   UserX,
   Calendar,
   Radio,
-  Vote
+  Vote,
+  Star
 } from 'lucide-react';
 
 const getArticleViews = (id) => {
