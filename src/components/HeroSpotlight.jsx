@@ -96,11 +96,15 @@ export default function HeroSpotlight({
             {/* Visual Image Banner with 16:9 Aspect Ratio */}
             <div className="relative w-full aspect-[16/9] overflow-hidden bg-slate-900 cursor-pointer" onClick={() => onOpenArticle(leadData)}>
               <img
-                src={leadData.image || leadData.cover_image_url || '/Amaze times.jpg'}
+                src={leadData.image || leadData.cover_image_url || '/og-image.jpg'}
                 alt={leadData.title}
+                width="800"
+                height="450"
+                loading="eager"
+                fetchPriority="high"
                 decoding="async"
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                onError={(e) => { e.target.src = '/Amaze times.jpg'; }}
+                className="w-full h-full aspect-[16/9] object-cover group-hover:scale-105 transition-transform duration-500"
+                onError={(e) => { e.target.src = '/og-image.jpg'; }}
               />
               <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-950/20 to-transparent"></div>
 
@@ -111,7 +115,7 @@ export default function HeroSpotlight({
                   <span>முக்கியச் செய்தி • {leadData.category || 'தமிழ்நாடு'}</span>
                 </span>
                 <span className="bg-[#0a1945]/90 backdrop-blur-md text-amber-300 font-bold text-[10px] sm:text-[11px] px-2.5 py-1 rounded-xl border border-amber-400/30 shadow-xs">
-                  PRGI TNBIL/2023/88656
+                  அங்கீகரிக்கப்பட்ட நாளிதழ்
                 </span>
               </div>
 
@@ -299,10 +303,12 @@ export default function HeroSpotlight({
                         <img
                           src={item.image}
                           alt={item.title}
+                          width="56"
+                          height="56"
                           loading="lazy"
                           decoding="async"
-                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                          onError={(e) => { e.target.src = '/Amaze times.jpg'; }}
+                          className="w-full h-full aspect-square object-cover group-hover:scale-110 transition-transform duration-300"
+                          onError={(e) => { e.target.src = '/og-image.jpg'; }}
                         />
                       </div>
                     )}

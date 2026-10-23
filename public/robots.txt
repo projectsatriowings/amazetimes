@@ -1,0 +1,32 @@
+# Amaze Times Official Robots.txt
+# https://amazetimes.com/robots.txt
+
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /admin/
+Disallow: /login
+Disallow: /api/
+Disallow: /uploads/temp/
+
+# Dedicated Rules for Search Engine Crawlers
+User-agent: Googlebot
+Allow: /
+User-agent: Googlebot-News
+Allow: /
+User-agent: Bingbot
+Allow: /
+
+# Dedicated Rules for AI Answer Engines & Crawlers (Citation & Sourcing)
+User-agent: GPTBot
+Allow: /
+User-agent: ClaudeBot
+Allow: /
+User-agent: PerplexityBot
+Allow: /
+User-agent: Applebot
+Allow: /
+
+# Host & XML Sitemap Reference
+Host: https://amazetimes.com
+Sitemap: https://amazetimes.com/sitemap.xml

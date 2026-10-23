@@ -416,7 +416,7 @@ export default function Header({
               }}
             >
               <div className="bg-white p-1 rounded-xl sm:rounded-2xl shadow-sm ring-1 sm:ring-2 ring-[#0e2a7a]/40 group-hover:ring-amber-400 transition-all border border-slate-200 flex items-center justify-center shrink-0">
-                <img src="/Amaze times.jpg" alt="அமேஸ் டைம்ஸ்" className="h-8 sm:h-12 md:h-14 w-auto object-contain rounded-lg sm:rounded-xl" />
+                <img src="/amaze-times-logo.jpg" alt="அமேஸ் டைம்ஸ்" width="160" height="56" className="h-8 sm:h-12 md:h-14 w-auto object-contain rounded-lg sm:rounded-xl" />
               </div>
               <div className="flex flex-col text-left min-w-0">
                 <div className="flex items-center gap-1.5 sm:gap-2 flex-nowrap">
@@ -608,7 +608,7 @@ export default function Header({
 
             <div className="flex items-center justify-center">
               <div className="w-16 h-16 rounded-2xl bg-white p-1.5 shadow-xl ring-2 ring-[#0e2a7a]/40 flex items-center justify-center">
-                <img src="/Amaze times.jpg" alt="Amaze Times" className="w-full h-full object-contain rounded-xl" />
+                <img src="/amaze-times-logo.jpg" alt="Amaze Times" width="64" height="64" className="w-full h-full object-contain rounded-xl" />
               </div>
             </div>
 

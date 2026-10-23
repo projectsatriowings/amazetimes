@@ -1,0 +1,6 @@
+# Amaze Times Digital Publisher Authorized Digital Sellers (ads.txt)
+# https://amazetimes.com/ads.txt
+# Standard format per IAB Tech Lab Ads.txt Specification
+
+google.com, pub-0000000000000000, DIRECT, f08c47fec0942fa0
+contact=editor@amazetimes.com

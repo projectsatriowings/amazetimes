@@ -61,7 +61,7 @@ export default function Footer({ onSelectCategory, onOpenEPaper, onOpenBookmarks
           <div className="space-y-4">
             <div className="flex items-center gap-3">
               <div className="bg-white p-1 rounded-2xl shadow-md border border-slate-700 flex items-center justify-center">
-                <img src="/Amaze times.jpg" alt="அமேஸ் டைம்ஸ்" className="h-10 w-auto object-contain rounded-xl" />
+                <img src="/amaze-times-logo.jpg" alt="அமேஸ் டைம்ஸ்" width="120" height="40" className="h-10 w-auto object-contain rounded-xl" />
               </div>
               <div className="flex flex-col">
                 <span className="font-title font-black text-xl text-white">அமேஸ் டைம்ஸ்</span>
@@ -135,7 +135,13 @@ export default function Footer({ onSelectCategory, onOpenEPaper, onOpenBookmarks
             <div className="space-y-2 text-slate-400 text-xs">
               <p className="flex items-center gap-2">
                 <Mail className="w-3.5 h-3.5 text-red-400" />
-                <span>editor@amazetimes.com</span>
+                <a
+                  href={`mailto:${['editor', 'amazetimes.com'].join('@')}`}
+                  className="hover:text-amber-400 transition-colors"
+                  title="அமேஸ் டைம்ஸ் ஆசிரியர் தொடர்பு"
+                >
+                  {['editor', 'amazetimes.com'].join('@')}
+                </a>
               </p>
               <p className="flex items-center gap-2">
                 <Phone className="w-3.5 h-3.5 text-emerald-400" />

@@ -87,12 +87,14 @@ export default function SecondaryNewsGrid({
                   onClick={() => onOpenArticle(c)}
                 >
                   <img
-                    src={c.img || c.image || c.cover_image_url || '/Amaze times.jpg'}
+                    src={c.img || c.image || c.cover_image_url || '/og-image.jpg'}
                     alt={c.title}
+                    width="400"
+                    height="250"
                     loading="lazy"
                     decoding="async"
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    onError={(e) => { e.target.src = '/Amaze times.jpg'; }}
+                    className="w-full h-full aspect-[16/10] object-cover group-hover:scale-105 transition-transform duration-500"
+                    onError={(e) => { e.target.src = '/og-image.jpg'; }}
                   />
                   <span className="absolute top-2.5 left-2.5 bg-[#0e2a7a]/90 backdrop-blur-md text-white text-[10px] font-bold px-2.5 py-0.5 rounded-lg shadow-sm">
                     {c.cat || c.category || 'செய்தி'}

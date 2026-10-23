@@ -22,6 +22,7 @@ import MagazineShowcase from './components/MagazineShowcase';
 import SpecialDaysFestivalCard from './components/SpecialDaysFestivalCard';
 import CinemaSportsHub from './components/CinemaSportsHub';
 import Toast from './components/Toast';
+import NotFoundPage from './components/NotFoundPage';
 import { normalizeTamilSpeech, chunkTamilText } from './utils/tamilSpeechNormalizer';
 
 import AuthModal from './components/admin/AuthModal';
@@ -733,8 +734,10 @@ export default function App() {
       {/* Main Container */}
       <main className="max-w-[1400px] mx-auto px-2.5 sm:px-4 py-3 sm:py-6 flex-1 w-full max-w-full min-w-0 overflow-x-hidden space-y-6 sm:space-y-10 pb-20 sm:pb-8">
         
-        {/* If category is 'editorial', show dedicated prestigious Thalaiyangam Broadsheet View */}
-        {activeCategory === 'editorial' ? (
+        {/* Route Fallback: Custom 404 Error Page for Unknown URLs */}
+        {currentPath !== '/' ? (
+          <NotFoundPage onNavigate={navigateTo} onSelectCategory={handleSelectCategory} />
+        ) : activeCategory === 'editorial' ? (
           <EditorialView
             articles={backendArticles.length > 0 ? backendArticles : (currentFallback.cards || [])}
             onOpenArticle={openArticleModal}

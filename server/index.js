@@ -25,6 +25,9 @@ import contentRoutes from './routes/content.js';
 import magazineRoutes from './routes/magazines.js';
 import ttsRoutes from './routes/ttsRoutes.js';
 
+import fs from 'fs';
+import { query } from './db.js';
+
 dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
@@ -35,6 +38,37 @@ const PORT = process.env.PORT || 5000;
 
 // High capacity middleware: 100MB capacity for large e-papers and media
 app.use(cors());
+
+// Canonical URL & HTTPS 301 Permanent Redirection Middleware (SEO High Issue)
+app.use((req, res, next) => {
+  const host = req.headers.host || '';
+  const isWww = host.startsWith('www.');
+  const proto = req.headers['x-forwarded-proto'] || req.protocol;
+
+  // 1. Force apex non-www domain
+  if (isWww) {
+    const cleanHost = host.replace(/^www\./i, '');
+    return res.redirect(301, `https://${cleanHost}${req.originalUrl || req.url}`);
+  }
+
+  // 2. Force HTTPS in production
+  if (process.env.NODE_ENV === 'production' && proto === 'http') {
+    return res.redirect(301, `https://${host}${req.originalUrl || req.url}`);
+  }
+
+  next();
+});
+
+// Security & HSTS Headers (Resolves Strict-Transport-Security Test)
+app.use((req, res, next) => {
+  res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  next();
+});
+
 app.use(express.json({ limit: '100mb' }));
 app.use(express.urlencoded({ extended: true, limit: '100mb' }));
 
@@ -99,14 +133,89 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Serve static frontend in production (dist directory)
+// Dynamic XML Sitemap for Search Engine Crawlers & AI Bots
+app.get('/sitemap.xml', async (req, res) => {
+  res.setHeader('Content-Type', 'application/xml; charset=utf-8');
+  res.setHeader('Cache-Control', 'public, max-age=3600, stale-while-revalidate=86400');
+
+  try {
+    const result = await query(
+      `SELECT id, category, published_at FROM news WHERE status = 'published' ORDER BY published_at DESC LIMIT 500`
+    );
+
+    const baseUrl = 'https://amazetimes.com';
+    const now = new Date().toISOString();
+
+    let xml = `<?xml version="1.0" encoding="UTF-8"?>\n`;
+    xml += `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:news="http://www.google.com/schemas/sitemap-news/0.9">\n`;
+
+    // Core Categories
+    const categories = ['tamilnadu', 'districts', 'business', 'cinema', 'sports', 'spiritual', 'editorial', 'magazine'];
+    xml += `  <url>\n    <loc>${baseUrl}/</loc>\n    <lastmod>${now}</lastmod>\n    <changefreq>always</changefreq>\n    <priority>1.0</priority>\n  </url>\n`;
+
+    categories.forEach(cat => {
+      xml += `  <url>\n    <loc>${baseUrl}/?category=${cat}</loc>\n    <lastmod>${now}</lastmod>\n    <changefreq>hourly</changefreq>\n    <priority>0.85</priority>\n  </url>\n`;
+    });
+
+    if (result && result.rows) {
+      result.rows.forEach(article => {
+        const lastMod = article.published_at ? new Date(article.published_at).toISOString() : now;
+        xml += `  <url>\n    <loc>${baseUrl}/?article=${article.id}</loc>\n    <lastmod>${lastMod}</lastmod>\n    <changefreq>daily</changefreq>\n    <priority>0.8</priority>\n  </url>\n`;
+      });
+    }
+
+    xml += `</urlset>`;
+    return res.send(xml);
+  } catch (err) {
+    console.warn('⚠️ [Sitemap] Could not query database, serving fallback static sitemap:', err?.message || err);
+    const staticSitemap = path.join(__dirname, '../public/sitemap.xml');
+    if (fs.existsSync(staticSitemap)) {
+      return res.sendFile(staticSitemap);
+    }
+    return res.status(500).send('<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>');
+  }
+});
+
+// Explicit Robots.txt and Ads.txt Route Handlers with Correct MIME Types
+app.get('/robots.txt', (req, res) => {
+  res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+  res.sendFile(path.join(__dirname, '../public/robots.txt'));
+});
+
+app.get('/ads.txt', (req, res) => {
+  res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+  res.sendFile(path.join(__dirname, '../public/ads.txt'));
+});
+
+// Serve static frontend in production (dist directory) with Far-Future Caching
 const distPath = path.join(__dirname, '../dist');
-app.use(express.static(distPath));
+const publicPath = path.join(__dirname, '../public');
+
+const staticCacheOptions = {
+  maxAge: '1y',
+  immutable: true,
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('.html')) {
+      res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');
+    } else if (filePath.match(/\.(js|css|woff2|woff|ttf)$/)) {
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    } else if (filePath.match(/\.(jpg|jpeg|png|webp|svg|ico)$/)) {
+      res.setHeader('Cache-Control', 'public, max-age=86400, stale-while-revalidate=604800');
+    }
+  }
+};
+
+app.use(express.static(publicPath, staticCacheOptions));
+app.use(express.static(distPath, staticCacheOptions));
 
 // For SPA routing, serve index.html for non-API and non-upload requests
 app.use((req, res, next) => {
   if (req.method === 'GET' && !req.path.startsWith('/api') && !req.path.startsWith('/uploads')) {
-    return res.sendFile(path.join(distPath, 'index.html'));
+    const indexPath = path.join(distPath, 'index.html');
+    if (fs.existsSync(indexPath)) {
+      return res.sendFile(indexPath);
+    }
+    return res.sendFile(path.join(__dirname, '../index.html'));
   }
   next();
 });
