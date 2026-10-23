@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowRight, Bookmark, ChevronDown, Heart } from 'lucide-react';
+import { ArrowRight, Bookmark, ChevronDown, Heart, Eye, Share2, Clock } from 'lucide-react';
 import { getResponsiveImageProps } from '../utils/imageHelper';
 
 export default function SecondaryNewsGrid({
@@ -88,7 +88,7 @@ export default function SecondaryNewsGrid({
                   onClick={() => onOpenArticle(c)}
                 >
                   {(() => {
-                    const cardImg = getResponsiveImageProps(c.img || c.image || c.cover_image_url || '/og-image.jpg', 600, 375);
+                    const cardImg = getResponsiveImageProps(c.img || c.image || c.cover_image_url || '/og-image.webp', 600, 375);
                     return (
                       <img
                         src={cardImg.src}
@@ -100,7 +100,7 @@ export default function SecondaryNewsGrid({
                         loading="lazy"
                         decoding="async"
                         className="w-full h-full aspect-[16/10] object-cover group-hover:scale-105 transition-transform duration-500"
-                        onError={(e) => { e.target.src = '/og-image.jpg'; }}
+                        onError={(e) => { e.target.src = '/og-image.webp'; }}
                       />
                     );
                   })()}
@@ -113,7 +113,13 @@ export default function SecondaryNewsGrid({
                 <div className="p-4 space-y-2">
                   <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 font-medium">
                     <span>{c.author || 'அமேஸ் டைம்ஸ் நிருபர்'}</span>
-                    <span>{c.time || '1 மணி நேரத்திற்கு முன்'}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="flex items-center gap-0.5 text-blue-500 font-bold">
+                        <Eye className="w-3 h-3" /> {(c.views || 0).toLocaleString()}
+                      </span>
+                      <span>•</span>
+                      <span>{c.time || '1 மணி நேரத்திற்கு முன்'}</span>
+                    </div>
                   </div>
 
                   <h3
@@ -132,6 +138,7 @@ export default function SecondaryNewsGrid({
               {/* Bottom Engagement Bar */}
               <div className="p-4 pt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-xs">
                 <button
+                  type="button"
                   onClick={() => onOpenArticle(c)}
                   className="text-[#0e2a7a] dark:text-amber-400 hover:text-red-600 font-bold flex items-center gap-1.5 group-hover:translate-x-0.5 transition-transform cursor-pointer"
                 >
@@ -142,8 +149,9 @@ export default function SecondaryNewsGrid({
                 <div className="flex items-center gap-1">
                   {onToggleLike && (
                     <button
+                      type="button"
                       onClick={() => onToggleLike(c)}
-                      className={`p-1 transition-colors cursor-pointer ${
+                      className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
                         likedArticles.some(a => String(a.id) === String(c.id))
                           ? 'text-rose-500 hover:text-rose-600'
                           : 'text-slate-400 hover:text-rose-500'
@@ -156,13 +164,27 @@ export default function SecondaryNewsGrid({
 
                   {onBookmark && (
                     <button
+                      type="button"
                       onClick={() => onBookmark(c)}
-                      className="hover:text-amber-500 transition-colors cursor-pointer text-slate-400 p-1"
+                      className="hover:text-amber-500 transition-colors cursor-pointer text-slate-400 p-1.5 rounded-lg"
                       title={isSaved ? 'சேமிக்கப்பட்டது' : 'செய்தியைச் சேமிக்க'}
                     >
                       <Bookmark className={`w-4 h-4 ${isSaved ? 'text-amber-500 fill-amber-500 font-bold' : ''}`} />
                     </button>
                   )}
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const shareUrl = `${window.location.origin}/?article=${c.id}`;
+                      const shareText = `${c.title}\n\nமுழு செய்தியை வாசிக்க அமேஸ் டைம்ஸ் தளத்திற்கு வாருங்கள்:\n${shareUrl}`;
+                      window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`, '_blank');
+                    }}
+                    className="hover:text-emerald-500 transition-colors cursor-pointer text-slate-400 p-1.5 rounded-lg"
+                    title="வாட்ஸ்அப்பில் பகிர்க"
+                  >
+                    <Share2 className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
             </article>

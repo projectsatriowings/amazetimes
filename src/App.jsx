@@ -21,6 +21,9 @@ import GoldCalculatorModal from './components/GoldCalculatorModal';
 import MagazineShowcase from './components/MagazineShowcase';
 import SpecialDaysFestivalCard from './components/SpecialDaysFestivalCard';
 import CinemaSportsHub from './components/CinemaSportsHub';
+import CinemaSportsSpotlightBar from './components/CinemaSportsSpotlightBar';
+import DistrictNewsHub from './components/DistrictNewsHub';
+import { GoldMarketDashboard } from './components/GoldMarketDashboard';
 import Toast from './components/Toast';
 import NotFoundPage from './components/NotFoundPage';
 import { normalizeTamilSpeech, chunkTamilText } from './utils/tamilSpeechNormalizer';
@@ -718,6 +721,8 @@ export default function App() {
         onSpeak={speakTamilText}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
+        articles={backendArticles.length > 0 ? backendArticles : displayCards}
+        onOpenArticle={openArticleModal}
         readerUser={readerUser}
         onGoogleLogin={handleGoogleLogin}
         onOpenUserAuth={() => setIsUserAuthOpen(true)}
@@ -731,8 +736,17 @@ export default function App() {
         onOpenGoldCalculator={() => setIsGoldCalculatorOpen(true)}
       />
 
+      {/* Dina Thanthi-style High Visibility Cinema & Sports Spotlight Bar */}
+      <CinemaSportsSpotlightBar
+        onOpenSearch={(query) => {
+          setSearchQuery(query);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
+        onSelectCategory={handleSelectCategory}
+      />
+
       {/* Main Container */}
-      <main className="max-w-[1400px] mx-auto px-2.5 sm:px-4 py-3 sm:py-6 flex-1 w-full max-w-full min-w-0 overflow-x-hidden space-y-6 sm:space-y-10 pb-20 sm:pb-8">
+      <main className="max-w-[1400px] mx-auto px-2.5 sm:px-4 py-3 sm:py-6 flex-1 w-full max-w-full min-w-0 overflow-x-hidden space-y-8 sm:space-y-12 pb-20 sm:pb-8">
         
         {/* Route Fallback: Custom 404 Error Page for Unknown URLs */}
         {currentPath !== '/' ? (
@@ -755,7 +769,7 @@ export default function App() {
           />
         ) : (
           <>
-            {/* 1. HERO SPOTLIGHT: Lead Story + Top 5 Reads (Exact Adutha Thalaimurai 2-Column Split) */}
+            {/* 1. HERO SPOTLIGHT: 3-Column Power Layout (Lead 5-cols + Top Reads/Radar 4-cols + Publications 3-cols) */}
             <HeroSpotlight
               leadData={leadData}
               topArticles={displayCards}
@@ -766,21 +780,45 @@ export default function App() {
               savedBookmarks={savedBookmarks}
               onToggleLike={handleToggleLike}
               isLiked={likedArticles.some(a => String(a.id) === String(leadData?.id))}
+              onOpenEPaper={() => setIsEPaperOpen(true)}
+              onSelectCategory={handleSelectCategory}
             />
 
-            {/* 2. SPECIAL DAYS FESTIVAL CARD WITH LIVE CONFETTI & WISHES */}
-            <SpecialDaysFestivalCard onToast={addToast} />
+            {/* 2. LIVE COMMODITY & GOLD MARKET DASHBOARD (Full Home Section) */}
+            <section className="space-y-4" id="business-commodity">
+              <div className="flex items-center justify-between border-b-2 border-emerald-500 pb-2">
+                <h2 className="text-xl sm:text-2xl font-black text-[#0a1945] dark:text-amber-400 uppercase tracking-wide flex items-center gap-2">
+                  <span>நேரலை தங்கம் & வெள்ளி சந்தை நிலவரம் (Live Commodity Dashboard)</span>
+                </h2>
+                <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-3 py-1 rounded-full border border-emerald-500/30">
+                  நேரலை விலை
+                </span>
+              </div>
+              <GoldMarketDashboard />
+            </section>
 
             {/* 3. CINEMA & ENTERTAINMENT HUB / SPORTS ACTION ARENA */}
-            <CinemaSportsHub onOpenArticle={openArticleModal} />
+            <div id="cinema-and-sports">
+              <CinemaSportsHub onOpenArticle={openArticleModal} />
+            </div>
 
-            {/* 4. DIGITAL MONTHLY MAGAZINE & E-PAPER BANNER */}
+            {/* 4. DISTRICTS & REGIONAL NEWS HUB (With City Filter Tabs) */}
+            <DistrictNewsHub
+              articles={backendArticles.length > 0 ? backendArticles : displayCards}
+              onOpenArticle={openArticleModal}
+              onOpenEPaper={() => setIsEPaperOpen(true)}
+            />
+
+            {/* 5. SPECIAL DAYS FESTIVAL CARD WITH LIVE CONFETTI & WISHES */}
+            <SpecialDaysFestivalCard onToast={addToast} />
+
+            {/* 6. DIGITAL MONTHLY MAGAZINE & E-PAPER BANNER */}
             <MagazineShowcase
               onOpenEPaper={() => setIsEPaperOpen(true)}
               onToast={addToast}
             />
 
-            {/* 3. DISTRICTS & CATEGORY NEWS GRID (With City Filter Tabs) */}
+            {/* 7. STATEWIDE & CATEGORY NEWS GRID (With Rich Engagement Meta) */}
             <SecondaryNewsGrid
               categoryTitle={currentFallback.title}
               categorySubtitle={currentFallback.subtitle}

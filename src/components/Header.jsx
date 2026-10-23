@@ -53,6 +53,8 @@ export default function Header({
   onSpeak,
   searchQuery,
   onSearchChange,
+  articles = [],
+  onOpenArticle,
   readerUser = null,
   onGoogleLogin,
   onOpenUserAuth,
@@ -66,14 +68,19 @@ export default function Header({
   const [isInstallModalOpen, setIsInstallModalOpen] = useState(false);
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   const [isReaderDropdownOpen, setIsReaderDropdownOpen] = useState(false);
+  const [showSearchDropdown, setShowSearchDropdown] = useState(false);
 
   const dropdownRef = useRef(null);
+  const searchContainerRef = useRef(null);
 
-  // Close reader dropdown on outside click
+  // Close dropdowns on outside click
   useEffect(() => {
     const handleOutsideClick = (e) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
         setIsReaderDropdownOpen(false);
+      }
+      if (searchContainerRef.current && !searchContainerRef.current.contains(e.target)) {
+        setShowSearchDropdown(false);
       }
     };
     document.addEventListener('mousedown', handleOutsideClick);
@@ -136,14 +143,14 @@ export default function Header({
     { id: 'all', label: 'முகப்பு', icon: Home },
     { id: 'tamilnadu', label: 'தமிழ்நாடு', icon: Building2 },
     { id: 'districts', label: 'மாவட்டங்கள்', icon: MapPin, badge: 'HOT', badgeColor: 'bg-red-600' },
-    { id: 'business', label: 'வணிகம்', icon: TrendingUp },
-    { id: 'spiritual', label: 'ஆன்மிகம்', icon: Sparkles, badge: 'NEW', badgeColor: 'bg-amber-500' },
-    { id: 'magazine', label: 'மாத இதழ்', icon: BookOpen },
+    { id: 'cinema', label: 'சினிமா', icon: Film, badge: 'HOT 🔥', badgeColor: 'bg-gradient-to-r from-red-600 to-rose-600' },
+    { id: 'sports', label: 'விளையாட்டு', icon: Trophy, badge: 'LIVE 🏏', badgeColor: 'bg-gradient-to-r from-emerald-500 to-green-600 animate-pulse' },
+    { id: 'business', label: 'வணிகம்', icon: TrendingUp, badge: 'HOT', badgeColor: 'bg-amber-500 text-slate-950 font-black' },
+    { id: 'spiritual', label: 'ஆன்மிகம்', icon: Sparkles, badge: 'சிறப்பு', badgeColor: 'bg-amber-500' },
+    { id: 'magazine', label: 'மாத இதழ்', icon: BookOpen, badge: 'புதியது', badgeColor: 'bg-emerald-600' },
     { id: 'blogs', label: 'வலைப்பதிவுகள்', icon: Rss },
     { id: 'india', label: 'தேசியம்', icon: Flag },
     { id: 'world', label: 'உலகம்', icon: Globe },
-    { id: 'cinema', label: 'சினிமா', icon: Film },
-    { id: 'sports', label: 'விளையாட்டு', icon: Trophy },
     { id: 'editorial', label: 'தலையங்கம்', icon: PenTool }
   ];
 
@@ -165,10 +172,10 @@ export default function Header({
           
           {/* Left: Tamil Panchangam Date, Clock, Registration & Weather */}
           <div className="flex items-center gap-1.5 sm:gap-3 text-slate-300 text-[11px] min-w-0 shrink">
-            {/* PRGI Verified Badge (Desktop & Tablet) */}
+            {/* Government Verified Badge (Desktop & Tablet) */}
             <span className="hidden sm:inline-flex items-center gap-1.5 font-bold text-amber-300 bg-white/10 px-2 py-0.5 rounded-lg border border-white/15 shrink-0">
               <ShieldCheck className="w-3.5 h-3.5 text-amber-300" />
-              <span>PRGI TNBIL/2023/88656</span>
+              <span>மத்திய அரசு பதிவு: 2023/88656</span>
             </span>
 
             {/* Mobile Compact Date */}
@@ -438,23 +445,114 @@ export default function Header({
             {/* Center/Right Toolbar & Actions */}
             <div className="flex items-center gap-1.5 sm:gap-3 justify-end shrink-0">
               
-              {/* Desktop Search Bar */}
-              <div className="relative hidden md:block w-48 lg:w-64">
+              {/* Desktop Search Bar with Instant Live Dropdown */}
+              <div className="relative hidden md:block w-48 lg:w-72" ref={searchContainerRef}>
                 <input
                   type="text"
                   value={searchQuery}
-                  onChange={(e) => onSearchChange(e.target.value)}
-                  placeholder="செய்திகளைத் தேடுக... (எ.கா. தங்கம், பட்ஜெட்)"
-                  className="w-full bg-slate-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 rounded-xl pl-9 pr-7 py-2 text-xs font-medium text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#0e2a7a] transition-all shadow-inner"
+                  onChange={(e) => {
+                    onSearchChange(e.target.value);
+                    setShowSearchDropdown(true);
+                  }}
+                  onFocus={() => setShowSearchDropdown(true)}
+                  placeholder="செய்திகளைத் தேடுக... (எ.கா. தங்கம், மெட்ரோ)"
+                  className="w-full bg-slate-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 rounded-xl pl-9 pr-7 py-2 text-xs font-medium text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#0e2a7a] dark:focus:ring-amber-400 transition-all shadow-inner"
                 />
                 <Search className="w-4 h-4 text-slate-400 absolute left-2.5 top-2.5" />
                 {searchQuery && (
                   <button
-                    onClick={() => onSearchChange('')}
+                    onClick={() => {
+                      onSearchChange('');
+                      setShowSearchDropdown(false);
+                    }}
                     className="absolute right-2 top-2 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>
+                )}
+
+                {/* Instant Live Search Dropdown */}
+                {showSearchDropdown && (
+                  <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#0c1633] rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 z-50 overflow-hidden text-xs font-tamil divide-y divide-slate-100 dark:divide-slate-800 animate-in fade-in slide-in-from-top-1 duration-150">
+                    {searchQuery.trim() ? (
+                      <div>
+                        {(() => {
+                          const q = searchQuery.toLowerCase();
+                          const matches = (articles || []).filter(
+                            (a) =>
+                              a.title?.toLowerCase().includes(q) ||
+                              a.category?.toLowerCase().includes(q) ||
+                              a.summary?.toLowerCase().includes(q)
+                          ).slice(0, 4);
+
+                          if (matches.length === 0) {
+                            return (
+                              <div className="p-3 text-center text-slate-400 text-xs">
+                                செய்திகள் எதுவும் கிடைக்கவில்லை.
+                              </div>
+                            );
+                          }
+
+                          return (
+                            <div className="divide-y divide-slate-100 dark:divide-slate-800">
+                              {matches.map((art) => (
+                                <div
+                                  key={art.id || art._id}
+                                  onClick={() => {
+                                    setShowSearchDropdown(false);
+                                    if (onOpenArticle) onOpenArticle(art);
+                                  }}
+                                  className="p-2.5 hover:bg-slate-50 dark:hover:bg-slate-800/80 transition cursor-pointer flex items-center gap-2.5 group"
+                                >
+                                  <img
+                                    src={art.image || art.img || '/og-image.webp'}
+                                    alt={art.title}
+                                    width="48"
+                                    height="48"
+                                    className="w-12 h-12 rounded-lg object-cover shrink-0 bg-slate-900"
+                                    onError={(e) => { e.target.src = '/og-image.webp'; }}
+                                  />
+                                  <div className="flex-1 min-w-0">
+                                    <span className="text-[9px] bg-red-100 dark:bg-red-950/60 text-red-600 dark:text-red-400 font-extrabold px-1.5 py-0.2 rounded uppercase">
+                                      {art.category || 'செய்தி'}
+                                    </span>
+                                    <h4 className="font-bold text-slate-900 dark:text-white line-clamp-1 group-hover:text-red-600 dark:group-hover:text-amber-300 transition text-[11px] mt-0.5">
+                                      {art.title}
+                                    </h4>
+                                    <span className="text-[10px] text-slate-400 block mt-0.5">
+                                      {art.time || 'சிறிது நேரத்திற்கு முன்'}
+                                    </span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          );
+                        })()}
+                      </div>
+                    ) : (
+                      <div className="p-3 space-y-2">
+                        <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 font-extrabold text-[10px] uppercase tracking-wider">
+                          <TrendingUp className="w-3.5 h-3.5 text-red-500" />
+                          <span>பிரபலமான தலைப்புகள்:</span>
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {['தங்கம்', 'சென்னை', 'ஐபிஎல்', 'சினிமா', 'பட்ஜெட்', 'வானிலை'].map((kw, i) => (
+                            <button
+                              key={i}
+                              type="button"
+                              onClick={() => {
+                                onSearchChange(kw);
+                                setShowSearchDropdown(true);
+                              }}
+                              className="bg-slate-100 dark:bg-slate-800 hover:bg-red-600 hover:text-white text-slate-700 dark:text-slate-200 px-2 py-0.5 rounded-lg text-[10px] font-bold transition cursor-pointer"
+                            >
+                              #{kw}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
 
