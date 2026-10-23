@@ -9,7 +9,7 @@ export default function DemoGuideModal({ isOpen, onClose }) {
       <div className="bg-white dark:bg-[#0D1424] rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-slate-200 dark:border-slate-800 p-6 space-y-6 relative">
         <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
           <div className="flex items-center gap-3">
-            <img src="/Amaze times.jpg" alt="Logo" className="h-10 w-auto rounded-lg shadow-sm"/>
+            <img src="/amaze-times-logo.webp" alt="Logo" className="h-10 w-auto rounded-lg shadow-sm object-contain bg-white p-0.5"/>
             <div>
               <h3 className="font-subtitle font-bold text-lg text-slate-900 dark:text-white flex items-center gap-2">
                 <span>அமேஸ் டைம்ஸ் - தள வசதிகள்</span>

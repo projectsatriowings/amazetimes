@@ -28,16 +28,49 @@ function pngToIco(pngBuffer, width = 32, height = 32) {
 }
 
 async function run() {
-  console.log('🔄 Optimizing assets and generating modern WebP / Favicon files...');
+  console.log('🔄 Optimizing assets and generating modern WebP / Favicon files from our authentic logo...');
 
-  const svgPath = path.join(publicDir, 'favicon.svg');
-  if (fs.existsSync(svgPath)) {
-    const svgBuffer = fs.readFileSync(svgPath);
+  const masterLogoPath = path.join(publicDir, 'amaze-times-logo.jpg');
+  if (fs.existsSync(masterLogoPath)) {
+    const rawLogoBuffer = fs.readFileSync(masterLogoPath);
+    // Trim white margins around the red 'அ' and blue pen nib
+    const trimmedBuffer = await sharp(rawLogoBuffer).trim().toBuffer();
+
+    // Helper to generate square icon with clean circular badge for high contrast
+    async function createSquareIcon(size, paddingRatio = 0.12) {
+      const padding = Math.round(size * paddingRatio);
+      const targetH = size - (padding * 2);
+
+      const resizedLogo = await sharp(trimmedBuffer)
+        .resize({ height: targetH, fit: 'inside' })
+        .toBuffer();
+
+      const meta = await sharp(resizedLogo).metadata();
+
+      const radius = Math.round(size / 2) - 1;
+      const strokeW = Math.max(1, Math.round(size / 64));
+      const svgCircle = Buffer.from(
+        `<svg width="${size}" height="${size}">
+          <circle cx="${size / 2}" cy="${size / 2}" r="${radius}" fill="#ffffff" stroke="#e2e8f0" stroke-width="${strokeW}" />
+        </svg>`
+      );
+
+      const circleBg = await sharp(svgCircle).png().toBuffer();
+
+      return sharp(circleBg)
+        .composite([{
+          input: resizedLogo,
+          top: Math.round((size - meta.height) / 2),
+          left: Math.round((size - meta.width) / 2)
+        }])
+        .png()
+        .toBuffer();
+    }
 
     // 1. Generate 32x32 PNG for favicon.png
-    const png32 = await sharp(svgBuffer).resize(32, 32).png().toBuffer();
+    const png32 = await createSquareIcon(32, 0.08);
     fs.writeFileSync(path.join(publicDir, 'favicon.png'), png32);
-    console.log('✅ Generated public/favicon.png (32x32, stripped metadata)');
+    console.log('✅ Generated public/favicon.png (32x32 from Amaze Times logo)');
 
     // 2. Generate standard favicon.ico from 32x32 PNG
     const ico = pngToIco(png32, 32, 32);
@@ -45,20 +78,29 @@ async function run() {
     console.log(`✅ Generated public/favicon.ico (${ico.length} bytes, true ICO format)`);
 
     // 3. Generate Apple Touch Icon 180x180
-    await sharp(svgBuffer)
-      .resize(180, 180)
-      .png({ quality: 90 })
-      .toFile(path.join(publicDir, 'apple-touch-icon.png'));
+    const icon180 = await createSquareIcon(180, 0.10);
+    fs.writeFileSync(path.join(publicDir, 'apple-touch-icon.png'), icon180);
     console.log('✅ Generated public/apple-touch-icon.png (180x180)');
 
     // 4. Generate PWA Icons 192x192 & 512x512
-    await sharp(svgBuffer).resize(192, 192).png().toFile(path.join(publicDir, 'icon-192.png'));
-    await sharp(svgBuffer).resize(512, 512).png().toFile(path.join(publicDir, 'icon-512.png'));
+    const icon192 = await createSquareIcon(192, 0.10);
+    fs.writeFileSync(path.join(publicDir, 'icon-192.png'), icon192);
+    const icon512 = await createSquareIcon(512, 0.10);
+    fs.writeFileSync(path.join(publicDir, 'icon-512.png'), icon512);
     console.log('✅ Generated PWA icons (192x192, 512x512)');
+
+    // 5. Generate favicon.svg embedding the crisp 512x512 logo
+    const b64 = icon512.toString('base64');
+    const svgFavicon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <image href="data:image/png;base64,${b64}" width="512" height="512" />
+</svg>
+`;
+    fs.writeFileSync(path.join(publicDir, 'favicon.svg'), svgFavicon);
+    console.log('✅ Generated public/favicon.svg from authentic Amaze Times logo');
   }
 
-  // 5. Optimize og-image.jpg, amaze-times-logo.jpg, Amaze times.jpg
-  // Strip metadata (strips all EXIF/GPS/ICC excess) and create .webp versions
+  // 6. Optimize og-image.jpg, amaze-times-logo.jpg, Amaze times.jpg
+  // Strip metadata and create .webp versions
   const rasterFiles = ['og-image.jpg', 'amaze-times-logo.jpg', 'Amaze times.jpg'];
   for (const filename of rasterFiles) {
     const filePath = path.join(publicDir, filename);
@@ -67,7 +109,7 @@ async function run() {
       
       // Strip metadata from the JPEG itself
       const cleanJpg = await sharp(buffer)
-        .withMetadata(false) // Strips EXIF metadata completely
+        .withMetadata(false)
         .jpeg({ quality: 85, progressive: true })
         .toBuffer();
       fs.writeFileSync(filePath, cleanJpg);

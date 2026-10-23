@@ -674,7 +674,7 @@ export const AdminDashboard = () => {
           <div className="flex-1 p-3.5 space-y-3 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-700/80 scrollbar-track-transparent">
             {/* Logo & Brand Header */}
             <div className="flex items-center gap-3 px-2 py-1 border-b border-slate-800/60 pb-4">
-              <img src="/Amaze times.jpg" alt="Amaze Times Logo" className="w-10 h-10 rounded-xl border-2 border-red-500 object-contain shadow-lg bg-white p-0.5" />
+              <img src="/amaze-times-logo.webp" alt="Amaze Times Logo" className="w-10 h-10 rounded-xl border-2 border-red-500 object-contain shadow-lg bg-white p-0.5" />
               <div>
                 <span className="font-black text-white text-base tracking-wider block font-tamil">அமேஸ் டைம்ஸ்</span>
                 <span className="text-[9px] text-red-400 uppercase tracking-widest block font-sans font-bold">டிஜிட்டல் நாளிதழ்</span>

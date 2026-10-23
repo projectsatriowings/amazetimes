@@ -37,7 +37,7 @@ export default function LiveTVModal({ isOpen, onClose, onSpeak, onToast }) {
           
           <div className="relative z-10 flex items-center justify-between">
             <div className="flex items-center gap-2 bg-black/60 backdrop-blur-md px-3 py-1 rounded-xl border border-white/10">
-              <img src="/Amaze times.jpg" alt="Logo" className="h-6 w-auto rounded"/>
+              <img src="/amaze-times-logo.webp" alt="Logo" className="h-6 w-auto rounded object-contain bg-white p-0.5"/>
               <span className="font-subtitle font-bold text-xs text-white">அமேஸ் 24x7</span>
             </div>
             <span className="bg-red-600 text-white text-xs font-subtitle font-bold px-2.5 py-1 rounded-lg animate-pulse flex items-center gap-1.5">

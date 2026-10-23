@@ -64,9 +64,9 @@ export default function LoginPage({ onLoginSuccess, onNavigateHome, onToast }) {
           title="முதன்மை செய்தித் தளம்"
         >
           <img
-            src="/Amaze times.jpg"
+            src="/amaze-times-logo.webp"
             alt="Amaze Times"
-            className="h-10 w-auto rounded-xl shadow-md border border-white/10 group-hover:border-amber-400 transition-all"
+            className="h-10 w-auto rounded-xl shadow-md border border-white/10 group-hover:border-amber-400 transition-all object-contain bg-white p-0.5"
           />
           <div>
             <span className="font-title font-extrabold text-xl text-white group-hover:text-amber-400 transition-colors">

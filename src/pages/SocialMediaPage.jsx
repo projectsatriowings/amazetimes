@@ -163,17 +163,22 @@ export default function SocialMediaPage({ onNavigate, onToast }) {
             </button>
           </div>
 
-          <div className="max-w-2xl">
-            <div className="inline-flex items-center gap-1.5 bg-red-600/30 text-red-300 border border-red-500/40 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider mb-2">
-              <Tv className="w-3 h-3" />
-              <span>அதிகாரப்பூர்வ சமூக ஊடக வலையமைப்பு</span>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6">
+            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-white p-2 shadow-xl ring-2 ring-amber-400/50 shrink-0 flex items-center justify-center">
+              <img src="/icon-192.png" alt="Amaze Times Logo" className="w-full h-full object-contain" />
             </div>
-            <h1 className="text-2xl sm:text-4xl font-black text-white leading-tight">
-              அமேஸ் டைம்ஸ் சமூக ஊடக மையம் (Social Media Hub)
-            </h1>
-            <p className="text-sm sm:text-base text-slate-200 mt-2 font-medium">
-              உடனுக்குடனான முக்கியச் செய்திகள், வீடியோ அறிக்கைகள், நேரலை விவாதங்கள் மற்றும் ரீல்ஸ் வீடியோக்களை எங்களின் சரிபார்க்கப்பட்ட சமூக ஊடகத் தளங்களில் கண்டு மகிழுங்கள்!
-            </p>
+            <div className="max-w-2xl">
+              <div className="inline-flex items-center gap-1.5 bg-red-600/30 text-red-300 border border-red-500/40 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider mb-2">
+                <Tv className="w-3 h-3" />
+                <span>அதிகாரப்பூர்வ சமூக ஊடக வலையமைப்பு</span>
+              </div>
+              <h1 className="text-2xl sm:text-4xl font-black text-white leading-tight">
+                அமேஸ் டைம்ஸ் சமூக ஊடக மையம் (Social Media Hub)
+              </h1>
+              <p className="text-sm sm:text-base text-slate-200 mt-2 font-medium">
+                உடனுக்குடனான முக்கியச் செய்திகள், வீடியோ அறிக்கைகள், நேரலை விவாதங்கள் மற்றும் ரீல்ஸ் வீடியோக்களை எங்களின் சரிபார்க்கப்பட்ட சமூக ஊடகத் தளங்களில் கண்டு மகிழுங்கள்!
+              </p>
+            </div>
           </div>
         </div>
       </div>

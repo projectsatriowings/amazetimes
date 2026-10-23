@@ -120,7 +120,7 @@ export default function UserAuthModal({ isOpen, onClose, onUserSuccess, onToast 
         {/* Modal Header */}
         <div className="text-center space-y-2 relative z-10 pt-1">
           <div className="w-14 h-14 rounded-2xl bg-white p-1 mx-auto shadow-lg border-2 border-red-500/60 flex items-center justify-center">
-            <img src="/Amaze times.jpg" alt="Amaze Times" className="w-full h-full object-contain rounded-xl" />
+            <img src="/amaze-times-logo.webp" alt="Amaze Times" className="w-full h-full object-contain rounded-xl" />
           </div>
 
           <h2 className="text-xl sm:text-2xl font-black text-white font-title tracking-wide">

@@ -26,6 +26,13 @@ export default function NotFoundPage({ onNavigate, onSelectCategory }) {
     <main className="min-h-[70vh] flex items-center justify-center px-4 py-12 sm:py-16">
       <div className="max-w-xl w-full text-center space-y-8 bg-white dark:bg-[#0d1627] p-6 sm:p-10 rounded-3xl shadow-xl border border-slate-200 dark:border-slate-800">
         
+        {/* Official Logo Emblem */}
+        <div className="flex justify-center">
+          <div className="w-16 h-16 rounded-2xl bg-white p-2 shadow-lg ring-2 ring-red-500/20 flex items-center justify-center">
+            <img src="/icon-192.png" alt="Amaze Times" className="w-full h-full object-contain" />
+          </div>
+        </div>
+
         {/* Animated Badge */}
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-red-100 dark:bg-red-950/50 text-red-600 dark:text-red-400 text-xs font-black uppercase tracking-wider">
           <AlertCircle className="w-4 h-4" />
