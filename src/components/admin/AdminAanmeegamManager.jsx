@@ -103,10 +103,6 @@ export const AdminAanmeegamManager = ({ initialSubTab }) => {
 
   // Initial Seed Records matching Image 2!
   const [rasiRecords, setRasiRecords] = useState(() => {
-    try {
-      const saved = localStorage.getItem('adutha_newsghuru_rasi_records');
-      if (saved) return JSON.parse(saved);
-    } catch (e) {}
     return [
       {
         id: 'rec-1',
@@ -252,9 +248,6 @@ export const AdminAanmeegamManager = ({ initialSubTab }) => {
   }, []);
 
   useEffect(() => {
-    try {
-      localStorage.setItem('adutha_newsghuru_rasi_records', JSON.stringify(rasiRecords));
-    } catch (e) {}
     if (isRasiLoaded.current) {
       api.saveContent('rasi_records', rasiRecords).catch(() => {});
     }

@@ -41,6 +41,13 @@ router.get('/', async (req, res) => {
         facebookUrl: data.facebook_url || 'https://www.facebook.com/amazetimes',
         facebookHandle: data.facebook_handle || 'Amaze Times Official',
         whatsappUrl: data.whatsapp_url || 'https://whatsapp.com/channel/amazetimes',
+        xUrl: data.x_url || 'https://twitter.com/AmazeTimes',
+        xHandle: data.x_handle || '@AmazeTimes',
+        xFollowers: data.x_followers || '95K',
+        telegramUrl: data.telegram_url || 'https://t.me/AmazeTimes',
+        telegramHandle: data.telegram_handle || 'Amaze Times Tamil',
+        telegramSubscribers: data.telegram_subscribers || '60K',
+        whatsappAnnouncements: Array.isArray(data.whatsapp_announcements) ? data.whatsapp_announcements : [],
         featuredVideos: Array.isArray(data.featured_videos) ? data.featured_videos : [],
         featuredReels: Array.isArray(data.featured_reels) ? data.featured_reels : []
       }
@@ -51,8 +58,8 @@ router.get('/', async (req, res) => {
   }
 });
 
-// PUT /api/social-media - Update social media settings
-router.put('/', authenticate, requireReporterOrAdmin, async (req, res) => {
+// Update handler function for PUT & POST
+const updateSocialMediaSettings = async (req, res) => {
   try {
     const {
       youtubeUrl,
@@ -73,6 +80,20 @@ router.put('/', authenticate, requireReporterOrAdmin, async (req, res) => {
       facebook_handle,
       whatsappUrl,
       whatsapp_url,
+      xUrl,
+      x_url,
+      xHandle,
+      x_handle,
+      xFollowers,
+      x_followers,
+      telegramUrl,
+      telegram_url,
+      telegramHandle,
+      telegram_handle,
+      telegramSubscribers,
+      telegram_subscribers,
+      whatsappAnnouncements,
+      whatsapp_announcements,
       featuredVideos,
       featured_videos,
       featuredReels,
@@ -94,6 +115,14 @@ router.put('/', authenticate, requireReporterOrAdmin, async (req, res) => {
     const fbHandle = (facebookHandle !== undefined ? facebookHandle : facebook_handle) ?? curr.facebook_handle;
     const waUrl = (whatsappUrl !== undefined ? whatsappUrl : whatsapp_url) ?? curr.whatsapp_url;
 
+    const twUrl = (xUrl !== undefined ? xUrl : x_url) ?? curr.x_url;
+    const twHandle = (xHandle !== undefined ? xHandle : x_handle) ?? curr.x_handle;
+    const twFollowers = (xFollowers !== undefined ? xFollowers : x_followers) ?? curr.x_followers;
+
+    const tgUrl = (telegramUrl !== undefined ? telegramUrl : telegram_url) ?? curr.telegram_url;
+    const tgHandle = (telegramHandle !== undefined ? telegramHandle : telegram_handle) ?? curr.telegram_handle;
+    const tgSubs = (telegramSubscribers !== undefined ? telegramSubscribers : telegram_subscribers) ?? curr.telegram_subscribers;
+
     // Process videos: automatically extract 11-char YouTube ID if url provided
     let processedVideos = (featuredVideos !== undefined ? featuredVideos : featured_videos) ?? curr.featured_videos;
     if (Array.isArray(processedVideos)) {
@@ -108,6 +137,7 @@ router.put('/', authenticate, requireReporterOrAdmin, async (req, res) => {
     }
 
     const processedReels = (featuredReels !== undefined ? featuredReels : featured_reels) ?? curr.featured_reels;
+    const processedAnnouncements = (whatsappAnnouncements !== undefined ? whatsappAnnouncements : whatsapp_announcements) ?? curr.whatsapp_announcements;
 
     await query(`
       UPDATE social_media_settings
@@ -120,8 +150,15 @@ router.put('/', authenticate, requireReporterOrAdmin, async (req, res) => {
           facebook_url = $7,
           facebook_handle = $8,
           whatsapp_url = $9,
-          featured_videos = $10::jsonb,
-          featured_reels = $11::jsonb
+          x_url = $10,
+          x_handle = $11,
+          x_followers = $12,
+          telegram_url = $13,
+          telegram_handle = $14,
+          telegram_subscribers = $15,
+          whatsapp_announcements = $16::jsonb,
+          featured_videos = $17::jsonb,
+          featured_reels = $18::jsonb
       WHERE id = 1;
     `, [
       ytUrl,
@@ -133,6 +170,13 @@ router.put('/', authenticate, requireReporterOrAdmin, async (req, res) => {
       fbUrl,
       fbHandle,
       waUrl,
+      twUrl,
+      twHandle,
+      twFollowers,
+      tgUrl,
+      tgHandle,
+      tgSubs,
+      JSON.stringify(processedAnnouncements || []),
       JSON.stringify(processedVideos || []),
       JSON.stringify(processedReels || [])
     ]);
@@ -145,6 +189,10 @@ router.put('/', authenticate, requireReporterOrAdmin, async (req, res) => {
     console.error('Error updating social media settings:', err);
     res.status(500).json({ success: false, message: err.message });
   }
-});
+};
+
+// Both PUT and POST endpoints supported
+router.put('/', authenticate, requireReporterOrAdmin, updateSocialMediaSettings);
+router.post('/', authenticate, requireReporterOrAdmin, updateSocialMediaSettings);
 
 export default router;

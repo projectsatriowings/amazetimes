@@ -24,6 +24,8 @@ import zodiacRoutes from './routes/zodiac.js';
 import contentRoutes from './routes/content.js';
 import magazineRoutes from './routes/magazines.js';
 import ttsRoutes from './routes/ttsRoutes.js';
+import goldRoutes from './routes/gold.js';
+import { fetchAndSyncMarketRates } from './services/marketRateService.js';
 
 import fs from 'fs';
 import { query } from './db.js';
@@ -103,6 +105,7 @@ app.use('/api/polls', pollRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/market', marketRoutes);
+app.use('/api/gold', goldRoutes);
 app.use('/api/zodiac', zodiacRoutes);
 app.use('/api/content', contentRoutes);
 app.use('/api/magazines', magazineRoutes);
@@ -240,6 +243,7 @@ const validStaticRoutes = new Set([
   '/',
   '/admin',
   '/login',
+  '/social-media',
   '/robots.txt',
   '/sitemap.xml',
   '/ads.txt',
@@ -264,6 +268,8 @@ app.use((req, res, next) => {
   const isKnownRoute =
     validStaticRoutes.has(cleanPath) ||
     cleanPath.startsWith('/admin') ||
+    cleanPath.startsWith('/login') ||
+    cleanPath.startsWith('/social-media') ||
     cleanPath.startsWith('/category') ||
     cleanPath.startsWith('/news') ||
     cleanPath.startsWith('/article');
@@ -296,6 +302,19 @@ initDb().then(() => {
     console.log(`🌐 Amaze Times Express API Server running on http://0.0.0.0:${PORT}`);
     console.log(`📡 Connected to Neon PostgreSQL pooler (auto-reconnect enabled)`);
     console.log(`📁 Uploads available at http://localhost:${PORT}/uploads`);
+
+    // 1. Initial market rate auto-sync on server boot
+    fetchAndSyncMarketRates().catch(err => {
+      console.warn('⚠️ [MarketRateService] Initial startup sync notice:', err.message);
+    });
+
+    // 2. Schedule recurring market rate sync every 6 hours
+    const SIX_HOURS = 6 * 60 * 60 * 1000;
+    setInterval(() => {
+      fetchAndSyncMarketRates().catch(err => {
+        console.warn('⚠️ [MarketRateService] Recurring 6-hr sync notice:', err.message);
+      });
+    }, SIX_HOURS);
   });
 }).catch(err => {
   console.error('❌ Failed to initialize database on startup:', err);

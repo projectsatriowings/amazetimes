@@ -217,11 +217,81 @@ router.delete('/:id', authenticate, requireReporterOrAdmin, async (req, res) => 
     if (result.rows.length === 0) {
       return res.status(404).json({ success: false, message: 'சிறப்பு தினம் கிடைக்கவில்லை' });
     }
-    res.json({ success: true, message: 'சிறப்பு தினம் நீக்கப்பட்டது' });
+// --- BIRTHDAY OFFICIALS (Government & VIP Birthday Felicitation Hub) ---
+
+// GET /api/special-days/officials - List VIP & government birthday officials
+router.get('/officials', async (req, res) => {
+  try {
+    const result = await query(`
+      SELECT * FROM birthday_officials 
+      WHERE is_active = TRUE 
+      ORDER BY id ASC;
+    `);
+    res.json({
+      success: true,
+      officials: result.rows,
+      data: result.rows
+    });
   } catch (err) {
-    console.error('Error deleting special day:', err);
+    console.error('Error fetching birthday officials:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// POST /api/special-days/officials/:id/wish - Atomic wish counter for VIP official
+router.post('/officials/:id/wish', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await query(`
+      UPDATE birthday_officials 
+      SET wishes_count = COALESCE(wishes_count, 0) + 1 
+      WHERE id = $1 
+      RETURNING wishes_count;
+    `, [id]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'பிரமுகர் விவரம் கிடைக்கவில்லை' });
+    }
+    res.json({
+      success: true,
+      message: 'உங்கள் வாழ்த்து பதிவு செய்யப்பட்டது!',
+      wishes_count: result.rows[0].wishes_count
+    });
+  } catch (err) {
+    console.error('Error wishing official:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// POST /api/special-days/officials - Create VIP birthday official
+router.post('/officials', authenticate, requireReporterOrAdmin, async (req, res) => {
+  try {
+    const { name, designation, date_display, photo_url, greeting_text } = req.body;
+    if (!name || !designation || !date_display || !photo_url) {
+      return res.status(400).json({ success: false, message: 'பெயர், பதவி, பிறந்தநாள் மற்றும் புகைப்படம் தேவை' });
+    }
+    const result = await query(`
+      INSERT INTO birthday_officials (name, designation, date_display, photo_url, greeting_text, is_active)
+      VALUES ($1, $2, $3, $4, $5, TRUE)
+      RETURNING *;
+    `, [name, designation, date_display, photo_url, greeting_text || '']);
+    res.status(201).json({ success: true, message: 'பிரமுகர் விவரம் சேர்க்கப்பட்டது', data: result.rows[0] });
+  } catch (err) {
+    console.error('Error creating official:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// DELETE /api/special-days/officials/:id
+router.delete('/officials/:id', authenticate, requireReporterOrAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    await query(`DELETE FROM birthday_officials WHERE id = $1;`, [id]);
+    res.json({ success: true, message: 'பிரமுகர் விவரம் நீக்கப்பட்டது' });
+  } catch (err) {
+    console.error('Error deleting official:', err);
     res.status(500).json({ success: false, message: err.message });
   }
 });
 
 export default router;
+

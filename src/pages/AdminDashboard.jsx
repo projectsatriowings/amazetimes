@@ -109,13 +109,10 @@ import {
   Star
 } from 'lucide-react';
 
-const getArticleViews = (id) => {
-  try {
-    const views = localStorage.getItem(`article_views_${id}`);
-    return views ? parseInt(views, 10) : 0;
-  } catch (e) {
-    return 0;
-  }
+const getArticleViews = (article) => {
+  if (!article) return 0;
+  if (typeof article === 'object') return article.viewsCount || article.views_count || article.views || 0;
+  return 0;
 };
 
 

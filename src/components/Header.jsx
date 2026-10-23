@@ -32,7 +32,8 @@ import {
   Flame,
   Coins,
   Heart,
-  Sliders
+  Sliders,
+  Share2
 } from 'lucide-react';
 
 export default function Header({
@@ -151,7 +152,8 @@ export default function Header({
     { id: 'blogs', label: 'வலைப்பதிவுகள்', icon: Rss },
     { id: 'india', label: 'தேசியம்', icon: Flag },
     { id: 'world', label: 'உலகம்', icon: Globe },
-    { id: 'editorial', label: 'தலையங்கம்', icon: PenTool }
+    { id: 'editorial', label: 'தலையங்கம்', icon: PenTool },
+    { id: 'social', label: 'சமூக ஊடகங்கள்', icon: Share2, badge: 'HOT 🚀', badgeColor: 'bg-red-600' }
   ];
 
   const trendingTags = [
@@ -596,6 +598,16 @@ export default function Header({
                 <span>மின்-இதழ்</span>
               </button>
 
+              {/* Social Media Hub Link Button */}
+              <button
+                onClick={() => onNavigate ? onNavigate('/social-media') : (window.location.href = '/social-media')}
+                className="hidden md:flex items-center gap-1.5 bg-gradient-to-r from-red-600 via-pink-600 to-purple-600 hover:opacity-95 text-white font-extrabold text-xs px-3 py-2 rounded-xl transition-all shadow-sm cursor-pointer hover:scale-105"
+                title="அதிகாரப்பூர்வ சமூக ஊடக மையம்"
+              >
+                <Share2 className="w-3.5 h-3.5 text-white shrink-0" />
+                <span>சமூக ஊடகம்</span>
+              </button>
+
               {/* Feature Guide Showcase - Royal Blue with Yellow Text */}
               <button 
                 onClick={onOpenDemoGuide} 
@@ -669,7 +681,14 @@ export default function Header({
               return (
                 <button
                   key={cat.id}
-                  onClick={() => onSelectCategory(cat.id)}
+                  onClick={() => {
+                    if (cat.id === 'social') {
+                      if (onNavigate) onNavigate('/social-media');
+                      else window.location.href = '/social-media';
+                      return;
+                    }
+                    onSelectCategory(cat.id);
+                  }}
                   className={`relative px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 font-bold text-xs shrink-0 cursor-pointer ${
                     isActive
                       ? 'bg-[#0e2a7a] text-white shadow-md'

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Send, Mail, Phone, MapPin, ArrowUp, FileText, Sparkles, ShieldCheck, Newspaper, MessageSquare, Video } from 'lucide-react';
+import { Send, Mail, Phone, MapPin, ArrowUp, FileText, Sparkles, ShieldCheck, Newspaper, MessageSquare, Video, Share2 } from 'lucide-react';
 
 export default function Footer({ onSelectCategory, onOpenEPaper, onOpenBookmarks, onSpeak, onToast, onNavigate }) {
   const [email, setEmail] = useState('');
@@ -81,17 +81,16 @@ export default function Footer({ onSelectCategory, onOpenEPaper, onOpenBookmarks
               <p className="font-mono text-slate-200">பதிவு எண்: 2023/88656</p>
             </div>
 
-            {/* Social Icons */}
+            {/* Social Icons & Hub Link */}
             <div className="flex items-center gap-2 pt-1">
-              <a href="https://whatsapp.com" target="_blank" rel="noreferrer" className="w-8 h-8 rounded-lg bg-emerald-950/80 text-emerald-400 hover:bg-emerald-600 hover:text-white flex items-center justify-center transition-all border border-emerald-500/30" title="WhatsApp">
-                <MessageSquare className="w-4 h-4" />
-              </a>
-              <a href="https://telegram.org" target="_blank" rel="noreferrer" className="w-8 h-8 rounded-lg bg-sky-950/80 text-sky-400 hover:bg-sky-600 hover:text-white flex items-center justify-center transition-all border border-sky-500/30" title="Telegram">
-                <Send className="w-4 h-4" />
-              </a>
-              <a href="https://youtube.com" target="_blank" rel="noreferrer" className="w-8 h-8 rounded-lg bg-red-950/80 text-red-400 hover:bg-red-600 hover:text-white flex items-center justify-center transition-all border border-red-500/30" title="YouTube">
-                <Video className="w-4 h-4" />
-              </a>
+              <button
+                onClick={() => onNavigate ? onNavigate('/social-media') : (window.location.href = '/social-media')}
+                className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-red-600 to-pink-600 hover:opacity-90 text-white font-black text-xs flex items-center gap-1.5 transition-all shadow-md cursor-pointer"
+                title="சமூக ஊடக மையம்"
+              >
+                <Share2 className="w-3.5 h-3.5" />
+                <span>சமூக ஊடக மையம்</span>
+              </button>
             </div>
           </div>
 

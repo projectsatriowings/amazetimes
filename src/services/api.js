@@ -426,6 +426,23 @@ export const api = {
     method: 'DELETE'
   }),
 
+  // Real-Time Bullion & Market Rates (/api/gold & /api/market)
+  getGoldRates: () => request('/gold'),
+  getCurrentGoldRates: () => request('/gold/current'),
+  saveGoldRates: (data) => request('/gold', { method: 'POST', body: JSON.stringify(data) }),
+  syncGoldRates: () => request('/gold/sync', { method: 'POST' }),
+  getMarketRates: () => request('/market'),
+
+  // Social Media Hub & Settings (/api/social-media)
+  getSocialMediaSettings: () => request('/social-media'),
+  updateSocialMediaSettings: (data) => request('/social-media', { method: 'POST', body: JSON.stringify(data) }),
+
+  // Government & VIP Birthday Officials (/api/special-days/officials)
+  getBirthdayOfficials: () => request('/special-days/officials'),
+  wishBirthdayOfficial: (id) => request(`/special-days/officials/${id}/wish`, { method: 'POST' }),
+  createBirthdayOfficial: (data) => request('/special-days/officials', { method: 'POST', body: JSON.stringify(data) }),
+  deleteBirthdayOfficial: (id) => request(`/special-days/officials/${id}`, { method: 'DELETE' }),
+
   // Digital Magazines
   getMagazines: () => request('/magazines').catch(() => ({ magazines: [] })),
   createMagazine: (data) => request('/magazines', { method: 'POST', body: JSON.stringify(data) }).catch(() => ({ success: true })),
@@ -554,7 +571,28 @@ export const api = {
 
   saveSiteContent: async (key, data) => {
     return api.saveContent(key, data);
-  }
+  },
+
+  // Market & Bullion Rates (api.gold-api.com & GoodReturns Chennai)
+  getMarketRates: () => request('/market'),
+  getCurrentGoldRates: () => request('/gold/current'),
+  getGoldRates: () => request('/gold'),
+  syncGoldRates: () => request('/gold/sync', { method: 'POST' }),
+  saveGoldRates: (rates) => request('/gold', {
+    method: 'POST',
+    body: JSON.stringify(rates)
+  }),
+
+  // Tamil Nadu Leaders & VIP Birthday Felicitation
+  getBirthdayOfficials: () => request('/special-days/officials'),
+  wishBirthdayOfficial: (id) => request(`/special-days/officials/${id}/wish`, { method: 'POST' }),
+
+  // Social Media Hub & Channels
+  getSocialMediaSettings: () => request('/social-media'),
+  updateSocialMediaSettings: (settings) => request('/social-media', {
+    method: 'POST',
+    body: JSON.stringify(settings)
+  })
 };
 
 export default api;

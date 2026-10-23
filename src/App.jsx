@@ -20,9 +20,13 @@ import DemoGuideModal from './components/DemoGuideModal';
 import GoldCalculatorModal from './components/GoldCalculatorModal';
 import MagazineShowcase from './components/MagazineShowcase';
 import SpecialDaysFestivalCard from './components/SpecialDaysFestivalCard';
+import CinemaAndSports from './components/CinemaAndSports';
 import CinemaSportsHub from './components/CinemaSportsHub';
 import CinemaSportsSpotlightBar from './components/CinemaSportsSpotlightBar';
 import DistrictNewsHub from './components/DistrictNewsHub';
+import GovernmentBirthdaySection from './components/GovernmentBirthdaySection';
+import HomepageBirthdayPopup from './components/HomepageBirthdayPopup';
+import SocialMediaPage from './pages/SocialMediaPage';
 import { GoldMarketDashboard } from './components/GoldMarketDashboard';
 import Toast from './components/Toast';
 import NotFoundPage from './components/NotFoundPage';
@@ -748,9 +752,13 @@ export default function App() {
       {/* Main Container */}
       <main className="max-w-[1400px] mx-auto px-2.5 sm:px-4 py-3 sm:py-6 flex-1 w-full max-w-full min-w-0 overflow-x-hidden space-y-8 sm:space-y-12 pb-20 sm:pb-8">
         
-        {/* Route Fallback: Custom 404 Error Page for Unknown URLs */}
+        {/* Route Handlers: Social Media Hub, Known Routes & 404 Error Page */}
         {currentPath !== '/' ? (
-          <NotFoundPage onNavigate={navigateTo} onSelectCategory={handleSelectCategory} />
+          currentPath === '/social-media' ? (
+            <SocialMediaPage onNavigate={navigateTo} onToast={addToast} />
+          ) : (
+            <NotFoundPage onNavigate={navigateTo} onSelectCategory={handleSelectCategory} />
+          )
         ) : activeCategory === 'editorial' ? (
           <EditorialView
             articles={backendArticles.length > 0 ? backendArticles : (currentFallback.cards || [])}
@@ -797,9 +805,9 @@ export default function App() {
               <GoldMarketDashboard />
             </section>
 
-            {/* 3. CINEMA & ENTERTAINMENT HUB / SPORTS ACTION ARENA */}
+            {/* 3. HIGH-IMPACT CINEMA & SPORTS HUB (Box Office Tracker & Live Match Scoreboard) */}
             <div id="cinema-and-sports">
-              <CinemaSportsHub onOpenArticle={openArticleModal} />
+              <CinemaAndSports onOpenArticle={openArticleModal} />
             </div>
 
             {/* 4. DISTRICTS & REGIONAL NEWS HUB (With City Filter Tabs) */}
@@ -809,10 +817,13 @@ export default function App() {
               onOpenEPaper={() => setIsEPaperOpen(true)}
             />
 
-            {/* 5. SPECIAL DAYS FESTIVAL CARD WITH LIVE CONFETTI & WISHES */}
+            {/* 5. TAMIL NADU GOVERNMENT & VIP BIRTHDAY FELICITATION HUB */}
+            <GovernmentBirthdaySection onToast={addToast} />
+
+            {/* 6. SPECIAL DAYS FESTIVAL CARD WITH LIVE CONFETTI & WISHES */}
             <SpecialDaysFestivalCard onToast={addToast} />
 
-            {/* 6. DIGITAL MONTHLY MAGAZINE & E-PAPER BANNER */}
+            {/* 7. DIGITAL MONTHLY MAGAZINE & E-PAPER BANNER */}
             <MagazineShowcase
               onOpenEPaper={() => setIsEPaperOpen(true)}
               onToast={addToast}
@@ -1105,6 +1116,9 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {/* Homepage VIP Birthday Alert Popup (Session Based) */}
+      <HomepageBirthdayPopup onToast={addToast} />
 
       {/* Dynamic Toast Container */}
       <Toast toasts={toasts} onRemoveToast={removeToast} />

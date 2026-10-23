@@ -172,10 +172,24 @@ export async function initDb() {
         facebook_url TEXT DEFAULT 'https://www.facebook.com/amazetimes',
         facebook_handle VARCHAR(100) DEFAULT 'Amaze Times Official',
         whatsapp_url TEXT DEFAULT 'https://whatsapp.com/channel/amazetimes',
+        x_url TEXT DEFAULT 'https://twitter.com/AmazeTimes',
+        x_handle VARCHAR(100) DEFAULT '@AmazeTimes',
+        x_followers VARCHAR(100) DEFAULT '95K',
+        telegram_url TEXT DEFAULT 'https://t.me/AmazeTimes',
+        telegram_handle VARCHAR(100) DEFAULT 'Amaze Times Tamil',
+        telegram_subscribers VARCHAR(100) DEFAULT '60K',
+        whatsapp_announcements JSONB DEFAULT '[]',
         featured_videos JSONB DEFAULT '[]',
         featured_reels JSONB DEFAULT '[]'
       );
     `);
+    await query(`ALTER TABLE social_media_settings ADD COLUMN IF NOT EXISTS x_url TEXT DEFAULT 'https://twitter.com/AmazeTimes';`);
+    await query(`ALTER TABLE social_media_settings ADD COLUMN IF NOT EXISTS x_handle VARCHAR(100) DEFAULT '@AmazeTimes';`);
+    await query(`ALTER TABLE social_media_settings ADD COLUMN IF NOT EXISTS x_followers VARCHAR(100) DEFAULT '95K';`);
+    await query(`ALTER TABLE social_media_settings ADD COLUMN IF NOT EXISTS telegram_url TEXT DEFAULT 'https://t.me/AmazeTimes';`);
+    await query(`ALTER TABLE social_media_settings ADD COLUMN IF NOT EXISTS telegram_handle VARCHAR(100) DEFAULT 'Amaze Times Tamil';`);
+    await query(`ALTER TABLE social_media_settings ADD COLUMN IF NOT EXISTS telegram_subscribers VARCHAR(100) DEFAULT '60K';`);
+    await query(`ALTER TABLE social_media_settings ADD COLUMN IF NOT EXISTS whatsapp_announcements JSONB DEFAULT '[]';`);
     await query(`
       INSERT INTO social_media_settings (id)
       VALUES (1)
@@ -197,7 +211,120 @@ export async function initDb() {
       );
     `);
 
-    // 10. SITE_CONTENT
+    // 10. GOLD_RATES TABLE (Realtime Gold, Silver, Petrol, Diesel Bullion Sync)
+    await query(`
+      CREATE TABLE IF NOT EXISTS gold_rates (
+        id SERIAL PRIMARY KEY,
+        gold22k NUMERIC NOT NULL,
+        gold24k NUMERIC NOT NULL,
+        gold18k NUMERIC NOT NULL,
+        silver NUMERIC NOT NULL,
+        platinum NUMERIC DEFAULT 2980,
+        petrol NUMERIC DEFAULT 100.75,
+        diesel NUMERIC DEFAULT 92.34,
+        change_amount NUMERIC DEFAULT 0,
+        is_up BOOLEAN DEFAULT FALSE,
+        source VARCHAR(100) DEFAULT 'Gold-API / GoodReturns',
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+    await query(`CREATE INDEX IF NOT EXISTS idx_gold_rates_created ON gold_rates(created_at DESC);`);
+
+    // 11. BIRTHDAY_OFFICIALS TABLE (Government & VIP Birthday Felicitation Hub)
+    await query(`
+      CREATE TABLE IF NOT EXISTS birthday_officials (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        designation VARCHAR(255) NOT NULL,
+        birth_date DATE,
+        date_display VARCHAR(100) NOT NULL,
+        photo_url TEXT NOT NULL,
+        greeting_text TEXT NOT NULL,
+        wishes_count INTEGER DEFAULT 150,
+        is_active BOOLEAN DEFAULT TRUE,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    // 12. EPAPER_EDITIONS
+    await query(`
+      CREATE TABLE IF NOT EXISTS epaper_editions (
+        id SERIAL PRIMARY KEY,
+        title VARCHAR(200) NOT NULL,
+        edition_date DATE NOT NULL UNIQUE,
+        pdf_url TEXT NOT NULL,
+        cover_image_url TEXT NOT NULL,
+        page_count INT DEFAULT 16,
+        file_size_mb NUMERIC(5,2),
+        created_by UUID REFERENCES users(id) ON DELETE SET NULL,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    // 13. TICKERS & LIVE WIRES
+    await query(`
+      CREATE TABLE IF NOT EXISTS tickers (
+        id SERIAL PRIMARY KEY,
+        text TEXT NOT NULL,
+        link_url TEXT,
+        is_active BOOLEAN DEFAULT TRUE,
+        created_by UUID REFERENCES users(id) ON DELETE SET NULL,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        expires_at TIMESTAMP WITH TIME ZONE
+      );
+    `);
+
+    await query(`
+      CREATE TABLE IF NOT EXISTS live_wires (
+        id SERIAL PRIMARY KEY,
+        title VARCHAR(300) NOT NULL,
+        time_badge VARCHAR(50) NOT NULL,
+        category VARCHAR(50),
+        is_highlight BOOLEAN DEFAULT FALSE,
+        created_by UUID REFERENCES users(id) ON DELETE SET NULL,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    // 14. SHORTS & REELS
+    await query(`
+      CREATE TABLE IF NOT EXISTS shorts_reels (
+        id SERIAL PRIMARY KEY,
+        headline VARCHAR(200) NOT NULL,
+        description TEXT,
+        media_url TEXT NOT NULL,
+        media_type VARCHAR(20) DEFAULT 'image',
+        duration_seconds INT DEFAULT 60,
+        view_count BIGINT DEFAULT 0,
+        author_id UUID REFERENCES users(id) ON DELETE SET NULL,
+        status VARCHAR(20) DEFAULT 'published',
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    // 15. POLLS & POLL_VOTES
+    await query(`
+      CREATE TABLE IF NOT EXISTS polls (
+        id SERIAL PRIMARY KEY,
+        question TEXT NOT NULL,
+        options JSONB NOT NULL,
+        is_active BOOLEAN DEFAULT TRUE,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+    await query(`
+      CREATE TABLE IF NOT EXISTS poll_votes (
+        id SERIAL PRIMARY KEY,
+        poll_id INTEGER NOT NULL REFERENCES polls(id) ON DELETE CASCADE,
+        option_index INTEGER NOT NULL,
+        ip_hash VARCHAR(100),
+        voter_token VARCHAR(150),
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(poll_id, voter_token)
+      );
+    `);
+
+    // 16. SITE_CONTENT
     await query(`
       CREATE TABLE IF NOT EXISTS site_content (
         key VARCHAR(100) PRIMARY KEY,
@@ -280,6 +407,80 @@ export async function initDb() {
         ('amaze_2025_12', 'அமேஸ் டைம்ஸ் - டிசம்பர் 2025 ஆண்டு மலர்', 'டிசம்பர்', '2025', 'https://images.unsplash.com/photo-1497633762265-9d179a990aa6?auto=format&fit=crop&w=600&q=80', 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf', '18.4 MB', 64)
         ON CONFLICT (id) DO NOTHING;
       `);
+    }
+
+    // 15. Seed Gold Rates if empty
+    const goldCheck = await query(`SELECT COUNT(*) FROM gold_rates;`);
+    if (parseInt(goldCheck.rows[0].count, 10) === 0) {
+      console.log('🌱 Seeding initial Chennai & Tamil Nadu bullion gold rates...');
+      await query(`
+        INSERT INTO gold_rates 
+          (gold22k, gold24k, gold18k, silver, platinum, petrol, diesel, change_amount, is_up, source)
+        VALUES 
+          (7288, 7950, 5965, 104, 2980, 100.75, 92.34, 120, TRUE, 'Tamil Nadu Bullion Association (Chennai)');
+      `);
+    }
+
+    // 16. Seed Birthday Officials (Government & VIP Felicitation Hub) if empty
+    const bdayCheck = await query(`SELECT COUNT(*) FROM birthday_officials;`);
+    if (parseInt(bdayCheck.rows[0].count, 10) === 0) {
+      console.log('🌱 Seeding government & VIP birthday felicitation officials...');
+      await query(`
+        INSERT INTO birthday_officials (name, designation, date_display, photo_url, greeting_text, wishes_count, is_active)
+        VALUES
+        (
+          'மாண்புமிகு முதல்வர் மு.க. ஸ்டாலின்',
+          'தமிழ்நாடு முதலமைச்சர்',
+          'மார்ச் 1',
+          'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=600&q=80',
+          'தமிழ்நாட்டின் ஒப்பற்ற மக்கள் முதல்வர் அவர்களுக்கு அமேஸ் டைம்ஸ் வாசகர்களின் நெஞ்சார்ந்த பிறந்தநாள் வாழ்த்துகள்!',
+          1840,
+          TRUE
+        ),
+        (
+          'மாண்புமிகு துணை முதல்வர் உதயநிதி ஸ்டாலின்',
+          'தமிழ்நாடு துணை முதலமைச்சர் & இளைஞர் நலன், விளையாட்டு மேம்பாட்டுத்துறை அமைச்சர்',
+          'நவம்பர் 27',
+          'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=600&q=80',
+          'இளைஞர்களின் எழுச்சி நாயகன் மற்றும் துணை முதல்வர் அவர்களுக்கு மனமார்ந்த பிறந்தநாள் நல்வாழ்த்துகள்!',
+          1250,
+          TRUE
+        ),
+        (
+          'தளபதி விஜய்',
+          'தமிழக வெற்றிக் கழக தலைவர் & முன்னணி நடிகர்',
+          'ஜூன் 22',
+          'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?auto=format&fit=crop&w=600&q=80',
+          'கோடிக்கணக்கான ரசிகர்களின் இதயத் தளபதி விஜய் அவர்களுக்கு அமேஸ் டைம்ஸ் இதழின் இனிய பிறந்தநாள் வாழ்த்துகள்!',
+          2950,
+          TRUE
+        );
+      `);
+    }
+
+    // 17. Seed Tickers if empty
+    const tickerCheck = await query(`SELECT COUNT(*) FROM tickers;`);
+    if (parseInt(tickerCheck.rows[0].count, 10) === 0) {
+      await query(`
+        INSERT INTO tickers (text, link_url, is_active)
+        VALUES
+        ('தமிழகத்தில் மேலும் 5 புதிய தொழில் முதலீடுகளுக்கு அமைச்சரவை ஒப்புதல்!', '', TRUE),
+        ('சென்னை மெட்ரோ ரயில் இரண்டாம் கட்டப் பணிகள் 85% நிறைவு: விரைவில் வெள்ளோட்டம்!', '', TRUE),
+        ('IPL 2026: சென்னை சூப்பர் கிங்ஸ் அணி அபார வெற்றி - புள்ளிப்பட்டியலில் முதலிடம்!', '', TRUE),
+        ('தங்கம் விலை இன்று சவரனுக்கு ₹120 உயர்வு: இன்றைய சந்தை நிலவரம்!', '', TRUE);
+      `);
+    }
+
+    // 18. Seed E-Paper Editions if empty
+    const epaperCheck = await query(`SELECT COUNT(*) FROM epaper_editions;`);
+    if (parseInt(epaperCheck.rows[0].count, 10) === 0) {
+      const todayIso = new Date().toISOString().split('T')[0];
+      await query(`
+        INSERT INTO epaper_editions (title, edition_date, pdf_url, cover_image_url, page_count, file_size_mb)
+        VALUES
+        ('அமேஸ் டைம்ஸ் - இன்றைய நாளிதழ் (சென்னை பதிப்பு)', $1, 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf', 'https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&w=800&q=80', 16, 12.5)
+        ON CONFLICT (edition_date) DO NOTHING;
+      `, [todayIso]);
     }
 
     console.log('🎯 Database initialized and synchronized perfectly!');

@@ -47,90 +47,53 @@ export const AppProvider = ({ children }) => {
       showToast('உலாவியின் முகவரிப்பட்டியில் உள்ள ஆப் குறியீட்டைப் பயன்படுத்தி நிறுவலாம்!');
     }
   };
-  // Theme state
-  const [theme, setTheme] = useState(() => localStorage.getItem('adutha_theme') || 'light');
+  // Theme state - LocalStorage allowed strictly for client preference
+  const [theme, setTheme] = useState(() => {
+    try {
+      return localStorage.getItem('amaze_theme') || 'light';
+    } catch (_) {
+      return 'light';
+    }
+  });
   
-  // Font scaling state
-  const [fontSize, setFontSize] = useState('base');
+  // Font scaling state - LocalStorage allowed strictly for client preference
+  const [fontSize, setFontSize] = useState(() => {
+    try {
+      return localStorage.getItem('amaze_font_size') || 'base';
+    } catch (_) {
+      return 'base';
+    }
+  });
 
-  // Bookmarks state
+  // Bookmarks state - LocalStorage allowed strictly for client preference
   const [bookmarks, setBookmarks] = useState(() => {
     try {
-      return JSON.parse(localStorage.getItem('adutha_bookmarks') || '[]');
+      return JSON.parse(localStorage.getItem('amaze_bookmarks') || '[]');
     } catch (e) {
       return [];
     }
   });
 
-  // Horoscope Data State
-  const [horoscopeData, setHoroscopeData] = useState(() => {
-    try {
-      const saved = localStorage.getItem('adutha_horoscope');
-      return saved ? JSON.parse(saved) : defaultHoroscopeData;
-    } catch (e) {
-      return defaultHoroscopeData;
-    }
-  });
+  // Horoscope Data State - Pure Database Driven (Zero LocalStorage)
+  const [horoscopeData, setHoroscopeData] = useState(defaultHoroscopeData);
 
-  // Panchangam Data State
-  const [panchangamData, setPanchangamData] = useState(() => {
-    try {
-      const saved = localStorage.getItem('adutha_panchangam');
-      return saved ? JSON.parse(saved) : defaultPanchangamData;
-    } catch (e) {
-      return defaultPanchangamData;
-    }
-  });
+  // Panchangam Data State - Pure Database Driven (Zero LocalStorage)
+  const [panchangamData, setPanchangamData] = useState(defaultPanchangamData);
 
-  // Temple Festivals State
-  const [templeFestivals, setTempleFestivals] = useState(() => {
-    try {
-      const saved = localStorage.getItem('adutha_temples');
-      return saved ? JSON.parse(saved) : defaultTempleFestivals;
-    } catch (e) {
-      return defaultTempleFestivals;
-    }
-  });
+  // Temple Festivals State - Pure Database Driven (Zero LocalStorage)
+  const [templeFestivals, setTempleFestivals] = useState(defaultTempleFestivals);
 
-  // Remedies State
-  const [remediesData, setRemediesData] = useState(() => {
-    try {
-      const saved = localStorage.getItem('adutha_remedies');
-      return saved ? JSON.parse(saved) : defaultRemediesData;
-    } catch (e) {
-      return defaultRemediesData;
-    }
-  });
+  // Remedies State - Pure Database Driven (Zero LocalStorage)
+  const [remediesData, setRemediesData] = useState(defaultRemediesData);
 
-  // Spiritual Wisdom State
-  const [spiritualWisdom, setSpiritualWisdom] = useState(() => {
-    try {
-      const saved = localStorage.getItem('adutha_wisdom');
-      return saved ? JSON.parse(saved) : defaultSpiritualWisdom;
-    } catch (e) {
-      return defaultSpiritualWisdom;
-    }
-  });
+  // Spiritual Wisdom State - Pure Database Driven (Zero LocalStorage)
+  const [spiritualWisdom, setSpiritualWisdom] = useState(defaultSpiritualWisdom);
 
-  // Christian Spirituality State
-  const [christianData, setChristianData] = useState(() => {
-    try {
-      const saved = localStorage.getItem('adutha_christian');
-      return saved ? JSON.parse(saved) : defaultChristianData;
-    } catch (e) {
-      return defaultChristianData;
-    }
-  });
+  // Christian Spirituality State - Pure Database Driven (Zero LocalStorage)
+  const [christianData, setChristianData] = useState(defaultChristianData);
 
-  // Islamic Spirituality State
-  const [islamicData, setIslamicData] = useState(() => {
-    try {
-      const saved = localStorage.getItem('adutha_islamic');
-      return saved ? JSON.parse(saved) : defaultIslamicData;
-    } catch (e) {
-      return defaultIslamicData;
-    }
-  });
+  // Islamic Spirituality State - Pure Database Driven (Zero LocalStorage)
+  const [islamicData, setIslamicData] = useState(defaultIslamicData);
 
   // Helper to strictly sort magazines chronologically: 2026 -> 2025 -> 2024 -> 2023 -> 2021
   const sortMagazinesChronological = (arr) => {
@@ -144,16 +107,8 @@ export const AppProvider = ({ children }) => {
   };
 
   // Digital Magazine State - Pure Database Driven (PostgreSQL DB) with fallback
-  const [magazinesList, setMagazinesList] = useState(() => {
-    try {
-      const saved = localStorage.getItem('adutha_magazines');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return sortMagazinesChronological(parsed);
-      }
-    } catch (e) {}
-    return sortMagazinesChronological(defaultMagazines);
-  });
+  // Digital Magazine State - Pure Database Driven (PostgreSQL DB) with fallback (Zero LocalStorage)
+  const [magazinesList, setMagazinesList] = useState(() => sortMagazinesChronological(defaultMagazines));
 
   useEffect(() => {
     const loadMagazinesFromDB = async () => {
@@ -162,9 +117,6 @@ export const AppProvider = ({ children }) => {
         if (res && res.success && Array.isArray(res.data)) {
           const sorted = sortMagazinesChronological(res.data);
           setMagazinesList(sorted);
-          try {
-            localStorage.setItem('adutha_magazines', JSON.stringify(sorted));
-          } catch (e) {}
         }
       } catch (e) {
         console.warn('Backend magazine fetch error:', e);
@@ -173,124 +125,37 @@ export const AppProvider = ({ children }) => {
     loadMagazinesFromDB();
   }, []);
 
-  const [birthdayWishes, setBirthdayWishes] = useState(() => {
-    try {
-      const saved = localStorage.getItem('adutha_birthday');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
-    } catch (e) {}
-    return defaultBirthdayWishes;
-  });
-
-  const [quotesData, setQuotesData] = useState(() => {
-    try {
-      const saved = localStorage.getItem('adutha_quotes');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
-    } catch (e) {}
-    return defaultQuotesData;
-  });
-
-  const [competitionsData, setCompetitionsData] = useState(() => {
-    try {
-      const saved = localStorage.getItem('adutha_competitions');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
-    } catch (e) {}
-    return defaultCompetitionsData;
-  });
-
-  const [examsData, setExamsData] = useState(() => {
-    try {
-      const saved = localStorage.getItem('adutha_exams');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
-    } catch (e) {}
-    return defaultExamsData;
-  });
-
-  const [customBlogsData, setCustomBlogsData] = useState(() => {
-    try {
-      const saved = localStorage.getItem('adutha_blogs');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
-    } catch (e) {}
-    return DEFAULT_BLOG_ITEMS;
-  });
-
-  const [videoGalleryList, setVideoGalleryList] = useState(() => {
-    try {
-      const saved = localStorage.getItem('adutha_videos');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
-    } catch (e) {}
-    return defaultVideos;
-  });
+  const [birthdayWishes, setBirthdayWishes] = useState(defaultBirthdayWishes);
+  const [quotesData, setQuotesData] = useState(defaultQuotesData);
+  const [competitionsData, setCompetitionsData] = useState(defaultCompetitionsData);
+  const [examsData, setExamsData] = useState(defaultExamsData);
+  const [customBlogsData, setCustomBlogsData] = useState(DEFAULT_BLOG_ITEMS);
+  const [videoGalleryList, setVideoGalleryList] = useState(defaultVideos);
 
   // User Auth State
   const [user, setUser] = useState(() => {
     try {
-      const raw = localStorage.getItem('amaze_user') || localStorage.getItem('adutha_user');
+      const raw = localStorage.getItem('amaze_user');
       return raw ? JSON.parse(raw) : null;
     } catch (e) {
       return null;
     }
   });
-  const [token, setToken] = useState(() => localStorage.getItem('amaze_token') || localStorage.getItem('adutha_token') || '');
+  const [token, setToken] = useState(() => localStorage.getItem('amaze_token') || '');
 
   // Dynamic News Articles State (Direct from Neon PostgreSQL, Zero LocalStorage)
   const [newsList, setNewsList] = useState([]);
-  const [goldRateData, setGoldRateData] = useState(() => {
-    try {
-      const saved = localStorage.getItem('adutha_gold_rate');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed && typeof parsed === 'object') {
-          const gold22k = Number(parsed.gold22k) || 13660;
-          const gold24k = Number(parsed.gold24k) || 14902;
-          const gold18k = Number(parsed.gold18k) || 11220;
-          const silver = Number(parsed.silver) || 245;
-          const updatedObj = {
-            ...parsed,
-            gold22k,
-            gold24k,
-            gold18k,
-            silver,
-            platinum: parsed.platinum || 3150,
-            petrol: parsed.petrol || 100.75,
-            diesel: parsed.diesel || 92.34
-          };
-          localStorage.setItem('adutha_gold_rate', JSON.stringify(updatedObj));
-          return updatedObj;
-        }
-      }
-    } catch (e) {}
-    const defaultObj = {
-      gold22k: 13660,
-      gold24k: 14902,
-      gold18k: 11220,
-      silver: 245,
-      platinum: 3450,
-      petrol: 100.75,
-      diesel: 92.34,
-      changeAmount: 45,
-      isUp: true,
-      updatedAt: new Date().toISOString()
-    };
-    localStorage.setItem('adutha_gold_rate', JSON.stringify(defaultObj));
-    return defaultObj;
+  const [goldRateData, setGoldRateData] = useState({
+    gold22k: 7288,
+    gold24k: 7950,
+    gold18k: 5965,
+    silver: 104,
+    platinum: 2980,
+    petrol: 100.75,
+    diesel: 92.34,
+    changeAmount: 120,
+    isUp: true,
+    updatedAt: new Date().toISOString()
   });
 
   // Modal states
@@ -367,12 +232,12 @@ export const AppProvider = ({ children }) => {
     } else {
       document.documentElement.classList.remove('dark');
     }
-    localStorage.setItem('adutha_theme', theme);
+    localStorage.setItem('amaze_theme', theme);
   }, [theme]);
 
-  // Sync bookmarks with localStorage
+  // Sync bookmarks with localStorage (client preference)
   useEffect(() => {
-    localStorage.setItem('adutha_bookmarks', JSON.stringify(bookmarks));
+    localStorage.setItem('amaze_bookmarks', JSON.stringify(bookmarks));
   }, [bookmarks]);
 
   // Flag to avoid overwriting database content before initial fetch
@@ -560,8 +425,6 @@ export const AppProvider = ({ children }) => {
       setToken('demo-admin-token');
       localStorage.setItem('amaze_token', 'demo-admin-token');
       localStorage.setItem('amaze_user', JSON.stringify(adminUser));
-      localStorage.setItem('adutha_token', 'demo-admin-token');
-      localStorage.setItem('adutha_user', JSON.stringify(adminUser));
       showToast('வரவேற்கிறோம், முதன்மை ஆசிரியர்!');
       return { success: true, user: adminUser };
     } else if (cleanEmail.includes('reporter')) {
@@ -577,8 +440,6 @@ export const AppProvider = ({ children }) => {
       setToken('demo-reporter-token');
       localStorage.setItem('amaze_token', 'demo-reporter-token');
       localStorage.setItem('amaze_user', JSON.stringify(reporterUser));
-      localStorage.setItem('adutha_token', 'demo-reporter-token');
-      localStorage.setItem('adutha_user', JSON.stringify(reporterUser));
       showToast('வரவேற்கிறோம், நிருபர்!');
       return { success: true, user: reporterUser };
     } else if (cleanEmail.length > 0) {
@@ -599,6 +460,8 @@ export const AppProvider = ({ children }) => {
   const handleLogout = () => {
     setUser(null);
     setToken('');
+    localStorage.removeItem('amaze_token');
+    localStorage.removeItem('amaze_user');
     localStorage.removeItem('adutha_token');
     localStorage.removeItem('adutha_user');
     showToast('வெளியேறினீர்கள் (Logged out)');
@@ -830,7 +693,6 @@ export const AppProvider = ({ children }) => {
       const hist = raw ? JSON.parse(raw) : [];
       const updated = [strId, ...hist.filter(i => String(i) !== strId)].slice(0, 50);
       localStorage.setItem('amaze_reading_history', JSON.stringify(updated));
-      localStorage.setItem('adutha_reading_history', JSON.stringify(updated));
     } catch (_) {}
 
     // Atomic permanent increment in PostgreSQL
@@ -887,9 +749,6 @@ export const AppProvider = ({ children }) => {
     } catch (e) {
       console.warn(`Error saving ${key} to DB:`, e);
     }
-    try {
-      localStorage.setItem(`adutha_${key}`, JSON.stringify(data));
-    } catch (e) {}
   };
 
   // Sync state changes to PostgreSQL database whenever updated
@@ -979,9 +838,6 @@ export const AppProvider = ({ children }) => {
 
   useEffect(() => {
     if (!isLoadedFromDb.current) return;
-    try {
-      localStorage.setItem('adutha_videos', JSON.stringify(videoGalleryList));
-    } catch (e) {}
     saveSiteContent('videos', videoGalleryList);
   }, [videoGalleryList]);
 
@@ -1036,9 +892,6 @@ export const AppProvider = ({ children }) => {
             res.data,
             ...prev.filter((m) => String(m.id) !== String(res.data.id))
           ]);
-          try {
-            localStorage.setItem('adutha_magazines', JSON.stringify(next));
-          } catch (e) {}
           return next;
         });
         showToast('புதிய மாத இதழ் DB-யில் வெற்றிகரமாக சேமிக்கப்பட்டது!');
@@ -1061,9 +914,6 @@ export const AppProvider = ({ children }) => {
       if (res && res.success && res.data) {
         setMagazinesList((prev) => {
           const next = sortMagazinesChronological(prev.map((item) => (String(item.id) === idStr ? res.data : item)));
-          try {
-            localStorage.setItem('adutha_magazines', JSON.stringify(next));
-          } catch (e) {}
           return next;
         });
         showToast('மாத இதழ் DB-யில் புதுப்பிக்கப்பட்டது!');
@@ -1086,9 +936,6 @@ export const AppProvider = ({ children }) => {
       if (res && res.success) {
         setMagazinesList((prev) => {
           const next = prev.filter((item) => String(item.id) !== idStr);
-          try {
-            localStorage.setItem('adutha_magazines', JSON.stringify(next));
-          } catch (e) {}
           return next;
         });
         showToast('மாத இதழ் DB-யிலிருந்து நீக்கப்பட்டது!');

@@ -1,23 +1,63 @@
-import React, { useState, useId } from 'react';
-import { Calculator, X, Coins, Sparkles, MapPin, Receipt, Scale, Percent } from 'lucide-react';
+import React, { useState, useEffect, useId } from 'react';
+import { Calculator, X, Coins, Sparkles, MapPin, Receipt, Scale, Percent, Info } from 'lucide-react';
+import { api } from '../services/api';
 
 export default function GoldCalculatorModal({ isOpen, onClose }) {
   const [karat, setKarat] = useState('22'); // '22', '24', '18', 'silver'
   const [weightGrams, setWeightGrams] = useState(8); // Default 1 Sovereign / சவரன்
   const [makingChargesPct, setMakingChargesPct] = useState(8); // 8% default
+  const [wastagePct, setWastagePct] = useState(2); // 2% wastage default
   const [selectedCity, setSelectedCity] = useState('chennai');
+  const [liveBullion, setLiveBullion] = useState(null);
 
   const weightInputId = useId();
   const makingChargesInputId = useId();
+  const wastageInputId = useId();
+
+  useEffect(() => {
+    let isMounted = true;
+    if (isOpen) {
+      const fetchCurrentRates = async () => {
+        try {
+          const res = await api.getCurrentGoldRates();
+          if (isMounted && res && res.success && res.data) {
+            setLiveBullion(res.data);
+          }
+        } catch (_) {}
+      };
+      fetchCurrentRates();
+    }
+    return () => { isMounted = false; };
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
-  // Base rates per gram in Tamil Nadu cities
+  // Base rates per gram in Tamil Nadu cities with live DB override for Chennai
   const cityRates = {
-    chennai: { k22: 7280, k24: 7942, k18: 5956, silver: 98.5 },
-    madurai: { k22: 7285, k24: 7948, k18: 5960, silver: 98.7 },
-    coimbatore: { k22: 7280, k24: 7940, k18: 5955, silver: 98.4 },
-    trichy: { k22: 7285, k24: 7945, k18: 5960, silver: 98.6 }
+    chennai: { 
+      k22: liveBullion?.gold22k || 7288, 
+      k24: liveBullion?.gold24k || 7950, 
+      k18: liveBullion?.gold18k || 5965, 
+      silver: liveBullion?.silver || 104 
+    },
+    madurai: { 
+      k22: (liveBullion?.gold22k ? liveBullion.gold22k + 5 : 7293), 
+      k24: (liveBullion?.gold24k ? liveBullion.gold24k + 5 : 7955), 
+      k18: (liveBullion?.gold18k ? liveBullion.gold18k + 4 : 5969), 
+      silver: (liveBullion?.silver ? liveBullion.silver + 0.2 : 104.2) 
+    },
+    coimbatore: { 
+      k22: liveBullion?.gold22k || 7288, 
+      k24: liveBullion?.gold24k || 7950, 
+      k18: liveBullion?.gold18k || 5965, 
+      silver: liveBullion?.silver || 104 
+    },
+    trichy: { 
+      k22: (liveBullion?.gold22k ? liveBullion.gold22k + 5 : 7293), 
+      k24: (liveBullion?.gold24k ? liveBullion.gold24k + 5 : 7955), 
+      k18: (liveBullion?.gold18k ? liveBullion.gold18k + 4 : 5969), 
+      silver: (liveBullion?.silver ? liveBullion.silver + 0.1 : 104.1) 
+    }
   };
 
   const currentRates = cityRates[selectedCity] || cityRates.chennai;
@@ -36,8 +76,9 @@ export default function GoldCalculatorModal({ isOpen, onClose }) {
   }
 
   const basePrice = Math.round(weightGrams * baseRatePerGram);
+  const wastageAmount = Math.round((basePrice * wastagePct) / 100);
   const makingCharges = Math.round((basePrice * makingChargesPct) / 100);
-  const subtotal = basePrice + makingCharges;
+  const subtotal = basePrice + wastageAmount + makingCharges;
   const gstAmount = Math.round((subtotal * 3) / 100);
   const grandTotal = subtotal + gstAmount;
 
@@ -203,29 +244,49 @@ export default function GoldCalculatorModal({ isOpen, onClose }) {
 
           {/* Making Charges Slider */}
           {karat !== 'silver' && (
-            <div className="bg-slate-50 dark:bg-slate-900/50 p-3 rounded-2xl border border-slate-200 dark:border-slate-800/80 space-y-2">
-              <div className="flex justify-between items-center">
-                <label htmlFor={makingChargesInputId} className="text-xs font-extrabold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-                  <Percent className="w-3.5 h-3.5 text-amber-500" />
-                  <span>செய்கூலி & சேதாரம்:</span>
-                </label>
-                <span className="text-xs font-black bg-amber-500 text-slate-950 px-2 py-0.5 rounded-md shadow-xs">
-                  {makingChargesPct}%
-                </span>
+            <div className="bg-slate-50 dark:bg-slate-900/50 p-3 rounded-2xl border border-slate-200 dark:border-slate-800/80 space-y-3">
+              {/* Making Charges % */}
+              <div className="space-y-1.5">
+                <div className="flex justify-between items-center">
+                  <label htmlFor={makingChargesInputId} className="text-xs font-extrabold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                    <Percent className="w-3.5 h-3.5 text-amber-500" />
+                    <span>செய்கூலி (Making Charges):</span>
+                  </label>
+                  <span className="text-xs font-black bg-amber-500 text-slate-950 px-2 py-0.5 rounded-md shadow-xs">
+                    {makingChargesPct}%
+                  </span>
+                </div>
+                <input
+                  id={makingChargesInputId}
+                  type="range"
+                  min="0"
+                  max="20"
+                  value={makingChargesPct}
+                  onChange={(e) => setMakingChargesPct(parseInt(e.target.value, 10))}
+                  className="w-full h-2 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-amber-500"
+                />
               </div>
-              <input
-                id={makingChargesInputId}
-                type="range"
-                min="0"
-                max="20"
-                value={makingChargesPct}
-                onChange={(e) => setMakingChargesPct(parseInt(e.target.value, 10))}
-                className="w-full h-2 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-amber-500"
-              />
-              <div className="flex justify-between text-[11px] font-bold text-slate-600 dark:text-slate-300 mt-1">
-                <span>0% (நாணயம் / பிஸ்கட்)</span>
-                <span className="text-amber-600 dark:text-amber-400 font-extrabold">8% (எளிய நகைகள்)</span>
-                <span>15%+ (நவீன டிசைன்)</span>
+
+              {/* Wastage % */}
+              <div className="space-y-1.5 pt-1 border-t border-slate-200 dark:border-slate-800">
+                <div className="flex justify-between items-center">
+                  <label htmlFor={wastageInputId} className="text-xs font-extrabold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                    <Percent className="w-3.5 h-3.5 text-orange-500" />
+                    <span>சேதாரம் (Wastage %):</span>
+                  </label>
+                  <span className="text-xs font-black bg-orange-500 text-white px-2 py-0.5 rounded-md shadow-xs">
+                    {wastagePct}%
+                  </span>
+                </div>
+                <input
+                  id={wastageInputId}
+                  type="range"
+                  min="0"
+                  max="15"
+                  value={wastagePct}
+                  onChange={(e) => setWastagePct(parseInt(e.target.value, 10))}
+                  className="w-full h-2 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-orange-500"
+                />
               </div>
             </div>
           )}
@@ -248,13 +309,19 @@ export default function GoldCalculatorModal({ isOpen, onClose }) {
             </div>
 
             {karat !== 'silver' && (
-              <div className="flex justify-between items-center text-slate-700 dark:text-slate-300 font-medium">
-                <span>செய்கூலி & சேதாரம் ({makingChargesPct}%):</span>
-                <span className="font-extrabold text-amber-700 dark:text-amber-400">+ ₹{makingCharges.toLocaleString('en-IN')}</span>
-              </div>
+              <>
+                <div className="flex justify-between items-center text-slate-700 dark:text-slate-300 font-medium">
+                  <span>செய்கூலி ({makingChargesPct}%):</span>
+                  <span className="font-extrabold text-amber-700 dark:text-amber-400">+ ₹{makingCharges.toLocaleString('en-IN')}</span>
+                </div>
+                <div className="flex justify-between items-center text-slate-700 dark:text-slate-300 font-medium">
+                  <span>சேதாரம் ({wastagePct}%):</span>
+                  <span className="font-extrabold text-orange-600 dark:text-orange-400">+ ₹{wastageAmount.toLocaleString('en-IN')}</span>
+                </div>
+              </>
             )}
 
-            <div className="flex justify-between items-center text-slate-700 dark:text-slate-300 font-medium">
+            <div className="flex justify-between items-center text-slate-700 dark:text-slate-300 font-medium pt-1 border-t border-slate-200 dark:border-slate-800">
               <span>சரக்கு & சேவை வரி (GST 3%):</span>
               <span className="font-extrabold text-slate-900 dark:text-slate-100">+ ₹{gstAmount.toLocaleString('en-IN')}</span>
             </div>

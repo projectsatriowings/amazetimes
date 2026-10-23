@@ -1,4 +1,5 @@
 import express from 'express';
+import { getLatestGoldRates } from '../services/marketRateService.js';
 
 const router = express.Router();
 
@@ -37,47 +38,24 @@ async function fetchIndexData(symbol) {
     return null;
   }
 }
-
 async function fetchGoldData() {
   try {
-    // Fetch USD/INR exchange rate and Gold futures (GC=F)
-    const [goldRes, inrRes] = await Promise.all([
-      fetchIndexData('GC=F'),
-      fetchIndexData('INR=X')
-    ]);
-
-    if (goldRes && inrRes) {
-      // 1 Troy Ounce = 31.1034768 grams
-      // Gold Price per gram in USD = price / 31.1034768
-      // Convert to INR with import duty (~6%) and GST (3%) ~ factor 1.09
-      const usdPerGram = goldRes.price / 31.1034768;
-      const inrPerGram24K = usdPerGram * inrRes.price * 1.09;
-      // 22K gold is 91.6% of 24K
-      const inrPerGram22K = inrPerGram24K * 0.916;
-      // 1 Sovereign (பவுன்) = 8 grams
-      const sovereign22K = Math.round(inrPerGram22K * 8);
-
-      // Gold change estimate
-      const goldGramChange = Math.round((goldRes.change / 31.1034768) * inrRes.price * 0.916 * 8);
-
-      return {
-        gram22k: Math.round(inrPerGram22K),
-        sovereign22k: sovereign22K,
-        change: goldGramChange,
-        isPositive: goldGramChange >= 0
-      };
-    }
+    const latest = await getLatestGoldRates();
+    return {
+      gram22k: latest.gold22k,
+      sovereign22k: latest.sovereign22k,
+      change: latest.change_amount,
+      isPositive: latest.is_up
+    };
   } catch (err) {
-    console.warn('Could not calculate live gold rate:', err.message);
+    console.warn('Could not read synchronized gold rate:', err.message);
+    return {
+      gram22k: 7288,
+      sovereign22k: 58304,
+      change: 120,
+      isPositive: true
+    };
   }
-
-  // Realistic Tamil Nadu market fallback
-  return {
-    gram22k: 7280,
-    sovereign22k: 58240,
-    change: -120,
-    isPositive: false
-  };
 }
 
 router.get('/', async (req, res) => {
