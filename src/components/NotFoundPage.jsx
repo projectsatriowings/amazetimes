@@ -29,7 +29,7 @@ export default function NotFoundPage({ onNavigate, onSelectCategory }) {
         {/* Official Logo Emblem */}
         <div className="flex justify-center">
           <div className="w-16 h-16 rounded-2xl bg-white p-2 shadow-lg ring-2 ring-red-500/20 flex items-center justify-center">
-            <img src="/icon-192.png" alt="Amaze Times" className="w-full h-full object-contain" />
+            <img src="/amaze-times-logo.webp" alt="Amaze Times" className="w-full h-full object-contain" />
           </div>
         </div>
 

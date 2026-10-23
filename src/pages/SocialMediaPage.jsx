@@ -165,7 +165,7 @@ export default function SocialMediaPage({ onNavigate, onToast }) {
 
           <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6">
             <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-white p-2 shadow-xl ring-2 ring-amber-400/50 shrink-0 flex items-center justify-center">
-              <img src="/icon-192.png" alt="Amaze Times Logo" className="w-full h-full object-contain" />
+              <img src="/amaze-times-logo.webp" alt="Amaze Times Logo" className="w-full h-full object-contain" />
             </div>
             <div className="max-w-2xl">
               <div className="inline-flex items-center gap-1.5 bg-red-600/30 text-red-300 border border-red-500/40 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider mb-2">
