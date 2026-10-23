@@ -91,8 +91,8 @@ router.post('/heartbeat', async (req, res) => {
 
     // Retrieve current stats
     const statsRes = await query(`SELECT total_views, total_visitors FROM site_analytics WHERE id = 1;`);
-    const totalViews = statsRes.rows[0]?.total_views || 14850;
-    const totalVisitors = statsRes.rows[0]?.total_visitors || Math.max(knownVisitorsSet.size, 3920);
+    const totalViews = statsRes.rows[0]?.total_views || 0;
+    const totalVisitors = statsRes.rows[0]?.total_visitors || knownVisitorsSet.size || 0;
     const liveCount = Math.max(1, activeVisitors.size);
 
     res.json({
@@ -108,7 +108,7 @@ router.post('/heartbeat', async (req, res) => {
       success: false,
       message: err.message,
       liveCount: Math.max(1, activeVisitors.size),
-      totalVisitors: Math.max(knownVisitorsSet.size, 3920)
+      totalVisitors: knownVisitorsSet.size || 0
     });
   }
 });
@@ -130,8 +130,8 @@ router.get('/stats', optionalAuth, async (req, res) => {
     `);
 
     const analyticsRes = await query(`SELECT total_views, total_visitors FROM site_analytics WHERE id = 1;`);
-    const totalViews = analyticsRes.rows[0]?.total_views || 14850;
-    const totalVisitors = analyticsRes.rows[0]?.total_visitors || Math.max(knownVisitorsSet.size, 3920);
+    const totalViews = analyticsRes.rows[0]?.total_views || 0;
+    const totalVisitors = analyticsRes.rows[0]?.total_visitors || knownVisitorsSet.size || 0;
 
     const todayVisitorRes = await query(`
       SELECT COUNT(DISTINCT visitor_id) AS today_visitors
@@ -140,7 +140,7 @@ router.get('/stats', optionalAuth, async (req, res) => {
     `);
 
     const nRow = newsStatsRes.rows[0] || {};
-    const todayVisitors = parseInt(todayVisitorRes.rows[0]?.today_visitors || 1, 10);
+    const todayVisitors = parseInt(todayVisitorRes.rows[0]?.today_visitors || 0, 10);
     const liveCount = Math.max(1, activeVisitors.size);
 
     res.json({
@@ -217,8 +217,15 @@ router.get('/dashboard-stats', authenticate, requireReporterOrAdmin, async (req,
 
     const row = nStats.rows[0] || {};
     const analyticsRes = await query(`SELECT total_views, total_visitors FROM site_analytics WHERE id = 1;`);
-    const totalViews = analyticsRes.rows[0]?.total_views || 14850;
-    const totalVisitors = analyticsRes.rows[0]?.total_visitors || 3920;
+    const totalViews = analyticsRes.rows[0]?.total_views || 0;
+    const totalVisitors = analyticsRes.rows[0]?.total_visitors || knownVisitorsSet.size || 0;
+
+    const todayVisitorRes = await query(`
+      SELECT COUNT(DISTINCT visitor_id) AS today_visitors
+      FROM visitor_logs
+      WHERE visited_at >= CURRENT_DATE;
+    `);
+    const todayVisitors = parseInt(todayVisitorRes.rows[0]?.today_visitors || 0, 10);
 
     res.json({
       success: true,
@@ -231,7 +238,7 @@ router.get('/dashboard-stats', authenticate, requireReporterOrAdmin, async (req,
           total_article_views: parseInt(row.total_views || 0, 10)
         },
         visitors: {
-          today_uniques: 840,
+          today_uniques: todayVisitors,
           all_time_uniques: parseInt(totalVisitors, 10),
           active_now: Math.max(1, activeVisitors.size)
         },

@@ -102,14 +102,14 @@ export async function initDb() {
     await query(`
       CREATE TABLE IF NOT EXISTS site_analytics (
         id SERIAL PRIMARY KEY,
-        total_views BIGINT DEFAULT 12000,
-        total_visitors BIGINT DEFAULT 3400,
+        total_views BIGINT DEFAULT 0,
+        total_visitors BIGINT DEFAULT 0,
         updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       );
     `);
     await query(`
       INSERT INTO site_analytics (id, total_views, total_visitors)
-      VALUES (1, 14850, 3920)
+      VALUES (1, 0, 0)
       ON CONFLICT (id) DO NOTHING;
     `);
 

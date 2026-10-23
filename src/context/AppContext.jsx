@@ -312,9 +312,9 @@ export const AppProvider = ({ children }) => {
   const [totalLifetimeVisitors, setTotalLifetimeVisitors] = useState(() => {
     try {
       const cached = localStorage.getItem('amaze_total_lifetime_visitors');
-      return cached ? parseInt(cached, 10) : 3920;
+      return cached ? parseInt(cached, 10) : 0;
     } catch (_) {
-      return 3920;
+      return 0;
     }
   });
 

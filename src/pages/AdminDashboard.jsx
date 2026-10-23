@@ -112,9 +112,9 @@ import {
 const getArticleViews = (id) => {
   try {
     const views = localStorage.getItem(`article_views_${id}`);
-    return views ? parseInt(views, 10) : Math.floor(Math.random() * 150) + 12;
+    return views ? parseInt(views, 10) : 0;
   } catch (e) {
-    return 25;
+    return 0;
   }
 };
 
@@ -1194,7 +1194,7 @@ export const AdminDashboard = () => {
                   <div className="space-y-1">
                     <span className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider block font-tamil">மொத்த தனித்துவ வாசகர்கள் (வாழ்நாள்)</span>
                     <div className="text-3xl font-black text-amber-400">
-                      {(analyticsStats?.totalVisitors || totalLifetimeVisitors || 3920).toLocaleString()}
+                      {(analyticsStats?.totalVisitors ?? totalLifetimeVisitors ?? 0).toLocaleString()}
                     </div>
                     <span className="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
                       <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
