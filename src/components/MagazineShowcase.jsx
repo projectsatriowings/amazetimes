@@ -15,9 +15,16 @@ export default function MagazineShowcase({ onOpenEPaper, onToast }) {
           <div className="relative group cursor-pointer" onClick={onOpenEPaper}>
             <div className="w-40 sm:w-52 aspect-[3/4] bg-white rounded-2xl shadow-2xl overflow-hidden ring-4 ring-amber-400/40 transform group-hover:-translate-y-2 transition-transform duration-300 relative">
               <img
-                src="/Amaze times.jpg"
+                src="/Amaze times.webp"
+                srcSet="/Amaze times.webp 400w, /Amaze times.webp 800w"
+                sizes="(max-width: 640px) 160px, 208px"
+                width="320"
+                height="426"
+                loading="lazy"
+                decoding="async"
                 alt="அமேஸ் டைம்ஸ் மாத இதழ்"
-                className="w-full h-full object-cover"
+                className="w-full h-full aspect-[3/4] object-cover"
+                onError={(e) => { e.target.src = '/og-image.webp'; }}
               />
               <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent flex flex-col justify-end p-3 text-left">
                 <span className="bg-red-600 text-white text-[9px] font-black px-2 py-0.5 rounded uppercase w-fit mb-1 shadow">

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ArrowRight, Bookmark, ChevronDown, Heart } from 'lucide-react';
+import { getResponsiveImageProps } from '../utils/imageHelper';
 
 export default function SecondaryNewsGrid({
   categoryTitle,
@@ -86,16 +87,23 @@ export default function SecondaryNewsGrid({
                   className="relative aspect-[16/10] overflow-hidden bg-slate-100 dark:bg-slate-900 cursor-pointer"
                   onClick={() => onOpenArticle(c)}
                 >
-                  <img
-                    src={c.img || c.image || c.cover_image_url || '/og-image.jpg'}
-                    alt={c.title}
-                    width="400"
-                    height="250"
-                    loading="lazy"
-                    decoding="async"
-                    className="w-full h-full aspect-[16/10] object-cover group-hover:scale-105 transition-transform duration-500"
-                    onError={(e) => { e.target.src = '/og-image.jpg'; }}
-                  />
+                  {(() => {
+                    const cardImg = getResponsiveImageProps(c.img || c.image || c.cover_image_url || '/og-image.jpg', 600, 375);
+                    return (
+                      <img
+                        src={cardImg.src}
+                        srcSet={cardImg.srcSet}
+                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 400px"
+                        alt={c.title}
+                        width="400"
+                        height="250"
+                        loading="lazy"
+                        decoding="async"
+                        className="w-full h-full aspect-[16/10] object-cover group-hover:scale-105 transition-transform duration-500"
+                        onError={(e) => { e.target.src = '/og-image.jpg'; }}
+                      />
+                    );
+                  })()}
                   <span className="absolute top-2.5 left-2.5 bg-[#0e2a7a]/90 backdrop-blur-md text-white text-[10px] font-bold px-2.5 py-0.5 rounded-lg shadow-sm">
                     {c.cat || c.category || 'செய்தி'}
                   </span>

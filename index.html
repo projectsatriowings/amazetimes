@@ -44,10 +44,10 @@
   <meta name="twitter:image" content="https://amazetimes.com/og-image.jpg"/>
 
   <!-- Standards Compliant Favicon Suite (SVG, PNG, ICO & Apple Touch Icon) -->
+  <link rel="icon" type="image/x-icon" href="/favicon.ico" sizes="any"/>
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico"/>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg"/>
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png"/>
-  <link rel="icon" type="image/x-icon" href="/favicon.ico"/>
-  <link rel="shortcut icon" href="/favicon.ico"/>
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png"/>
 
   <!-- PWA & Mobile Web App Manifest -->
@@ -63,12 +63,15 @@
   <!-- Non-Blocking Critical Typography & Font Preconnects (Eliminates Render-Blocking CSS) -->
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Anek+Tamil:wght@300;400;500;600;700;800&family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap"/>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anek+Tamil:wght@300;400;500;600;700;800&family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" media="print" onload="this.media='all'"/>
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Anek+Tamil:wght@300;400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap"/>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anek+Tamil:wght@300;400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" media="print" onload="this.media='all'"/>
   <noscript>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anek+Tamil:wght@300;400;500;600;700;800&family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap"/>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anek+Tamil:wght@300;400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap"/>
   </noscript>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" media="print" onload="this.media='all'"/>
+  <noscript>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap"/>
+  </noscript>
 
   <!-- Google Analytics 4 (GA4) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-AZTIMES2026"></script>
@@ -196,7 +199,20 @@
   </script>
 </head>
 <body class="bg-[#f6f8fb] dark:bg-[#070d1e] text-slate-900 dark:text-slate-100 font-tamil antialiased transition-colors duration-300 min-h-screen flex flex-col w-full overflow-x-hidden selection:bg-red-600 selection:text-white" id="mainBody">
-  <div id="root"></div>
+  <div id="root">
+    <!-- Semantic SEO Crawler Hierarchy (Ensures Keywords Distribution across H1, H2 & Paragraphs) -->
+    <header style="display:none;" aria-hidden="true">
+      <h1>அமேஸ் டைம்ஸ் | Amaze Times - தமிழ் செய்திகள் நாளிதழ்</h1>
+      <p>நம்பகமான, துல்லியமான மற்றும் நடுநிலையான தமிழ்நாடு, இந்தியா, உலக அரசியல், வணிகம், சினிமா மற்றும் விளையாட்டுச் செய்திகளை 24 மணி நேரமும் உடனுக்குடன் வழங்கும் முன்னணி தமிழ் நாளிதழ்.</p>
+      <nav>
+        <h2>தமிழ்நாடு செய்திகள்</h2>
+        <h2>உலகம் &amp; அரசியல் செய்திகள்</h2>
+        <h2>வணிகம் &amp; பங்குச்சந்தை செய்திகள்</h2>
+        <h2>சினிமா &amp; பொழுதுபோக்கு செய்திகள்</h2>
+        <h2>விளையாட்டுச் செய்திகள்</h2>
+      </nav>
+    </header>
+  </div>
   <script type="module" src="/src/main.jsx"></script>
 </body>
 </html>

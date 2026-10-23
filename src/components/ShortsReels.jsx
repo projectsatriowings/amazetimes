@@ -1,5 +1,6 @@
 import React from 'react';
 import { PlayCircle, Video, Play } from 'lucide-react';
+import { getResponsiveImageProps } from '../utils/imageHelper';
 
 export default function ShortsReels({
   stories = [],
@@ -23,6 +24,7 @@ export default function ShortsReels({
       <div className="grid grid-cols-3 gap-2">
         {stories.map((story, idx) => {
           const isVideo = story.media_type === 'video' || story.img?.match(/\.(mp4|webm|mov)(\?.*)?$/i);
+          const thumb = getResponsiveImageProps(story.img, 200, 355);
           return (
             <div
               key={story.id || idx}
@@ -38,10 +40,16 @@ export default function ShortsReels({
                 />
               ) : (
                 <img
-                  src={story.img}
+                  src={thumb.src}
+                  srcSet={thumb.srcSet}
+                  sizes="(max-width: 640px) 33vw, 150px"
+                  width="200"
+                  height="355"
+                  loading="lazy"
+                  decoding="async"
                   alt={story.headline}
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                  onError={(e) => { e.target.src = '/Amaze times.jpg'; }}
+                  className="w-full h-full aspect-[9/16] object-cover group-hover:scale-110 transition-transform duration-300"
+                  onError={(e) => { e.target.src = '/og-image.webp'; }}
                 />
               )}
 

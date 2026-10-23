@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Eye, Clock, User, Heart, Bookmark, Share2, Volume2, ArrowRight, Flame } from 'lucide-react';
+import { getResponsiveImageProps } from '../utils/imageHelper';
 
 export default function HeroSpotlight({
   leadData,
@@ -83,6 +84,8 @@ export default function HeroSpotlight({
         }
       ];
 
+  const leadImage = getResponsiveImageProps(leadData.image || leadData.cover_image_url || '/og-image.jpg', 800, 450);
+
   return (
     <section className="w-full">
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6 items-stretch">
@@ -96,10 +99,12 @@ export default function HeroSpotlight({
             {/* Visual Image Banner with 16:9 Aspect Ratio */}
             <div className="relative w-full aspect-[16/9] overflow-hidden bg-slate-900 cursor-pointer" onClick={() => onOpenArticle(leadData)}>
               <img
-                src={leadData.image || leadData.cover_image_url || '/og-image.jpg'}
+                src={leadImage.src}
+                srcSet={leadImage.srcSet}
+                sizes={leadImage.sizes}
                 alt={leadData.title}
-                width="800"
-                height="450"
+                width={leadImage.width}
+                height={leadImage.height}
                 loading="eager"
                 fetchPriority="high"
                 decoding="async"
@@ -298,20 +303,25 @@ export default function HeroSpotlight({
                     </div>
 
                     {/* Small Thumbnail */}
-                    {item.image && (
-                      <div className="w-13 h-13 sm:w-14 sm:h-14 rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800 flex-shrink-0 border border-slate-200 dark:border-slate-700 shadow-2xs">
-                        <img
-                          src={item.image}
-                          alt={item.title}
-                          width="56"
-                          height="56"
-                          loading="lazy"
-                          decoding="async"
-                          className="w-full h-full aspect-square object-cover group-hover:scale-110 transition-transform duration-300"
-                          onError={(e) => { e.target.src = '/og-image.jpg'; }}
-                        />
-                      </div>
-                    )}
+                    {item.image && (() => {
+                      const thumb = getResponsiveImageProps(item.image, 160, 160);
+                      return (
+                        <div className="w-13 h-13 sm:w-14 sm:h-14 rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800 flex-shrink-0 border border-slate-200 dark:border-slate-700 shadow-2xs">
+                          <img
+                            src={thumb.src}
+                            srcSet={thumb.srcSet}
+                            sizes="56px"
+                            alt={item.title}
+                            width="56"
+                            height="56"
+                            loading="lazy"
+                            decoding="async"
+                            className="w-full h-full aspect-square object-cover group-hover:scale-110 transition-transform duration-300"
+                            onError={(e) => { e.target.src = '/og-image.jpg'; }}
+                          />
+                        </div>
+                      );
+                    })()}
                   </div>
                 );
               })}

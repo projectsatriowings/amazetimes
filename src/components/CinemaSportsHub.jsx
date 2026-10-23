@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
 import { Film, Trophy, Star, Play, ExternalLink, Activity, Flame, ChevronRight } from 'lucide-react';
+import { getResponsiveImageProps } from '../utils/imageHelper';
 
 export default function CinemaSportsHub({ onOpenArticle }) {
   const [activeTab, setActiveTab] = useState('cinema'); // 'cinema' | 'sports'
@@ -108,12 +109,23 @@ export default function CinemaSportsHub({ onOpenArticle }) {
               className="bg-slate-50 dark:bg-[#070e1e] rounded-2xl p-4 border border-slate-200 dark:border-slate-800/80 hover:border-purple-500/40 transition-all flex flex-col sm:flex-row gap-4 items-center group shadow-sm"
             >
               <div className="relative w-full sm:w-32 aspect-[3/4] sm:aspect-auto sm:h-40 rounded-xl overflow-hidden bg-slate-900 flex-shrink-0">
-                <img
-                  src={movie.bannerImage}
-                  alt={movie.title}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  onError={(e) => { e.target.src = '/Amaze times.jpg'; }}
-                />
+                {(() => {
+                  const mImg = getResponsiveImageProps(movie.bannerImage, 300, 400);
+                  return (
+                    <img
+                      src={mImg.src}
+                      srcSet={mImg.srcSet}
+                      sizes="(max-width: 640px) 100vw, 128px"
+                      width="300"
+                      height="400"
+                      loading="lazy"
+                      decoding="async"
+                      alt={movie.title}
+                      className="w-full h-full aspect-[3/4] object-cover group-hover:scale-105 transition-transform duration-500"
+                      onError={(e) => { e.target.src = '/og-image.webp'; }}
+                    />
+                  );
+                })()}
                 <span className="absolute top-2 left-2 text-[10px] font-black px-2 py-0.5 rounded-full bg-purple-600 text-white shadow">
                   {movie.status}
                 </span>

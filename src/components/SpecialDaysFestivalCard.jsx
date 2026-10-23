@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api, getMediaUrl } from '../services/api';
 import { Sparkles, Heart, Gift, Calendar, Share2, PartyPopper } from 'lucide-react';
+import { getResponsiveImageProps } from '../utils/imageHelper';
 
 export default function SpecialDaysFestivalCard({ onToast }) {
   const [specialDay, setSpecialDay] = useState(null);
@@ -77,12 +78,24 @@ export default function SpecialDaysFestivalCard({ onToast }) {
     <section className="w-full relative overflow-hidden rounded-3xl shadow-xl border border-amber-500/30 font-tamil bg-gradient-to-r from-amber-950/80 via-slate-900 to-rose-950/80">
       {/* Background Image with Ambient Glow */}
       <div className="absolute inset-0 z-0">
-        <img
-          src={getMediaUrl(specialDay.bannerImage || specialDay.banner_image)}
-          alt={specialDay.title}
-          className="w-full h-full object-cover opacity-25 scale-105 filter blur-xs"
-          onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1582738411706-bfc8e691d1c2?auto=format&fit=crop&w=1200&q=80'; }}
-        />
+        {(() => {
+          const rawUrl = getMediaUrl(specialDay.bannerImage || specialDay.banner_image);
+          const bannerImg = getResponsiveImageProps(rawUrl, 1200, 400);
+          return (
+            <img
+              src={bannerImg.src}
+              srcSet={bannerImg.srcSet}
+              sizes="100vw"
+              width="1200"
+              height="400"
+              loading="lazy"
+              decoding="async"
+              alt={specialDay.title}
+              className="w-full h-full object-cover opacity-25 scale-105 filter blur-xs"
+              onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1582738411706-bfc8e691d1c2?auto=format&fm=webp&fit=crop&w=1200&q=80'; }}
+            />
+          );
+        })()}
         <div className="absolute inset-0 bg-gradient-to-r from-slate-950/95 via-slate-950/80 to-slate-950/90"></div>
       </div>
 

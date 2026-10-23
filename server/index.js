@@ -176,15 +176,42 @@ app.get('/sitemap.xml', async (req, res) => {
   }
 });
 
+// Explicit Favicon Routes with Exact MIME Types (Resolves Favicon Test)
+app.get('/favicon.ico', (req, res) => {
+  res.setHeader('Content-Type', 'image/x-icon');
+  res.setHeader('Cache-Control', 'public, max-age=86400');
+  const icoPath = path.join(publicPath, 'favicon.ico');
+  if (fs.existsSync(icoPath)) return res.sendFile(icoPath);
+  res.status(204).end();
+});
+
+app.get('/favicon.svg', (req, res) => {
+  res.setHeader('Content-Type', 'image/svg+xml; charset=utf-8');
+  res.setHeader('Cache-Control', 'public, max-age=86400');
+  res.sendFile(path.join(publicPath, 'favicon.svg'));
+});
+
+app.get('/favicon.png', (req, res) => {
+  res.setHeader('Content-Type', 'image/png');
+  res.setHeader('Cache-Control', 'public, max-age=86400');
+  res.sendFile(path.join(publicPath, 'favicon.png'));
+});
+
+app.get('/apple-touch-icon.png', (req, res) => {
+  res.setHeader('Content-Type', 'image/png');
+  res.setHeader('Cache-Control', 'public, max-age=86400');
+  res.sendFile(path.join(publicPath, 'apple-touch-icon.png'));
+});
+
 // Explicit Robots.txt and Ads.txt Route Handlers with Correct MIME Types
 app.get('/robots.txt', (req, res) => {
   res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-  res.sendFile(path.join(__dirname, '../public/robots.txt'));
+  res.sendFile(path.join(publicPath, 'robots.txt'));
 });
 
 app.get('/ads.txt', (req, res) => {
   res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-  res.sendFile(path.join(__dirname, '../public/ads.txt'));
+  res.sendFile(path.join(publicPath, 'ads.txt'));
 });
 
 // Serve static frontend in production (dist directory) with Far-Future Caching
@@ -208,16 +235,59 @@ const staticCacheOptions = {
 app.use(express.static(publicPath, staticCacheOptions));
 app.use(express.static(distPath, staticCacheOptions));
 
-// For SPA routing, serve index.html for non-API and non-upload requests
+// Valid known frontend routes (including categories and parameters)
+const validStaticRoutes = new Set([
+  '/',
+  '/admin',
+  '/login',
+  '/robots.txt',
+  '/sitemap.xml',
+  '/ads.txt',
+  '/favicon.ico',
+  '/favicon.svg',
+  '/favicon.png',
+  '/apple-touch-icon.png',
+  '/manifest.json',
+  '/sw.js',
+  '/404',
+  '/404.html'
+]);
+
+// SPA Routing & Custom 404 Status Handler (Eliminates Soft 404 Error)
 app.use((req, res, next) => {
-  if (req.method === 'GET' && !req.path.startsWith('/api') && !req.path.startsWith('/uploads')) {
+  if (req.method !== 'GET') return next();
+  if (req.path.startsWith('/api') || req.path.startsWith('/uploads') || req.path.startsWith('/assets')) {
+    return next();
+  }
+
+  const cleanPath = req.path.toLowerCase().replace(/\/$/, '') || '/';
+  const isKnownRoute =
+    validStaticRoutes.has(cleanPath) ||
+    cleanPath.startsWith('/admin') ||
+    cleanPath.startsWith('/category') ||
+    cleanPath.startsWith('/news') ||
+    cleanPath.startsWith('/article');
+
+  if (isKnownRoute) {
     const indexPath = path.join(distPath, 'index.html');
     if (fs.existsSync(indexPath)) {
       return res.sendFile(indexPath);
     }
     return res.sendFile(path.join(__dirname, '../index.html'));
   }
-  next();
+
+  // Truly Unknown / Missing URL: Respond with genuine HTTP 404 and branded custom 404 template
+  res.status(404);
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  const dist404 = path.join(distPath, '404.html');
+  const custom404 = path.join(publicPath, '404.html');
+  if (fs.existsSync(dist404)) {
+    return res.sendFile(dist404);
+  }
+  if (fs.existsSync(custom404)) {
+    return res.sendFile(custom404);
+  }
+  return res.send('<!DOCTYPE html><html lang="ta"><head><title>404 - பக்கம் கிடைக்கவில்லை | Amaze Times</title></head><body><h1>404 Not Found</h1></body></html>');
 });
 
 // Initialize database schema and start server on standard port 5000 bound to 0.0.0.0

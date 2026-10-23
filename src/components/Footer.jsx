@@ -61,7 +61,7 @@ export default function Footer({ onSelectCategory, onOpenEPaper, onOpenBookmarks
           <div className="space-y-4">
             <div className="flex items-center gap-3">
               <div className="bg-white p-1 rounded-2xl shadow-md border border-slate-700 flex items-center justify-center">
-                <img src="/amaze-times-logo.jpg" alt="அமேஸ் டைம்ஸ்" width="120" height="40" className="h-10 w-auto object-contain rounded-xl" />
+                <img src="/amaze-times-logo.webp" alt="அமேஸ் டைம்ஸ்" width="120" height="40" className="h-10 w-auto object-contain rounded-xl" />
               </div>
               <div className="flex flex-col">
                 <span className="font-title font-black text-xl text-white">அமேஸ் டைம்ஸ்</span>
@@ -78,7 +78,7 @@ export default function Footer({ onSelectCategory, onOpenEPaper, onOpenBookmarks
                 <ShieldCheck className="w-3.5 h-3.5 text-amber-300" />
                 <span>மத்திய அரசு பத்திரிகைப் பதிவு:</span>
               </p>
-              <p className="font-mono text-slate-200">PRGI TNBIL/2023/88656</p>
+              <p className="font-mono text-slate-200">பதிவு எண்: 2023/88656</p>
             </div>
 
             {/* Social Icons */}
@@ -103,7 +103,7 @@ export default function Footer({ onSelectCategory, onOpenEPaper, onOpenBookmarks
             </h4>
             <ul className="space-y-2 text-slate-400 text-xs">
               <li><button onClick={() => onSelectCategory('tamilnadu')} className="hover:text-amber-400 transition-colors flex items-center gap-1.5 cursor-pointer">› தமிழ்நாடு செய்திகள்</button></li>
-              <li><button onClick={() => onSelectCategory('districts')} className="hover:text-amber-400 transition-colors flex items-center gap-1.5 cursor-pointer">› மாவட்டச் செய்திகள் (Districts)</button></li>
+              <li><button onClick={() => onSelectCategory('districts')} className="hover:text-amber-400 transition-colors flex items-center gap-1.5 cursor-pointer">› மாவட்டச் செய்திகள்</button></li>
               <li><button onClick={() => onSelectCategory('business')} className="hover:text-amber-400 transition-colors flex items-center gap-1.5 cursor-pointer">› வணிகம் & பங்குச்சந்தை</button></li>
               <li><button onClick={() => onSelectCategory('spiritual')} className="hover:text-amber-400 transition-colors flex items-center gap-1.5 cursor-pointer">› ஆன்மிகம் & திருத்தலங்கள்</button></li>
               <li><button onClick={() => onSelectCategory('cinema')} className="hover:text-amber-400 transition-colors flex items-center gap-1.5 cursor-pointer">› சினிமா & கலை உலகம்</button></li>
@@ -122,7 +122,7 @@ export default function Footer({ onSelectCategory, onOpenEPaper, onOpenBookmarks
               <li><button onClick={() => onSelectCategory('magazine')} className="hover:text-amber-400 transition-colors flex items-center gap-1.5 cursor-pointer">› மாதாந்திர டிஜிட்டல் இதழ்</button></li>
               <li><button onClick={() => onSpeak('அமேஸ் டைம்ஸ் குரல் செய்திகள் இயக்கப்படுகின்றன.')} className="hover:text-amber-400 transition-colors flex items-center gap-1.5 cursor-pointer">› AI செய்தி வாசிப்பாளர் (Audio)</button></li>
               <li><button onClick={onOpenBookmarks} className="hover:text-amber-400 transition-colors flex items-center gap-1.5 cursor-pointer">› சேமித்த செய்திகள் (Bookmarks)</button></li>
-              <li><button onClick={() => onSelectCategory('editorial')} className="hover:text-amber-400 transition-colors flex items-center gap-1.5 cursor-pointer">› தலையங்கம் & பார்வை (Editorial)</button></li>
+              <li><button onClick={() => onSelectCategory('editorial')} className="hover:text-amber-400 transition-colors flex items-center gap-1.5 cursor-pointer">› தலையங்கம் & பார்வை</button></li>
             </ul>
           </div>
 
@@ -135,13 +135,18 @@ export default function Footer({ onSelectCategory, onOpenEPaper, onOpenBookmarks
             <div className="space-y-2 text-slate-400 text-xs">
               <p className="flex items-center gap-2">
                 <Mail className="w-3.5 h-3.5 text-red-400" />
-                <a
-                  href={`mailto:${['editor', 'amazetimes.com'].join('@')}`}
-                  className="hover:text-amber-400 transition-colors"
-                  title="அமேஸ் டைம்ஸ் ஆசிரியர் தொடர்பு"
+                <button
+                  type="button"
+                  onClick={() => {
+                    const u = 'editor';
+                    const d = 'amazetimes.com';
+                    window.location.href = `mailto:${u}@${d}`;
+                  }}
+                  className="hover:text-amber-400 transition-colors cursor-pointer text-left font-medium"
+                  title="ஆசிரியரைத் தொடர்பு கொள்ள"
                 >
-                  {['editor', 'amazetimes.com'].join('@')}
-                </a>
+                  ஆசிரியர் மின்னஞ்சல் (தொடர்புக்கு)
+                </button>
               </p>
               <p className="flex items-center gap-2">
                 <Phone className="w-3.5 h-3.5 text-emerald-400" />
@@ -168,7 +173,7 @@ export default function Footer({ onSelectCategory, onOpenEPaper, onOpenBookmarks
               }}
               className="text-slate-400 hover:text-amber-400 underline underline-offset-2 transition-colors cursor-pointer font-bold"
             >
-              பணியாளர் & நிருபர் உள்நுழைவு (Admin / Reporter Portal)
+              பணியாளர் & நிருபர் உள்நுழைவு (நிர்வாகம்)
             </a>
           </div>
 
