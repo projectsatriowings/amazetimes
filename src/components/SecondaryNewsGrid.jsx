@@ -26,6 +26,8 @@ export default function SecondaryNewsGrid({
     { id: 'thanjavur', label: 'தஞ்சாவூர்' }
   ];
 
+  const [visibleCount, setVisibleCount] = useState(12);
+
   // Filter cards based on selected district if in district view or general view
   const filteredCards = selectedDistrict === 'all'
     ? cards
@@ -35,7 +37,9 @@ export default function SecondaryNewsGrid({
         return districtObj ? textToMatch.includes(districtObj.label.toLowerCase()) : true;
       });
 
-  const cardsToRender = filteredCards.length > 0 ? filteredCards : cards;
+  const allAvailableCards = filteredCards.length > 0 ? filteredCards : cards;
+  const cardsToRender = allAvailableCards.slice(0, visibleCount);
+  const hasMore = visibleCount < allAvailableCards.length;
 
   return (
     <section className="space-y-4 sm:space-y-5 w-full max-w-full overflow-hidden">
@@ -59,7 +63,10 @@ export default function SecondaryNewsGrid({
           {districts.map(dist => (
             <button
               key={dist.id}
-              onClick={() => setSelectedDistrict(dist.id)}
+              onClick={() => {
+                setSelectedDistrict(dist.id);
+                setVisibleCount(12);
+              }}
               className={`px-3 py-1 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
                 selectedDistrict === dist.id
                   ? 'bg-[#0e2a7a] text-white shadow-sm'
@@ -196,13 +203,16 @@ export default function SecondaryNewsGrid({
       </div>
 
       {/* Load More Button */}
-      {onLoadMore && (
+      {hasMore && (
         <div className="pt-6 pb-2 flex justify-center">
           <button
-            onClick={onLoadMore}
+            onClick={() => {
+              setVisibleCount(prev => prev + 12);
+              if (onLoadMore) onLoadMore();
+            }}
             className="bg-[#0e2a7a] hover:bg-[#0a1f5c] text-white font-bold text-xs sm:text-sm px-6 py-2.5 rounded-xl shadow-md transition-all flex items-center gap-2 cursor-pointer hover:scale-105 active:scale-95"
           >
-            <span>கூடுதல் செய்திகள் ஏற்றுக</span>
+            <span>கூடுதல் செய்திகள் ஏற்றுக ({allAvailableCards.length - visibleCount} மீதம்)</span>
             <ChevronDown className="w-4 h-4" />
           </button>
         </div>

@@ -7,7 +7,10 @@ const STATIC_ASSETS = [
   '/icon-192.png',
   '/icon-512.png',
   '/apple-touch-icon.png',
+  '/favicon.svg',
   '/icon.svg',
+  '/favicon.png',
+  '/favicon.ico',
   '/Amaze times.jpg'
 ];
 

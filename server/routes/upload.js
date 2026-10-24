@@ -3,6 +3,7 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
+import sharp from 'sharp';
 import { optionalAuth } from '../middleware/auth.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -50,7 +51,7 @@ const router = express.Router();
 
 // POST /api/upload - Secure file upload up to 100MB with 413 graceful handling
 router.post('/', optionalAuth, (req, res) => {
-  upload(req, res, (err) => {
+  upload(req, res, async (err) => {
     if (err instanceof multer.MulterError) {
       if (err.code === 'LIMIT_FILE_SIZE') {
         return res.status(413).json({
@@ -65,6 +66,17 @@ router.post('/', optionalAuth, (req, res) => {
 
     if (!req.file) {
       return res.status(400).json({ success: false, message: 'கோப்பு எதுவும் தேர்ந்தெடுக்கப்படவில்லை (No file uploaded)' });
+    }
+
+    // Automatically strip unnecessary EXIF and metadata from uploaded images
+    if (req.file.mimetype && req.file.mimetype.startsWith('image/') && !req.file.mimetype.includes('svg')) {
+      try {
+        const filePath = req.file.path;
+        const strippedBuf = await sharp(filePath).withMetadata(false).toBuffer();
+        fs.writeFileSync(filePath, strippedBuf);
+      } catch (stripErr) {
+        console.warn('Metadata strip warning:', stripErr.message);
+      }
     }
 
     const publicUrl = `/uploads/${req.file.filename}`;

@@ -92,8 +92,11 @@ export default function GovernmentBirthdaySection({ onToast }) {
                   <img
                     src={official.photo_url || official.photoUrl}
                     alt={official.name}
-                    className="w-20 h-24 rounded-2xl object-cover border-2 border-amber-500 shadow-md group-hover:scale-105 transition-transform"
+                    width="80"
+                    height="96"
                     loading="lazy"
+                    decoding="async"
+                    className="w-20 h-24 rounded-2xl object-cover border-2 border-amber-500 shadow-md group-hover:scale-105 transition-transform"
                   />
                   <span className="absolute -bottom-1 -right-1 bg-amber-500 text-slate-950 text-xs px-1.5 py-0.5 rounded-full font-black shadow">
                     🎂

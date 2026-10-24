@@ -194,7 +194,7 @@ app.get('/favicon.ico', (req, res) => {
   res.status(204).end();
 });
 
-app.get('/favicon.svg', (req, res) => {
+app.get(['/favicon.svg', '/icon.svg'], (req, res) => {
   res.setHeader('Content-Type', 'image/svg+xml; charset=utf-8');
   res.setHeader('Cache-Control', 'public, max-age=86400');
   res.sendFile(path.join(publicPath, 'favicon.svg'));
@@ -210,6 +210,12 @@ app.get('/apple-touch-icon.png', (req, res) => {
   res.setHeader('Content-Type', 'image/png');
   res.setHeader('Cache-Control', 'public, max-age=86400');
   res.sendFile(path.join(publicPath, 'apple-touch-icon.png'));
+});
+
+app.get(['/og-image.jpg', '/og-image.png'], (req, res) => {
+  res.setHeader('Content-Type', 'image/jpeg');
+  res.setHeader('Cache-Control', 'public, max-age=86400');
+  res.sendFile(path.join(publicPath, 'og-image.jpg'));
 });
 
 // Explicit Robots.txt and Ads.txt Route Handlers with Correct MIME Types

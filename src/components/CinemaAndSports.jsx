@@ -199,8 +199,11 @@ export default function CinemaAndSports({ onOpenArticle }) {
                 <img
                   src={cinemaData.leadMovie.bannerImage}
                   alt={cinemaData.leadMovie.title}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  width="640"
+                  height="360"
+                  decoding="async"
                   loading="lazy"
+                  className="w-full h-full aspect-[16/9] object-cover group-hover:scale-105 transition-transform duration-500"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent"></div>
 
@@ -286,8 +289,11 @@ export default function CinemaAndSports({ onOpenArticle }) {
                     <img
                       src={movie.poster}
                       alt={movie.title}
-                      className="w-14 h-18 object-cover rounded-xl flex-shrink-0"
+                      width="56"
+                      height="72"
                       loading="lazy"
+                      decoding="async"
+                      className="w-14 h-18 object-cover rounded-xl flex-shrink-0"
                     />
                     <div className="flex-1 min-w-0 space-y-1">
                       <div className="flex items-center justify-between gap-1">
@@ -322,7 +328,7 @@ export default function CinemaAndSports({ onOpenArticle }) {
                       onClick={() => setActiveTeaser(trailer.videoId)}
                       className="relative rounded-xl overflow-hidden aspect-video bg-black group/tr text-left cursor-pointer border border-slate-200 dark:border-slate-700"
                     >
-                      <img src={trailer.thumbnail} alt={trailer.title} className="w-full h-full object-cover group-hover/tr:scale-105 transition-transform" />
+                      <img src={trailer.thumbnail} alt={trailer.title} width="160" height="90" loading="lazy" decoding="async" className="w-full h-full object-cover group-hover/tr:scale-105 transition-transform" />
                       <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
                         <Play className="w-6 h-6 text-white fill-white group-hover/tr:scale-125 transition-transform" />
                       </div>

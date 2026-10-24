@@ -61,7 +61,7 @@ export default function Footer({ onSelectCategory, onOpenEPaper, onOpenBookmarks
           <div className="space-y-4">
             <div className="flex items-center gap-3">
               <div className="bg-white p-1 rounded-2xl shadow-md border border-slate-700 flex items-center justify-center">
-                <img src="/amaze-times-logo.webp" alt="அமேஸ் டைம்ஸ்" width="120" height="40" className="h-10 w-auto object-contain rounded-xl" />
+                <img src="/amaze-times-logo.webp" alt="அமேஸ் டைம்ஸ்" width="48" height="64" className="h-10 w-auto object-contain rounded-xl" />
               </div>
               <div className="flex flex-col">
                 <span className="font-title font-black text-xl text-white">அமேஸ் டைம்ஸ்</span>

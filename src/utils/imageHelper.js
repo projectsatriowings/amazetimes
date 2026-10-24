@@ -36,12 +36,15 @@ export function getResponsiveImageProps(url, defaultWidth = 800, defaultHeight =
 
   const cleanUrl = url.trim();
 
-  // If Unsplash CDN image, provide authentic responsive srcSet
+  // If Unsplash CDN image, provide authentic responsive srcSet with matched aspect ratio
   if (cleanUrl.includes('images.unsplash.com')) {
     const baseUrl = cleanUrl.split('?')[0];
+    const h400 = Math.round((defaultHeight * 400) / defaultWidth);
+    const h800 = Math.round((defaultHeight * 800) / defaultWidth);
+    const h1200 = Math.round((defaultHeight * 1200) / defaultWidth);
     return {
-      src: `${baseUrl}?auto=format&fm=webp&fit=crop&w=${defaultWidth}&q=80`,
-      srcSet: `${baseUrl}?auto=format&fm=webp&fit=crop&w=400&q=75 400w, ${baseUrl}?auto=format&fm=webp&fit=crop&w=800&q=80 800w, ${baseUrl}?auto=format&fm=webp&fit=crop&w=1200&q=85 1200w`,
+      src: `${baseUrl}?auto=format&fm=webp&fit=crop&w=${defaultWidth}&h=${defaultHeight}&q=80`,
+      srcSet: `${baseUrl}?auto=format&fm=webp&fit=crop&w=400&h=${h400}&q=75 400w, ${baseUrl}?auto=format&fm=webp&fit=crop&w=800&h=${h800}&q=80 800w, ${baseUrl}?auto=format&fm=webp&fit=crop&w=1200&h=${h1200}&q=85 1200w`,
       sizes: '(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 800px',
       width: defaultWidth,
       height: defaultHeight,
