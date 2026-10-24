@@ -418,18 +418,18 @@ export default function Header({
             
             {/* Brand Logo & Editorial Title */}
             <div 
-              className="flex items-center gap-2 sm:gap-3.5 cursor-pointer group shrink min-w-0"
+              className="flex items-center gap-2 sm:gap-3.5 cursor-pointer group shrink-0"
               onClick={() => {
                 if (onSelectCategory) onSelectCategory('all');
                 window.scrollTo({ top: 0, behavior: 'smooth' });
               }}
             >
               <div className="bg-white p-1 rounded-xl sm:rounded-2xl shadow-sm ring-1 sm:ring-2 ring-[#0e2a7a]/40 group-hover:ring-amber-400 transition-all border border-slate-200 flex items-center justify-center shrink-0">
-                <img src="/amaze-times-logo.webp" alt="அமேஸ் டைம்ஸ்" width="160" height="56" className="h-8 sm:h-12 md:h-14 w-auto object-contain rounded-lg sm:rounded-xl" />
+                <img src="/amaze-times-logo.webp" alt="அமேஸ் டைம்ஸ்" width="160" height="56" className="h-8 sm:h-11 md:h-13 w-auto object-contain rounded-lg sm:rounded-xl" />
               </div>
-              <div className="flex flex-col text-left min-w-0">
+              <div className="flex flex-col text-left">
                 <div className="flex items-center gap-1.5 sm:gap-2 flex-nowrap">
-                  <span className="font-title font-black text-lg sm:text-3xl md:text-4xl text-[#0a1945] dark:text-slate-100 group-hover:text-red-600 dark:group-hover:text-amber-400 transition-colors whitespace-nowrap leading-tight">
+                  <span className="font-title font-black text-xl sm:text-2xl md:text-3xl lg:text-4xl text-[#0a1945] dark:text-slate-100 group-hover:text-red-600 dark:group-hover:text-amber-400 transition-colors whitespace-nowrap leading-tight">
                     அமேஸ் டைம்ஸ்
                   </span>
                   <span className="bg-red-600 text-white text-[8px] sm:text-[10px] font-black px-1 sm:px-2 py-0.5 rounded uppercase tracking-wider shadow-sm shrink-0">
@@ -439,16 +439,16 @@ export default function Header({
                 <span className="text-slate-600 dark:text-slate-300 text-[9px] sm:text-xs font-semibold hidden sm:flex items-center gap-1.5 mt-0.5 whitespace-nowrap">
                   <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                   <span className="font-bold text-red-600 dark:text-amber-400">உண்மையின் தீரக் குரல்</span>
-                  <span className="hidden sm:inline">• தமிழ்நாடு, வணிகம் & தங்கம் செய்திகள்</span>
+                  <span className="hidden xl:inline">• தமிழ்நாடு, வணிகம் & தங்கம் செய்திகள்</span>
                 </span>
               </div>
             </div>
 
             {/* Center/Right Toolbar & Actions */}
-            <div className="flex items-center gap-1.5 sm:gap-3 justify-end shrink-0">
+            <div className="flex items-center gap-1.5 sm:gap-2.5 lg:gap-3 justify-end shrink-0">
               
               {/* Desktop Search Bar with Instant Live Dropdown */}
-              <div className="relative hidden md:block w-48 lg:w-72" ref={searchContainerRef}>
+              <div className="relative hidden md:block w-36 lg:w-48 xl:w-64 2xl:w-72 transition-all" ref={searchContainerRef}>
                 <input
                   type="text"
                   value={searchQuery}
@@ -457,10 +457,10 @@ export default function Header({
                     setShowSearchDropdown(true);
                   }}
                   onFocus={() => setShowSearchDropdown(true)}
-                  placeholder="செய்திகளைத் தேடுக... (எ.கா. தங்கம், மெட்ரோ)"
-                  className="w-full bg-slate-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 rounded-xl pl-9 pr-7 py-2 text-xs font-medium text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#0e2a7a] dark:focus:ring-amber-400 transition-all shadow-inner"
+                  placeholder="செய்திகளைத் தேடுக..."
+                  className="w-full bg-slate-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 rounded-xl pl-8 lg:pl-9 pr-7 py-1.5 lg:py-2 text-xs font-medium text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#0e2a7a] dark:focus:ring-amber-400 transition-all shadow-inner"
                 />
-                <Search className="w-4 h-4 text-slate-400 absolute left-2.5 top-2.5" />
+                <Search className="w-3.5 h-3.5 lg:w-4 lg:h-4 text-slate-400 absolute left-2.5 top-2 lg:top-2.5" />
                 {searchQuery && (
                   <button
                     onClick={() => {
@@ -475,7 +475,7 @@ export default function Header({
 
                 {/* Instant Live Search Dropdown */}
                 {showSearchDropdown && (
-                  <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#0c1633] rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 z-50 overflow-hidden text-xs font-tamil divide-y divide-slate-100 dark:divide-slate-800 animate-in fade-in slide-in-from-top-1 duration-150">
+                  <div className="absolute top-full right-0 mt-2 w-72 sm:w-80 md:w-96 max-w-[90vw] bg-white dark:bg-[#0c1633] rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 z-50 overflow-hidden text-xs font-tamil divide-y divide-slate-100 dark:divide-slate-800 animate-in fade-in slide-in-from-top-1 duration-150">
                     {searchQuery.trim() ? (
                       <div>
                         {(() => {
@@ -584,8 +584,8 @@ export default function Header({
                 title="24x7 நேரலை ஒளிபரப்பு"
               >
                 <Radio className="w-3.5 h-3.5 text-red-500 animate-pulse shrink-0" />
-                <span className="font-extrabold hidden xs:inline">24x7</span>
-                <span className="font-extrabold hidden sm:inline"> நேரலை</span>
+                <span className="font-extrabold">24x7</span>
+                <span className="font-extrabold hidden md:inline"> நேரலை</span>
               </button>
 
               {/* E-Paper Digital Edition Button */}
@@ -595,13 +595,13 @@ export default function Header({
                 title="டிஜிட்டல் இ-பேப்பர் படிக்க"
               >
                 <FileText className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                <span>மின்-இதழ்</span>
+                <span className="hidden xs:inline">மின்-இதழ்</span>
               </button>
 
               {/* Social Media Hub Link Button */}
               <button
                 onClick={() => onNavigate ? onNavigate('/social-media') : (window.location.href = '/social-media')}
-                className="hidden md:flex items-center gap-1.5 bg-gradient-to-r from-red-600 via-pink-600 to-purple-600 hover:opacity-95 text-white font-extrabold text-xs px-3 py-2 rounded-xl transition-all shadow-sm cursor-pointer hover:scale-105"
+                className="hidden xl:flex items-center gap-1.5 bg-gradient-to-r from-red-600 via-pink-600 to-purple-600 hover:opacity-95 text-white font-extrabold text-xs px-3 py-2 rounded-xl transition-all shadow-sm cursor-pointer hover:scale-105"
                 title="அதிகாரப்பூர்வ சமூக ஊடக மையம்"
               >
                 <Share2 className="w-3.5 h-3.5 text-white shrink-0" />
@@ -611,7 +611,7 @@ export default function Header({
               {/* Feature Guide Showcase - Royal Blue with Yellow Text */}
               <button 
                 onClick={onOpenDemoGuide} 
-                className="hidden lg:flex items-center gap-1.5 bg-[#0e2a7a] hover:bg-[#0a1f5c] text-amber-300 font-extrabold text-xs px-3 py-2 rounded-xl transition-all shadow-sm cursor-pointer hover:scale-105 border border-blue-400/40"
+                className="hidden 2xl:flex items-center gap-1.5 bg-[#0e2a7a] hover:bg-[#0a1f5c] text-amber-300 font-extrabold text-xs px-3 py-2 rounded-xl transition-all shadow-sm cursor-pointer hover:scale-105 border border-blue-400/40"
                 title="தளத்தின் புதிய சிறப்பம்சங்கள்"
               >
                 <Sparkles className="w-3.5 h-3.5 text-amber-400" />
