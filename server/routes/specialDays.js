@@ -217,6 +217,13 @@ router.delete('/:id', authenticate, requireReporterOrAdmin, async (req, res) => 
     if (result.rows.length === 0) {
       return res.status(404).json({ success: false, message: 'சிறப்பு தினம் கிடைக்கவில்லை' });
     }
+    res.json({ success: true, message: 'சிறப்பு தினம் நீக்கப்பட்டது' });
+  } catch (err) {
+    console.error('Error deleting special day:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 // --- BIRTHDAY OFFICIALS (Government & VIP Birthday Felicitation Hub) ---
 
 // GET /api/special-days/officials - List VIP & government birthday officials
