@@ -100,7 +100,10 @@ export default function SecondaryNewsGrid({
                         loading="lazy"
                         decoding="async"
                         className="w-full h-full aspect-[16/10] object-cover group-hover:scale-105 transition-transform duration-500"
-                        onError={(e) => { e.target.src = '/og-image.webp'; }}
+                        onError={(e) => { 
+                          e.target.removeAttribute('srcset');
+                          e.target.src = '/Amaze times.jpg'; 
+                        }}
                       />
                     );
                   })()}

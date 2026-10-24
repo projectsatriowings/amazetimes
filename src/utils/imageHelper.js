@@ -4,7 +4,7 @@
  */
 
 export function getModernImageUrl(url, width = 800) {
-  if (!url || typeof url !== 'string') return '/og-image.webp';
+  if (!url || typeof url !== 'string') return '/Amaze times.jpg';
   const clean = url.trim();
 
   // If Unsplash CDN image
@@ -13,21 +13,19 @@ export function getModernImageUrl(url, width = 800) {
     return `${baseUrl}?auto=format&fm=webp&fit=crop&w=${width}&q=80`;
   }
 
-  // If local static image with webp equivalent
-  if (clean.match(/\.(jpg|jpeg|png)$/i)) {
-    const webpPath = clean.replace(/\.(jpg|jpeg|png)$/i, '.webp');
-    return webpPath;
-  }
+  // Only known static public branding images have pre-generated .webp equivalents
+  if (clean === '/og-image.jpg' || clean === '/og-image.png') return '/og-image.webp';
+  if (clean === '/amaze-times-logo.jpg' || clean === '/amaze-times-logo.png') return '/amaze-times-logo.webp';
+  if (clean === '/Amaze times.jpg' || clean === '/Amaze times.png') return '/Amaze times.webp';
 
+  // For uploaded images (/uploads/...) or any other external images, retain genuine original extension
   return clean;
 }
 
 export function getResponsiveImageProps(url, defaultWidth = 800, defaultHeight = 450) {
   if (!url || typeof url !== 'string') {
     return {
-      src: '/og-image.webp',
-      srcSet: '/og-image.webp 400w, /og-image.webp 800w, /og-image.webp 1200w',
-      sizes: '(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 800px',
+      src: '/Amaze times.jpg',
       width: defaultWidth,
       height: defaultHeight,
       loading: 'lazy',
@@ -38,7 +36,7 @@ export function getResponsiveImageProps(url, defaultWidth = 800, defaultHeight =
 
   const cleanUrl = url.trim();
 
-  // If Unsplash CDN image
+  // If Unsplash CDN image, provide authentic responsive srcSet
   if (cleanUrl.includes('images.unsplash.com')) {
     const baseUrl = cleanUrl.split('?')[0];
     return {
@@ -53,12 +51,44 @@ export function getResponsiveImageProps(url, defaultWidth = 800, defaultHeight =
     };
   }
 
-  // Local static or uploaded images
-  const webpUrl = cleanUrl.match(/\.(jpg|jpeg|png)$/i) ? cleanUrl.replace(/\.(jpg|jpeg|png)$/i, '.webp') : cleanUrl;
+  // Known static branding images with verified .webp formats in /public
+  if (cleanUrl === '/og-image.jpg' || cleanUrl === '/og-image.png' || cleanUrl === '/og-image.webp') {
+    return {
+      src: '/og-image.webp',
+      width: defaultWidth,
+      height: defaultHeight,
+      loading: 'lazy',
+      decoding: 'async',
+      style: { objectFit: 'cover' },
+    };
+  }
+
+  if (cleanUrl === '/Amaze times.jpg' || cleanUrl === '/Amaze times.png' || cleanUrl === '/Amaze times.webp') {
+    return {
+      src: '/Amaze times.webp',
+      width: defaultWidth,
+      height: defaultHeight,
+      loading: 'lazy',
+      decoding: 'async',
+      style: { objectFit: 'cover' },
+    };
+  }
+
+  if (cleanUrl === '/amaze-times-logo.jpg' || cleanUrl === '/amaze-times-logo.png' || cleanUrl === '/amaze-times-logo.webp') {
+    return {
+      src: '/amaze-times-logo.webp',
+      width: defaultWidth,
+      height: defaultHeight,
+      loading: 'lazy',
+      decoding: 'async',
+      style: { objectFit: 'cover' },
+    };
+  }
+
+  // For all uploads (/uploads/...) and external/custom images:
+  // Use authentic cleanUrl directly without fake .webp extension or dummy srcSet
   return {
-    src: webpUrl,
-    srcSet: `${webpUrl} 400w, ${webpUrl} 800w, ${webpUrl} 1200w`,
-    sizes: '(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 800px',
+    src: cleanUrl,
     width: defaultWidth,
     height: defaultHeight,
     loading: 'lazy',

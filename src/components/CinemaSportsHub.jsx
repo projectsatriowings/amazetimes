@@ -122,7 +122,10 @@ export default function CinemaSportsHub({ onOpenArticle }) {
                       decoding="async"
                       alt={movie.title}
                       className="w-full h-full aspect-[3/4] object-cover group-hover:scale-105 transition-transform duration-500"
-                      onError={(e) => { e.target.src = '/og-image.webp'; }}
+                      onError={(e) => { 
+                        e.target.removeAttribute('srcset');
+                        e.target.src = '/Amaze times.jpg'; 
+                      }}
                     />
                   );
                 })()}

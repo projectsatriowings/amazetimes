@@ -92,7 +92,10 @@ export default function HeroSpotlight({
               fetchPriority="high"
               decoding="async"
               className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-              onError={(e) => { e.target.src = '/og-image.webp'; }}
+              onError={(e) => { 
+                e.target.removeAttribute('srcset');
+                e.target.src = '/Amaze times.jpg'; 
+              }}
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/50 to-black/20"></div>
 
@@ -222,7 +225,10 @@ export default function HeroSpotlight({
                       loading="lazy"
                       decoding="async"
                       className="w-20 h-20 rounded-xl object-cover group-hover:scale-105 transition-transform shrink-0 border border-slate-200 dark:border-slate-700 bg-slate-900"
-                      onError={(e) => { e.target.src = '/og-image.webp'; }}
+                      onError={(e) => { 
+                        e.target.removeAttribute('srcset');
+                        e.target.src = '/Amaze times.jpg'; 
+                      }}
                     />
                     <div className="space-y-1 min-w-0 flex-1">
                       <span className="text-[10px] font-extrabold uppercase text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/50 px-2 py-0.5 rounded">

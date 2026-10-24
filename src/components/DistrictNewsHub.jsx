@@ -145,7 +145,10 @@ export default function DistrictNewsHub({ articles = [], onOpenArticle, onOpenEP
                   loading="lazy"
                   decoding="async"
                   className="w-full h-full aspect-[16/10] object-cover group-hover:scale-105 transition-transform duration-500"
-                  onError={(e) => { e.target.src = '/og-image.webp'; }}
+                  onError={(e) => { 
+                    e.target.removeAttribute('srcset');
+                    e.target.src = '/Amaze times.jpg'; 
+                  }}
                 />
                 <span className="absolute top-3 left-3 bg-[#0a1945]/90 backdrop-blur-xs text-amber-400 text-[10px] font-extrabold px-2.5 py-1 rounded-lg border border-amber-400/30 shadow">
                   {item.name}

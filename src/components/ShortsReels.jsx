@@ -49,7 +49,10 @@ export default function ShortsReels({
                   decoding="async"
                   alt={story.headline}
                   className="w-full h-full aspect-[9/16] object-cover group-hover:scale-110 transition-transform duration-300"
-                  onError={(e) => { e.target.src = '/og-image.webp'; }}
+                  onError={(e) => { 
+                    e.target.removeAttribute('srcset');
+                    e.target.src = '/Amaze times.jpg'; 
+                  }}
                 />
               )}
 
