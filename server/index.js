@@ -180,6 +180,12 @@ app.get('/sitemap.xml', async (req, res) => {
 });
 
 // Explicit Favicon Routes with Exact MIME Types (Resolves Favicon Test)
+app.get(['/Amaze times.jpg', '/Amaze%20times.jpg'], (req, res) => {
+  res.setHeader('Content-Type', 'image/jpeg');
+  res.setHeader('Cache-Control', 'public, max-age=86400');
+  res.sendFile(path.join(publicPath, 'Amaze times.jpg'));
+});
+
 app.get('/favicon.ico', (req, res) => {
   res.setHeader('Content-Type', 'image/x-icon');
   res.setHeader('Cache-Control', 'public, max-age=86400');
