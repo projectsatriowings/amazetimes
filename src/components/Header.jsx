@@ -67,7 +67,6 @@ export default function Header({
   const [currentTamilDate, setCurrentTamilDate] = useState('புதன், 14 அக்டோபர் 2026');
   const [currentTamilTime, setCurrentTamilTime] = useState('');
   const [panchangamDate, setPanchangamDate] = useState('புரட்டாசி 28');
-  const [activeReaders, setActiveReaders] = useState(148);
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [isInstallModalOpen, setIsInstallModalOpen] = useState(false);
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
@@ -123,25 +122,6 @@ export default function Header({
     return () => {
       clearInterval(timer);
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    };
-  }, []);
-
-  // Live visitor pulse updater
-  useEffect(() => {
-    let isMounted = true;
-    const fetchPulse = async () => {
-      try {
-        const res = await api.getLiveVisitorPulse();
-        if (isMounted && res && res.success && typeof res.activeVisitors === 'number') {
-          setActiveReaders(res.activeVisitors);
-        }
-      } catch (_) {}
-    };
-    fetchPulse();
-    const pulseInterval = setInterval(fetchPulse, 25000);
-    return () => {
-      isMounted = false;
-      clearInterval(pulseInterval);
     };
   }, []);
 
@@ -226,16 +206,6 @@ export default function Header({
                 <span>{currentTamilTime}</span>
               </span>
             )}
-
-            {/* Live Visitor Pulse */}
-            <div className="hidden lg:flex items-center gap-1.5 bg-emerald-950/70 border border-emerald-500/40 px-2 py-0.5 rounded-full text-[11px] shrink-0">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-              </span>
-              <span className="text-emerald-300 font-bold">{activeReaders} வாசகர்கள்</span>
-              <span className="text-emerald-400/80 text-[10px]">நேரலை</span>
-            </div>
 
             <span className="hidden xl:inline text-white/20">|</span>
 
