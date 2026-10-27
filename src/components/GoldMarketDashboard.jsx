@@ -18,19 +18,19 @@ export const GoldMarketDashboard = ({ isAdminView = false }) => {
   // Budget Calculator ("Know your money's worth") State
   const [budgetAmount, setBudgetAmount] = useState('10000');
 
-  // Live Rate Values from AppContext or exact defaults
-  const g24 = goldRateData?.gold24k || 15017;
-  const g22 = goldRateData?.gold22k || 13765;
-  const g18 = goldRateData?.gold18k || 11535;
-  const silver1g = (goldRateData?.silver && goldRateData.silver >= 150) ? goldRateData.silver : 205;
-  const platinum1g = goldRateData?.platinum || 3450;
+  // Live Rate Values from AppContext or exact GoodReturns Chennai defaults
+  const g24 = goldRateData?.gold24k || 14329;
+  const g22 = goldRateData?.gold22k || 13135;
+  const g18 = goldRateData?.gold18k || 10750;
+  const silver1g = goldRateData?.silver || 220;
+  const platinum1g = goldRateData?.platinum || 3200;
   const petrol1L = goldRateData?.petrol || 100.75;
   const diesel1L = goldRateData?.diesel || 92.34;
 
-  const change24 = goldRateData?.change24k || 256;
-  const change22 = goldRateData?.change22k || 235;
-  const change18 = goldRateData?.change18k || 235;
-  const isRateUp = goldRateData?.isUp === true;
+  const change24 = goldRateData?.change24k || 54;
+  const change22 = goldRateData?.change22k || 50;
+  const change18 = goldRateData?.change18k || 45;
+  const isRateUp = goldRateData?.isUp !== false;
 
   // Dynamic Date Formatting (Shows actual last updated / live date)
   const formattedDate = React.useMemo(() => {

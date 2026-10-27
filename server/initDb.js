@@ -222,13 +222,21 @@ export async function initDb() {
         platinum NUMERIC DEFAULT 2980,
         petrol NUMERIC DEFAULT 100.75,
         diesel NUMERIC DEFAULT 92.34,
+        sensex VARCHAR(50) DEFAULT '73,598.67',
+        sensex_change VARCHAR(50) DEFAULT '▼ -0.01%',
+        nifty VARCHAR(50) DEFAULT '22,749.75',
+        nifty_change VARCHAR(50) DEFAULT '▼ -0.02%',
         change_amount NUMERIC DEFAULT 0,
         is_up BOOLEAN DEFAULT FALSE,
-        source VARCHAR(100) DEFAULT 'Gold-API / GoodReturns',
+        source VARCHAR(100) DEFAULT 'GoodReturns Chennai',
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       );
     `);
     await query(`CREATE INDEX IF NOT EXISTS idx_gold_rates_created ON gold_rates(created_at DESC);`);
+    await query(`ALTER TABLE gold_rates ADD COLUMN IF NOT EXISTS sensex VARCHAR(50) DEFAULT '73,598.67';`);
+    await query(`ALTER TABLE gold_rates ADD COLUMN IF NOT EXISTS sensex_change VARCHAR(50) DEFAULT '▼ -0.01%';`);
+    await query(`ALTER TABLE gold_rates ADD COLUMN IF NOT EXISTS nifty VARCHAR(50) DEFAULT '22,749.75';`);
+    await query(`ALTER TABLE gold_rates ADD COLUMN IF NOT EXISTS nifty_change VARCHAR(50) DEFAULT '▼ -0.02%';`);
 
     // 11. BIRTHDAY_OFFICIALS TABLE (Government & VIP Birthday Felicitation Hub)
     await query(`

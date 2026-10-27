@@ -4,9 +4,9 @@ import { api } from '../services/api';
 
 export default function GoldCalculatorBanner({ onOpenCalculator }) {
   const [rates, setRates] = useState({
-    gold22k: { price: '₹7,280', sovereign: '₹58,240', change: '+₹40', isPositive: true },
-    gold24k: { price: '₹7,942', sovereign: '₹63,536', change: '+₹45', isPositive: true },
-    silver: { price: '₹98.50', kg: '₹98,500', change: '+₹1.20', isPositive: true },
+    gold22k: { price: '₹13,135', sovereign: '₹1,05,080', change: '+₹50', isPositive: true },
+    gold24k: { price: '₹14,329', sovereign: '₹1,14,632', change: '+₹54', isPositive: true },
+    silver: { price: '₹220', kg: '₹2,20,000', change: '+₹0', isPositive: true },
     petrol: { price: '₹100.75' },
     diesel: { price: '₹92.34' }
   });

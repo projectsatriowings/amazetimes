@@ -35,28 +35,28 @@ export default function GoldCalculatorModal({ isOpen, onClose }) {
   // Base rates per gram in Tamil Nadu cities with live DB override for Chennai
   const cityRates = {
     chennai: { 
-      k22: liveBullion?.gold22k || 7288, 
-      k24: liveBullion?.gold24k || 7950, 
-      k18: liveBullion?.gold18k || 5965, 
-      silver: liveBullion?.silver || 104 
+      k22: liveBullion?.gold22k || 13135, 
+      k24: liveBullion?.gold24k || 14329, 
+      k18: liveBullion?.gold18k || 10750, 
+      silver: liveBullion?.silver || 220 
     },
     madurai: { 
-      k22: (liveBullion?.gold22k ? liveBullion.gold22k + 5 : 7293), 
-      k24: (liveBullion?.gold24k ? liveBullion.gold24k + 5 : 7955), 
-      k18: (liveBullion?.gold18k ? liveBullion.gold18k + 4 : 5969), 
-      silver: (liveBullion?.silver ? liveBullion.silver + 0.2 : 104.2) 
+      k22: (liveBullion?.gold22k ? liveBullion.gold22k + 5 : 13140), 
+      k24: (liveBullion?.gold24k ? liveBullion.gold24k + 5 : 14334), 
+      k18: (liveBullion?.gold18k ? liveBullion.gold18k + 4 : 10754), 
+      silver: (liveBullion?.silver ? liveBullion.silver + 0.2 : 220.2) 
     },
     coimbatore: { 
-      k22: liveBullion?.gold22k || 7288, 
-      k24: liveBullion?.gold24k || 7950, 
-      k18: liveBullion?.gold18k || 5965, 
-      silver: liveBullion?.silver || 104 
+      k22: liveBullion?.gold22k || 13135, 
+      k24: liveBullion?.gold24k || 14329, 
+      k18: liveBullion?.gold18k || 10750, 
+      silver: liveBullion?.silver || 220 
     },
     trichy: { 
-      k22: (liveBullion?.gold22k ? liveBullion.gold22k + 5 : 7293), 
-      k24: (liveBullion?.gold24k ? liveBullion.gold24k + 5 : 7955), 
-      k18: (liveBullion?.gold18k ? liveBullion.gold18k + 4 : 5969), 
-      silver: (liveBullion?.silver ? liveBullion.silver + 0.1 : 104.1) 
+      k22: (liveBullion?.gold22k ? liveBullion.gold22k + 5 : 13140), 
+      k24: (liveBullion?.gold24k ? liveBullion.gold24k + 5 : 14334), 
+      k18: (liveBullion?.gold18k ? liveBullion.gold18k + 4 : 10754), 
+      silver: (liveBullion?.silver ? liveBullion.silver + 0.1 : 220.1) 
     }
   };
 

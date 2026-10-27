@@ -188,13 +188,13 @@ export const AdminDashboard = () => {
     confirmPassword: ''
   });
 
-  // Commodity Form State
+  // Commodity Form State (GoodReturns Chennai)
   const [goldForm, setGoldForm] = useState({
-    gold22k: 13660,
-    gold24k: 14902,
-    silver: 245,
+    gold22k: 13135,
+    gold24k: 14329,
+    silver: 220,
     petrol: 100.75,
-    changeAmount: 45,
+    changeAmount: 50,
     isUp: true
   });
 

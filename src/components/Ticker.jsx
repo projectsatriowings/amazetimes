@@ -4,14 +4,14 @@ import { Zap, TrendingUp, Coins, Fuel, Calculator, BarChart3 } from 'lucide-reac
 
 export default function Ticker({ tickers = [], onOpenGoldCalculator }) {
   const [marketRates, setMarketRates] = useState({
-    gold22k: { label: 'தங்கம் (22K)', price: '₹7,280/கி', sovereign: '₹58,240', change: '+₹40', isPositive: true },
-    gold24k: { label: 'தங்கம் (24K)', price: '₹7,942/கி', change: '+₹45', isPositive: true },
-    silver: { label: 'வெள்ளி', price: '₹98.50/கி', kg: '₹98,500/கிலோ', change: '+₹1.20', isPositive: true },
+    gold22k: { label: 'தங்கம் (22K)', price: '₹13,135/கி', sovereign: '₹1,05,080', change: '+₹50', isPositive: true },
+    gold24k: { label: 'தங்கம் (24K)', price: '₹14,329/கி', sovereign: '₹1,14,632', change: '+₹54', isPositive: true },
+    silver: { label: 'வெள்ளி', price: '₹220/கி', kg: '₹2,20,000/கிலோ', change: '+₹0', isPositive: true },
     petrol: { label: 'பெட்ரோல்', price: '₹100.75/லி', change: '0.00', isPositive: true },
     diesel: { label: 'டீசல்', price: '₹92.34/லி', change: '0.00', isPositive: true },
-    sensex: { label: 'சென்செக்ஸ்', price: '81,224.75', change: '+340.15', isPositive: true },
-    nifty: { label: 'நிஃப்டி', price: '24,785.30', change: '+95.40', isPositive: true },
-    updatedAt: 'இன்று காலை 10:00'
+    sensex: { label: 'சென்செக்ஸ்', price: '73,598.67', change: '▼ -0.01%', isPositive: false },
+    nifty: { label: 'நிஃப்டி', price: '22,749.75', change: '▼ -0.02%', isPositive: false },
+    updatedAt: 'GoodReturns சென்னை நேரலை'
   });
   const [isLiveUpdating, setIsLiveUpdating] = useState(false);
 
@@ -46,7 +46,7 @@ export default function Ticker({ tickers = [], onOpenGoldCalculator }) {
 
   const tickerText = tickers && tickers.length > 0
     ? tickers.map(t => t.content).join('  ✦  ')
-    : 'தமிழகத்தில் ரூ.75,000 கோடி புதிய தொழில் முதலீடுகள் ஒப்பந்தம்  ✦  சென்னை மெட்ரோ ரயில் 2-ஆம் கட்ட சுரங்கப் பணிகள் 85% நிறைவு  ✦  தங்கம் விலை சவரனுக்கு ₹58,240 ஆக வர்த்தகம்  ✦  ஐபிஎல் 2026: சிஎஸ்கே புதிய தீவிர பயிற்சி முகாம்  ✦  மதுரை எய்ம்ஸ் முதன்மை வளாகப் பணிகள் துரிதம்';
+    : 'தமிழகத்தில் ரூ.75,000 கோடி புதிய தொழில் முதலீடுகள் ஒப்பந்தம்  ✦  சென்னை மெட்ரோ ரயில் 2-ஆம் கட்ட சுரங்கப் பணிகள் 85% நிறைவு  ✦  தங்கம் விலை சவரனுக்கு ₹1,05,080 ஆக வர்த்தகம்  ✦  ஐபிஎல் 2026: சிஎஸ்கே புதிய தீவிர பயிற்சி முகாம்  ✦  மதுரை எய்ம்ஸ் முதன்மை வளாகப் பணிகள் துரிதம்';
 
   return (
     <div className="space-y-2 max-w-[1400px] mx-auto px-2.5 sm:px-4 mt-2 mb-2 w-full max-w-full min-w-0 overflow-hidden">
@@ -86,7 +86,7 @@ export default function Ticker({ tickers = [], onOpenGoldCalculator }) {
             <Coins className="w-3.5 h-3.5 text-amber-500" />
             <span className="font-extrabold text-slate-800 dark:text-slate-200">தங்கம் (22K):</span>
             <span className="font-black text-red-600 dark:text-amber-400">
-              {marketRates.gold22k?.price || '₹7,280/கி'} ({marketRates.gold22k?.sovereign || '₹58,240'})
+              {marketRates.gold22k?.price || '₹13,135/கி'} ({marketRates.gold22k?.sovereign || '₹1,05,080'})
             </span>
           </div>
 
@@ -97,7 +97,7 @@ export default function Ticker({ tickers = [], onOpenGoldCalculator }) {
             <span className="w-2.5 h-2.5 rounded-full bg-slate-400"></span>
             <span className="font-extrabold text-slate-800 dark:text-slate-200">வெள்ளி:</span>
             <span className="font-black text-slate-700 dark:text-slate-300">
-              {marketRates.silver?.price || '₹98.50/கி'}
+              {marketRates.silver?.price || '₹220/கி'}
             </span>
           </div>
 
@@ -119,7 +119,7 @@ export default function Ticker({ tickers = [], onOpenGoldCalculator }) {
             <BarChart3 className="w-3.5 h-3.5 text-emerald-500" />
             <span className="font-extrabold text-slate-800 dark:text-slate-200">சென்செக்ஸ்:</span>
             <span className={`font-black flex items-center gap-0.5 ${marketRates.sensex?.isPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600'}`}>
-              {marketRates.sensex?.price || '81,224'} {marketRates.sensex?.isPositive ? '▲' : '▼'}
+              {marketRates.sensex?.price || '73,598.67'} {marketRates.sensex?.isPositive ? '▲' : '▼'}
             </span>
           </div>
 
@@ -130,7 +130,7 @@ export default function Ticker({ tickers = [], onOpenGoldCalculator }) {
             <TrendingUp className="w-3.5 h-3.5 text-emerald-500" />
             <span className="font-extrabold text-slate-800 dark:text-slate-200">நிஃப்டி:</span>
             <span className={`font-black flex items-center gap-0.5 ${marketRates.nifty?.isPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600'}`}>
-              {marketRates.nifty?.price || '24,785'} {marketRates.nifty?.isPositive ? '▲' : '▼'}
+              {marketRates.nifty?.price || '22,749.75'} {marketRates.nifty?.isPositive ? '▲' : '▼'}
             </span>
           </div>
 

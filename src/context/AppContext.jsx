@@ -146,14 +146,14 @@ export const AppProvider = ({ children }) => {
   // Dynamic News Articles State (Direct from Neon PostgreSQL, Zero LocalStorage)
   const [newsList, setNewsList] = useState([]);
   const [goldRateData, setGoldRateData] = useState({
-    gold22k: 7288,
-    gold24k: 7950,
-    gold18k: 5965,
-    silver: 104,
-    platinum: 2980,
+    gold22k: 13135,
+    gold24k: 14329,
+    gold18k: 10750,
+    silver: 220,
+    platinum: 3200,
     petrol: 100.75,
     diesel: 92.34,
-    changeAmount: 120,
+    changeAmount: 50,
     isUp: true,
     updatedAt: new Date().toISOString()
   });
