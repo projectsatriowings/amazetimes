@@ -65,20 +65,29 @@ const defaultDistrictArticles = [
 export default function DistrictNewsHub({ articles = [], onOpenArticle, onOpenEPaper }) {
   const [activeFilter, setActiveFilter] = useState('all');
 
-  // Extract any published news from backend with district metadata, or merge with rich defaults
+  // Extract any published news from backend with district metadata or regional state news
   const backendDistricts = (articles || []).filter(
-    (a) => a.district && a.district !== 'all' && (a.status === 'published' || !a.status)
-  ).map((a) => ({
-    id: a.id || a._id,
-    district: a.district.toLowerCase(),
-    name: districtNameMap[a.district.toLowerCase()] || a.district,
-    title: a.title,
-    time: a.time || 'சிறிது நேரத்திற்கு முன்',
-    img: a.mainImage || a.img || 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fm=webp&fit=crop&q=80&w=800',
-    raw: a
-  }));
+    (a) => (a.status === 'published' || !a.status) && (
+      (a.district && a.district !== 'all' && a.district !== '') ||
+      (a.category && (a.category.includes('தமிழ்நாடு') || a.category.includes('மாவட்ட'))) ||
+      (a.cat && (a.cat.includes('தமிழ்நாடு') || a.cat.includes('மாவட்ட')))
+    )
+  ).map((a, idx) => {
+    const rawDist = (a.district && a.district !== 'all' && a.district !== '')
+      ? a.district.toLowerCase()
+      : (['chennai', 'madurai', 'kovai', 'trichy', 'salem', 'nellai'][idx % 6]);
+    return {
+      id: a.id || a._id,
+      district: rawDist,
+      name: districtNameMap[rawDist] || a.district || 'சென்னை',
+      title: a.title,
+      time: a.time || 'சிறிது நேரத்திற்கு முன்',
+      img: a.mainImage || a.img || a.image || a.cover_image_url || '/Amaze times.jpg',
+      raw: a
+    };
+  });
 
-  const combinedArticles = backendDistricts.length >= 4 ? backendDistricts : [...backendDistricts, ...defaultDistrictArticles];
+  const combinedArticles = backendDistricts.length > 0 ? backendDistricts : defaultDistrictArticles;
 
   const filteredArticles = activeFilter === 'all'
     ? combinedArticles

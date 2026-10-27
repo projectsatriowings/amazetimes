@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Home, Grid, Radio, FileText, Bookmark, User } from 'lucide-react';
-import TopBar from './components/TopBar';
+import { X, Home, Grid, Radio, FileText, Bookmark, User, Building2, MapPin, Film, Trophy, TrendingUp, Sparkles, Flag, Globe, PenTool, Rss, BookOpen } from 'lucide-react';
 import Header from './components/Header';
 import Ticker from './components/Ticker';
 import LiveWire from './components/LiveWire';
@@ -53,8 +52,94 @@ import UserAuthModal from './components/modals/UserAuthModal';
 import UserProfileModal from './components/modals/UserProfileModal';
 
 import { api, getCurrentUser, setCurrentUser as persistCurrentUser, setToken, getReaderUser, setReaderUser } from './services/api';
-import { articlesData as fallbackArticlesData, categoryNewsMap, shortsStories as fallbackShorts } from './data/newsData';
+import { shortsStories as fallbackShorts } from './data/newsData';
 
+export const DOMAINS_CONFIG = {
+  all: {
+    id: 'all',
+    name: 'முதன்மைச் செய்திகள்',
+    title: 'சமீபத்திய முக்கிய செய்திகள்',
+    subtitle: 'நம்பகமான உடனுக்குடன் செய்திகள் • அமேஸ் டைம்ஸ்',
+    badge: 'முதன்மை'
+  },
+  tamilnadu: {
+    id: 'tamilnadu',
+    name: 'தமிழ்நாடு',
+    title: 'தமிழ்நாடு செய்திகள்',
+    subtitle: 'தமிழகத்தின் முதன்மை அரசியல், சமூகம், நிர்வாகம் மற்றும் சமகால நிகழ்வுகள்',
+    badge: 'மாநிலம்'
+  },
+  districts: {
+    id: 'districts',
+    name: 'மாவட்டங்கள்',
+    title: 'மாவட்டச் செய்திகள்',
+    subtitle: 'சென்னை, மதுரை, கோவை, திருச்சி உள்ளிட்ட அனைத்து மாவட்டங்களின் உள்ளூர் செய்திகள்',
+    badge: 'மாவட்டங்கள்'
+  },
+  cinema: {
+    id: 'cinema',
+    name: 'சினிமா',
+    title: 'திரை உலகம் & சினிமா செய்திகள்',
+    subtitle: 'கோலிவுட் மற்றும் சர்வதேச திரைத்துறை நிகழ்வுகள், திரைப்பட விமர்சனங்கள்',
+    badge: 'சினிமா'
+  },
+  sports: {
+    id: 'sports',
+    name: 'விளையாட்டு',
+    title: 'விளையாட்டு களம்',
+    subtitle: 'கிரிக்கெட், ஐபிஎல், தடகளம் மற்றும் சர்வதேச விளையாட்டுப் போட்டிகள்',
+    badge: 'விளையாட்டு'
+  },
+  business: {
+    id: 'business',
+    name: 'வணிகம்',
+    title: 'வணிகம் & பொருளாதாரம்',
+    subtitle: 'பங்குச்சந்தை, தங்கம் விலை நிலவரம், தொழில் முதலீடுகள் மற்றும் நிதி செய்திகள்',
+    badge: 'வணிகம்'
+  },
+  spiritual: {
+    id: 'spiritual',
+    name: 'ஆன்மிகம்',
+    title: 'ஆன்மிகம் & பண்பாடு',
+    subtitle: 'கோயில்கள், திருவிழாக்கள், வழிபாடு மற்றும் ஆன்மிக கட்டுரைகள்',
+    badge: 'ஆன்மிகம்'
+  },
+  india: {
+    id: 'india',
+    name: 'தேசியம்',
+    title: 'தேசியச் செய்திகள்',
+    subtitle: 'இந்தியாவின் முதன்மை அரசியல் மற்றும் மாநிலங்களின் முக்கிய நிகழ்வுகள்',
+    badge: 'தேசியம்'
+  },
+  world: {
+    id: 'world',
+    name: 'உலகம்',
+    title: 'உலகச் செய்திகள்',
+    subtitle: 'சர்வதேச அரசியல் மற்றும் முக்கிய உலக நிகழ்வுகள்',
+    badge: 'சர்வதேசம்'
+  },
+  editorial: {
+    id: 'editorial',
+    name: 'தலையங்கம்',
+    title: 'தலையங்கம் & சிறப்புப் பார்வை',
+    subtitle: 'அமேஸ் டைம்ஸின் ஆழமான தலையங்கப் பார்வைகள் மற்றும் கட்டுரைகள்',
+    badge: 'தலையங்கம்'
+  },
+  blogs: {
+    id: 'blogs',
+    name: 'வலைப்பதிவுகள்',
+    title: 'வலைப்பதிவுகள்',
+    subtitle: 'எழுத்தாளர்கள் மற்றும் வாசகர்களின் சிந்தனைக் களஞ்சியம்',
+    badge: 'வலைப்பதிவு'
+  },
+  magazine: {
+    id: 'magazine',
+    name: 'மாத இதழ்',
+    title: 'மாத இதழ்',
+    subtitle: 'பிரத்யேக சிறப்பு கட்டுரைகள் மற்றும் மாத இதழ் பதிப்புகள்',
+    badge: 'மாத இதழ்'
+  }
+};
 
 export default function App() {
   const [activeCategory, setActiveCategory] = useState('all');
@@ -282,9 +367,9 @@ export default function App() {
           likes_count: a.likesCount || a.likes_count || 0
         }));
 
-        // Determine Lead Hero (Priority: Home Builder setting -> isLeadHero flag -> first article)
+        // Determine Lead Hero (Priority: Home Builder setting if on homepage -> isLeadHero flag -> first article)
         let lead = null;
-        if (layoutRes && layoutRes.success && layoutRes.data?.leadHero) {
+        if (category === 'all' && layoutRes && layoutRes.success && layoutRes.data?.leadHero) {
           const heroMatch = formattedArticles.find(a => String(a.id) === String(layoutRes.data.leadHero.id));
           if (heroMatch) lead = heroMatch;
         }
@@ -672,20 +757,18 @@ export default function App() {
 
   const isAdmin = currentUser?.role === 'admin';
 
-  // Current Lead & Display Cards (Dynamic PostgreSQL data with rich fallback complement)
-  const currentFallback = categoryNewsMap[activeCategory] || categoryNewsMap.all;
-  const leadData = backendLeadArticle || currentFallback.lead;
-  
-  const backendList = backendArticles.length > 0 ? backendArticles : [];
-  const fallbackList = (currentFallback.cards || []).filter(
-    fc => !backendList.some(ba => ba.title === fc.title || ba.id === fc.id) && fc.id !== leadData?.id
-  );
+  // Domain Importance Metadata Configuration
+  const currentDomain = DOMAINS_CONFIG[activeCategory] || {
+    id: activeCategory,
+    name: activeCategory,
+    title: `${activeCategory} செய்திகள்`,
+    subtitle: 'அமேஸ் டைம்ஸ் சிறப்பு செய்திப் பிரிவு',
+    badge: 'செய்தி'
+  };
 
-  let displayCards = [
-    ...backendList,
-    ...(backendList.length === 0 ? fallbackList : []),
-    ...extraCards
-  ];
+  // 100% Authentic Database News — Real Lead Hero & Display Cards directly from PostgreSQL
+  const leadData = backendLeadArticle;
+  let displayCards = [...backendArticles, ...extraCards];
 
   if (searchQuery.trim()) {
     const q = searchQuery.toLowerCase();
@@ -761,18 +844,7 @@ export default function App() {
 
   return (
     <div className={`min-h-screen flex flex-col w-full max-w-full overflow-x-hidden min-w-0 ${fontSizeClass}`}>
-      {/* 1.1 Super Utility Top Bar */}
-      <TopBar
-        isDark={isDark}
-        onToggleDarkMode={toggleDarkMode}
-        fontSizeClass={fontSizeClass}
-        onChangeFontSize={handleChangeFontSize}
-        savedBookmarksCount={savedBookmarks.length}
-        onOpenBookmarks={() => setIsBookmarksOpen(true)}
-        onOpenPWAInstall={() => setIsPWAInstallModalOpen(true)}
-      />
-
-      {/* Newspaper Header */}
+      {/* Newspaper Header with Unified Top Utility Strip */}
       <Header
         activeCategory={activeCategory}
         onSelectCategory={handleSelectCategory}
@@ -788,6 +860,7 @@ export default function App() {
         onOpenLiveTV={() => setIsLiveTVOpen(true)}
         onOpenDemoGuide={() => setIsDemoGuideOpen(true)}
         onOpenGoldCalculator={() => setIsGoldCalculatorOpen(true)}
+        onOpenPWAInstall={() => setIsPWAInstallModalOpen(true)}
         onOpenSearchModal={() => setIsSearchModalOpen(true)}
         onSpeak={speakTamilText}
         searchQuery={searchQuery}
@@ -852,73 +925,168 @@ export default function App() {
           />
         ) : (
           <>
-            {/* 1. HERO SPOTLIGHT: 3-Column Power Layout (Lead 5-cols + Top Reads/Radar 4-cols + Publications 3-cols) */}
-            <HeroSpotlight
-              leadData={leadData}
-              topArticles={displayCards}
-              onOpenArticle={openArticleModal}
-              onSpeak={speakTamilText}
-              onShareWhatsApp={handleShareWhatsApp}
-              onBookmark={handleBookmark}
-              savedBookmarks={savedBookmarks}
-              onToggleLike={handleToggleLike}
-              isLiked={likedArticles.some(a => String(a.id) === String(leadData?.id))}
-              onOpenEPaper={() => setIsEPaperOpen(true)}
-              onSelectCategory={handleSelectCategory}
-            />
+            {/* DOMAIN IMPORTANCE HEADER (Displayed when a specific category/domain is chosen) */}
+            {activeCategory !== 'all' && currentDomain && (
+              <div className="bg-gradient-to-r from-[#091538] via-[#0e2a7a] to-[#1e3a8a] text-white rounded-3xl p-5 sm:p-7 shadow-lg border border-white/10 relative overflow-hidden">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-2 text-xs font-bold text-amber-300">
+                      <button 
+                        onClick={() => handleSelectCategory('all')} 
+                        className="hover:underline flex items-center gap-1 cursor-pointer"
+                      >
+                        <span>முகப்பு</span>
+                      </button>
+                      <span>›</span>
+                      <span className="bg-amber-400/20 px-2 py-0.5 rounded text-amber-300 border border-amber-400/30">
+                        {currentDomain.badge}
+                      </span>
+                    </div>
+                    <h1 className="text-2xl sm:text-3xl font-black font-title text-white tracking-tight">
+                      {currentDomain.title}
+                    </h1>
+                    <p className="text-xs sm:text-sm text-slate-200 font-medium max-w-2xl">
+                      {currentDomain.subtitle}
+                    </p>
+                  </div>
 
-            {/* 1.6 Chennai Gold & Bullion Quick Calculator Banner */}
-            <GoldCalculatorBanner onOpenCalculator={() => setIsGoldCalculatorOpen(true)} />
-
-            {/* 2. LIVE COMMODITY & GOLD MARKET DASHBOARD (Full Home Section) */}
-            <section className="space-y-4" id="business-commodity">
-              <div className="flex items-center justify-between border-b-2 border-emerald-500 pb-2">
-                <h2 className="text-xl sm:text-2xl font-black text-[#0a1945] dark:text-amber-400 uppercase tracking-wide flex items-center gap-2">
-                  <span>நேரலை தங்கம் & வெள்ளி சந்தை நிலவரம் (Live Commodity Dashboard)</span>
-                </h2>
-                <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-3 py-1 rounded-full border border-emerald-500/30">
-                  நேரலை விலை
-                </span>
+                  <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+                    <span className="bg-white/10 text-white font-extrabold text-xs px-3.5 py-1.5 rounded-xl border border-white/15">
+                      {leadData ? 1 + displayCards.length : displayCards.length} செய்திகள்
+                    </span>
+                    <button
+                      onClick={() => handleSelectCategory('all')}
+                      className="bg-white hover:bg-slate-100 text-[#0e2a7a] font-extrabold text-xs px-4 py-1.5 rounded-xl transition shadow-sm cursor-pointer"
+                    >
+                      அனைத்து முதன்மைச் செய்திகள்
+                    </button>
+                  </div>
+                </div>
               </div>
-              <GoldMarketDashboard />
-            </section>
+            )}
 
-            {/* 3. HIGH-IMPACT CINEMA & SPORTS HUB (Box Office Tracker & Live Match Scoreboard) */}
-            <div id="cinema-and-sports">
-              <CinemaAndSports onOpenArticle={openArticleModal} />
-            </div>
+            {/* DOMAIN EMPTY STATE: Shown when category has no database articles yet */}
+            {(!leadData && displayCards.length === 0) ? (
+              <div className="bg-white dark:bg-[#0f1b3d] rounded-3xl p-8 sm:p-14 text-center border border-slate-200 dark:border-slate-800 shadow-sm max-w-2xl mx-auto my-8 space-y-4">
+                <div className="w-16 h-16 mx-auto bg-amber-500/10 text-amber-500 rounded-2xl flex items-center justify-center">
+                  <FileText className="w-8 h-8 text-amber-500" />
+                </div>
+                <h3 className="text-xl font-black text-slate-900 dark:text-white">
+                  {currentDomain?.title || 'செய்திகள்'}
+                </h3>
+                <p className="text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto">
+                  இப்பிரிவில் கூடுதல் செய்திகள் விரைவில் சேர்க்கப்படும். நிர்வாகம் அல்லது நிருபர் மூலம் புதிய செய்திகள் உடனுக்குடன் பதிவேற்றப்படும்.
+                </p>
+                <div className="pt-2">
+                  <button
+                    onClick={() => handleSelectCategory('all')}
+                    className="bg-[#0e2a7a] hover:bg-[#0a1f5c] text-white font-bold text-xs px-6 py-2.5 rounded-xl shadow transition cursor-pointer"
+                  >
+                    அனைத்து முதன்மைச் செய்திகளைப் படிக்கவும்
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <>
+                {/* 1. HERO SPOTLIGHT: 3-Column Power Layout (Lead 5-cols + Top Reads/Radar 4-cols + Publications 3-cols) */}
+                {leadData && (
+                  <HeroSpotlight
+                    leadData={leadData}
+                    topArticles={displayCards}
+                    onOpenArticle={openArticleModal}
+                    onSpeak={speakTamilText}
+                    onShareWhatsApp={handleShareWhatsApp}
+                    onBookmark={handleBookmark}
+                    savedBookmarks={savedBookmarks}
+                    onToggleLike={handleToggleLike}
+                    isLiked={likedArticles.some(a => String(a.id) === String(leadData?.id))}
+                    onOpenEPaper={() => setIsEPaperOpen(true)}
+                    onSelectCategory={handleSelectCategory}
+                  />
+                )}
 
-            {/* 4. DISTRICTS & REGIONAL NEWS HUB (With City Filter Tabs) */}
-            <DistrictNewsHub
-              articles={backendArticles.length > 0 ? backendArticles : displayCards}
-              onOpenArticle={openArticleModal}
-              onOpenEPaper={() => setIsEPaperOpen(true)}
-            />
+                {/* 2. DOMAIN-SPECIFIC HUBS (Scoped to active category) */}
+                {activeCategory === 'districts' && (
+                  <DistrictNewsHub
+                    articles={displayCards}
+                    onOpenArticle={openArticleModal}
+                    onOpenEPaper={() => setIsEPaperOpen(true)}
+                  />
+                )}
 
-            {/* 5. TAMIL NADU GOVERNMENT & VIP BIRTHDAY FELICITATION HUB */}
-            <GovernmentBirthdaySection onToast={addToast} />
+                {(activeCategory === 'cinema' || activeCategory === 'sports') && (
+                  <div id="cinema-and-sports">
+                    <CinemaAndSports onOpenArticle={openArticleModal} />
+                  </div>
+                )}
 
-            {/* 6. SPECIAL DAYS FESTIVAL CARD WITH LIVE CONFETTI & WISHES */}
-            <SpecialDaysFestivalCard onToast={addToast} />
+                {activeCategory === 'business' && (
+                  <>
+                    <GoldCalculatorBanner onOpenCalculator={() => setIsGoldCalculatorOpen(true)} />
+                    <section className="space-y-4" id="business-commodity">
+                      <div className="flex items-center justify-between border-b-2 border-emerald-500 pb-2">
+                        <h2 className="text-xl sm:text-2xl font-black text-[#0a1945] dark:text-amber-400 uppercase tracking-wide flex items-center gap-2">
+                          <span>நேரலை தங்கம் & வெள்ளி சந்தை நிலவரம் (Live Commodity Dashboard)</span>
+                        </h2>
+                        <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-3 py-1 rounded-full border border-emerald-500/30">
+                          நேரலை விலை
+                        </span>
+                      </div>
+                      <GoldMarketDashboard />
+                    </section>
+                  </>
+                )}
 
-            {/* 7. DIGITAL MONTHLY MAGAZINE & ARCHIVE HUB */}
-            <MagazineHubSection
-              onOpenEPaper={() => setIsEPaperOpen(true)}
-              onToast={addToast}
-            />
+                {/* 3. GENERAL HOMEPAGE SHOWCASES (Only rendered on 'all' / Main Frontpage) */}
+                {activeCategory === 'all' && (
+                  <>
+                    <GoldCalculatorBanner onOpenCalculator={() => setIsGoldCalculatorOpen(true)} />
 
-            {/* 8. STATEWIDE & CATEGORY NEWS GRID (With Rich Engagement Meta) */}
-            <SecondaryNewsGrid
-              categoryTitle={currentFallback.title}
-              categorySubtitle={currentFallback.subtitle}
-              cards={displayCards}
-              onOpenArticle={openArticleModal}
-              onBookmark={handleBookmark}
-              savedBookmarks={savedBookmarks}
-              onToggleLike={handleToggleLike}
-              likedArticles={likedArticles}
-              onLoadMore={handleLoadMore}
-            />
+                    <section className="space-y-4" id="business-commodity">
+                      <div className="flex items-center justify-between border-b-2 border-emerald-500 pb-2">
+                        <h2 className="text-xl sm:text-2xl font-black text-[#0a1945] dark:text-amber-400 uppercase tracking-wide flex items-center gap-2">
+                          <span>நேரலை தங்கம் & வெள்ளி சந்தை நிலவரம் (Live Commodity Dashboard)</span>
+                        </h2>
+                        <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-3 py-1 rounded-full border border-emerald-500/30">
+                          நேரலை விலை
+                        </span>
+                      </div>
+                      <GoldMarketDashboard />
+                    </section>
+
+                    <div id="cinema-and-sports">
+                      <CinemaAndSports onOpenArticle={openArticleModal} />
+                    </div>
+
+                    <DistrictNewsHub
+                      articles={displayCards}
+                      onOpenArticle={openArticleModal}
+                      onOpenEPaper={() => setIsEPaperOpen(true)}
+                    />
+
+                    <GovernmentBirthdaySection onToast={addToast} />
+                    <SpecialDaysFestivalCard onToast={addToast} />
+                    <MagazineHubSection
+                      onOpenEPaper={() => setIsEPaperOpen(true)}
+                      onToast={addToast}
+                    />
+                  </>
+                )}
+
+                {/* 4. STATEWIDE & CATEGORY NEWS GRID */}
+                <SecondaryNewsGrid
+                  categoryTitle={currentDomain?.title}
+                  categorySubtitle={currentDomain?.subtitle}
+                  cards={displayCards}
+                  onOpenArticle={openArticleModal}
+                  onBookmark={handleBookmark}
+                  savedBookmarks={savedBookmarks}
+                  onToggleLike={handleToggleLike}
+                  likedArticles={likedArticles}
+                  onLoadMore={handleLoadMore}
+                />
+              </>
+            )}
 
             {/* 9. MULTIMEDIA, COMMUNITY & LIVE FEEDS BAND */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6 items-start pt-2">

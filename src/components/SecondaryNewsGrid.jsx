@@ -58,26 +58,35 @@ export default function SecondaryNewsGrid({
           </div>
         </div>
 
-        {/* District Filter Tabs */}
-        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none py-1 w-full md:w-auto touch-pan-x min-w-0">
-          {districts.map(dist => (
-            <button
-              key={dist.id}
-              onClick={() => {
-                setSelectedDistrict(dist.id);
-                setVisibleCount(12);
-              }}
-              className={`px-3 py-1 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
-                selectedDistrict === dist.id
-                  ? 'bg-[#0e2a7a] text-white shadow-sm'
-                  : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:border-[#0e2a7a]'
-              }`}
-            >
-              {dist.label}
-            </button>
-          ))}
-        </div>
+        {/* District Filter Tabs (Only shown for districts / general feed) */}
+        {(categoryTitle?.includes('மாவட்ட') || categoryTitle?.includes('சமீபத்திய') || categoryTitle?.includes('முதன்மை')) && (
+          <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none py-1 w-full md:w-auto touch-pan-x min-w-0">
+            {districts.map(dist => (
+              <button
+                key={dist.id}
+                onClick={() => {
+                  setSelectedDistrict(dist.id);
+                  setVisibleCount(12);
+                }}
+                className={`px-3 py-1 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+                  selectedDistrict === dist.id
+                    ? 'bg-[#0e2a7a] text-white shadow-sm'
+                    : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:border-[#0e2a7a]'
+                }`}
+              >
+                {dist.label}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
+
+      {/* Empty State */}
+      {cardsToRender.length === 0 && (
+        <div className="py-10 text-center bg-slate-50 dark:bg-slate-900/40 rounded-3xl border border-dashed border-slate-200 dark:border-slate-800">
+          <p className="text-xs sm:text-sm font-bold text-slate-500 dark:text-slate-400">இப்பிரிவில் கூடுதல் செய்திகள் விரைவில் சேர்க்கப்படும்.</p>
+        </div>
+      )}
 
       {/* Cards Grid: Clean 3-Column Editorial Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">

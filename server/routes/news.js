@@ -203,9 +203,11 @@ router.get('/', optionalAuth, async (req, res) => {
         catConditions.push(`category ILIKE $${params.length}`);
       }
 
-      // If filtering by districts, also include any article that has a specific district assigned
+      // If filtering by districts, include any article with district metadata or Tamil Nadu regional news
       if (catNorm === 'districts' || category === 'மாவட்டங்கள்') {
         catConditions.push(`(district IS NOT NULL AND district != 'all' AND district != '')`);
+        catConditions.push(`category ILIKE '%தமிழ்நாடு%'`);
+        catConditions.push(`category ILIKE '%மாவட்ட%'`);
       }
 
       whereConditions.push(`(${catConditions.join(' OR ')})`);

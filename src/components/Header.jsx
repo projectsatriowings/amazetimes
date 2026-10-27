@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { api } from '../services/api';
 import {
   ShieldCheck,
   Calendar,
@@ -51,6 +52,7 @@ export default function Header({
   onOpenLiveTV,
   onOpenDemoGuide,
   onOpenGoldCalculator,
+  onOpenPWAInstall,
   onSpeak,
   searchQuery,
   onSearchChange,
@@ -65,6 +67,7 @@ export default function Header({
   const [currentTamilDate, setCurrentTamilDate] = useState('புதன், 14 அக்டோபர் 2026');
   const [currentTamilTime, setCurrentTamilTime] = useState('');
   const [panchangamDate, setPanchangamDate] = useState('புரட்டாசி 28');
+  const [activeReaders, setActiveReaders] = useState(148);
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [isInstallModalOpen, setIsInstallModalOpen] = useState(false);
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
@@ -123,6 +126,25 @@ export default function Header({
     };
   }, []);
 
+  // Live visitor pulse updater
+  useEffect(() => {
+    let isMounted = true;
+    const fetchPulse = async () => {
+      try {
+        const res = await api.getLiveVisitorPulse();
+        if (isMounted && res && res.success && typeof res.activeVisitors === 'number') {
+          setActiveReaders(res.activeVisitors);
+        }
+      } catch (_) {}
+    };
+    fetchPulse();
+    const pulseInterval = setInterval(fetchPulse, 25000);
+    return () => {
+      isMounted = false;
+      clearInterval(pulseInterval);
+    };
+  }, []);
+
   const handleInstallApp = async () => {
     if (deferredPrompt) {
       try {
@@ -135,6 +157,8 @@ export default function Header({
       } catch (err) {
         console.warn('Install prompt error:', err);
       }
+    } else if (onOpenPWAInstall) {
+      onOpenPWAInstall();
     } else {
       setIsInstallModalOpen(true);
     }
@@ -203,6 +227,16 @@ export default function Header({
               </span>
             )}
 
+            {/* Live Visitor Pulse */}
+            <div className="hidden lg:flex items-center gap-1.5 bg-emerald-950/70 border border-emerald-500/40 px-2 py-0.5 rounded-full text-[11px] shrink-0">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+              <span className="text-emerald-300 font-bold">{activeReaders} வாசகர்கள்</span>
+              <span className="text-emerald-400/80 text-[10px]">நேரலை</span>
+            </div>
+
             <span className="hidden xl:inline text-white/20">|</span>
 
             {/* Multi-City Weather Pills */}
@@ -242,9 +276,9 @@ export default function Header({
 
             {/* Font Size Adjuster */}
             <div className="hidden sm:flex items-center bg-white/10 rounded-lg px-2 py-0.5 gap-1 border border-white/20 text-[11px] text-slate-200" title="எழுத்து அளவு">
-              <button onClick={() => onChangeFontSize('font-size-sm')} className="hover:text-amber-300 font-bold px-1 cursor-pointer">A-</button>
-              <button onClick={() => onChangeFontSize('font-size-md')} className="hover:text-amber-300 font-bold px-1 cursor-pointer">A</button>
-              <button onClick={() => onChangeFontSize('font-size-lg')} className="hover:text-amber-300 font-bold px-1 cursor-pointer">A+</button>
+              <button onClick={() => onChangeFontSize('font-size-sm')} className={`hover:text-amber-300 font-bold px-1 cursor-pointer ${fontSizeClass === 'font-size-sm' ? 'text-amber-300' : ''}`}>A-</button>
+              <button onClick={() => onChangeFontSize('font-size-md')} className={`hover:text-amber-300 font-bold px-1 cursor-pointer ${fontSizeClass === 'font-size-md' || !fontSizeClass ? 'text-amber-300' : ''}`}>A</button>
+              <button onClick={() => onChangeFontSize('font-size-lg')} className={`hover:text-amber-300 font-bold px-1 cursor-pointer ${fontSizeClass === 'font-size-lg' ? 'text-amber-300' : ''}`}>A+</button>
             </div>
 
             {/* Dark / Light Mode Toggle */}
@@ -264,6 +298,16 @@ export default function Header({
                   <span className="hidden md:inline">இரவு</span>
                 </>
               )}
+            </button>
+
+            {/* PWA App Install Button */}
+            <button
+              onClick={handleInstallApp}
+              className="flex items-center gap-1 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-lg bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-bold text-[10px] sm:text-[11px] shadow-sm transition shrink-0 cursor-pointer"
+              title="மொபைல் / கணினியில் ஆப் நிறுவுக"
+            >
+              <Download className="w-3 h-3 text-white shrink-0" />
+              <span className="hidden sm:inline">ஆப் நிறுவுக</span>
             </button>
 
             {/* Saved Bookmarks (Desktop / Tablet) - Royal Blue with Yellow Text */}

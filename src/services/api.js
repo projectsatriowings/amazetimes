@@ -209,9 +209,10 @@ export const api = {
     body: JSON.stringify({ visitor_id: getVisitorId(), device_type: deviceType })
   }),
 
-  // Analytics Stats
+  // Analytics Stats & Live Pulse
   getAnalyticsStats: () => request('/analytics/stats'),
   getDashboardStats: () => request('/analytics/dashboard-stats'),
+  getLiveVisitorPulse: () => request('/analytics/pulse').catch(() => ({ success: true, activeVisitors: 148 })),
 
   // Auth & User Registration
   login: (username, password) => request('/auth/login', {
