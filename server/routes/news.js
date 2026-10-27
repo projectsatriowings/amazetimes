@@ -50,6 +50,60 @@ const formatNewsRow = (r) => {
   };
 };
 
+// In-memory version tracker & SSE client set for Zero-Reload Real-Time Sync
+let globalNewsVersion = Date.now();
+const sseClients = new Set();
+
+export const notifyNewsClients = (action, payload = {}) => {
+  globalNewsVersion = Date.now();
+  const data = JSON.stringify({ action, version: globalNewsVersion, timestamp: Date.now(), ...payload });
+  sseClients.forEach((client) => {
+    try {
+      client.write(`event: news_update\ndata: ${data}\n\n`);
+    } catch (_) {
+      sseClients.delete(client);
+    }
+  });
+};
+
+// GET /api/news/version - Smart micro-version check (100 bytes)
+router.get('/version', (req, res) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  res.json({
+    success: true,
+    version: globalNewsVersion,
+    timestamp: Date.now()
+  });
+});
+
+// GET /api/news/live-stream - Server-Sent Events (SSE) stream for instantaneous updates
+router.get('/live-stream', (req, res) => {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache, no-transform');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders?.();
+
+  // Send initial handshake ping
+  res.write(`event: connected\ndata: ${JSON.stringify({ version: globalNewsVersion, timestamp: Date.now() })}\n\n`);
+
+  sseClients.add(res);
+
+  // Keep-alive heartbeat every 25s
+  const heartbeat = setInterval(() => {
+    try {
+      res.write(': keep-alive\n\n');
+    } catch (_) {
+      clearInterval(heartbeat);
+      sseClients.delete(res);
+    }
+  }, 25000);
+
+  req.on('close', () => {
+    clearInterval(heartbeat);
+    sseClients.delete(res);
+  });
+});
+
 // GET /api/news & /api/articles - List news with pagination, category/district filters, search
 router.get('/', optionalAuth, async (req, res) => {
   try {
@@ -63,7 +117,9 @@ router.get('/', optionalAuth, async (req, res) => {
       search,
       is_breaking,
       is_lead_hero,
-      is_top_story
+      is_top_story,
+      author_id,
+      author_name
     } = req.query;
 
     const isUnlimited = limit === 'all' || limit === '0' || limit === 'unlimited';
@@ -74,6 +130,15 @@ router.get('/', optionalAuth, async (req, res) => {
     const whereConditions = [];
     const params = [];
 
+    // Filter by author if requested
+    if (author_id) {
+      params.push(author_id);
+      whereConditions.push(`author_id = $${params.length}`);
+    } else if (author_name) {
+      params.push(author_name);
+      whereConditions.push(`author_name ILIKE $${params.length}`);
+    }
+
     // Filter by status (public users can only view 'published')
     const isAdminOrReporter = req.user && (req.user.role === 'admin' || req.user.role === 'reporter');
     if (!isAdminOrReporter) {
@@ -83,10 +148,67 @@ router.get('/', optionalAuth, async (req, res) => {
       whereConditions.push(`status = $${params.length}`);
     }
 
-    // Filter by category
+    // Filter by category with comprehensive English slug & Tamil Unicode mapping
     if (category && category !== 'all' && category !== 'undefined') {
-      params.push(category);
-      whereConditions.push(`(category = $${params.length} OR category ILIKE $${params.length})`);
+      const catNorm = String(category).trim().toLowerCase();
+
+      const CATEGORY_SYNONYMS = {
+        tamilnadu: ['தமிழ்நாடு', 'tamilnadu', 'tn'],
+        'தமிழ்நாடு': ['தமிழ்நாடு', 'tamilnadu', 'tn'],
+
+        districts: ['மாவட்டங்கள்', 'districts', 'மாவட்டம்', 'district'],
+        'மாவட்டங்கள்': ['மாவட்டங்கள்', 'districts', 'மாவட்டம்', 'district'],
+
+        india: ['தேசியம்', 'இந்தியா', 'india', 'national'],
+        'தேசியம்': ['தேசியம்', 'இந்தியா', 'india', 'national'],
+        'இந்தியா': ['தேசியம்', 'இந்தியா', 'india', 'national'],
+
+        world: ['உலகம்', 'world', 'சர்வதேசம்', 'international'],
+        'உலகம்': ['உலகம்', 'world', 'சர்வதேசம்', 'international'],
+
+        cinema: ['சினிமா', 'திரைப்படம்', 'cinema', 'movies', 'kollywood'],
+        'சினிமா': ['சினிமா', 'திரைப்படம்', 'cinema', 'movies', 'kollywood'],
+
+        sports: ['விளையாட்டு', 'sports', 'cricket', 'கிரிக்கெட்'],
+        'விளையாட்டு': ['விளையாட்டு', 'sports', 'cricket', 'கிரிக்கெட்'],
+
+        business: ['வணிகம்', 'பொருளாதாரம்', 'business', 'economy', 'market'],
+        'வணிகம்': ['வணிகம்', 'பொருளாதாரம்', 'business', 'economy', 'market'],
+
+        spiritual: ['ஆன்மிகம்', 'ஆன்மீகம்', 'spiritual', 'aanmeegam'],
+        'ஆன்மிகம்': ['ஆன்மிகம்', 'ஆன்மீகம்', 'spiritual', 'aanmeegam'],
+        'ஆன்மீகம்': ['ஆன்மிகம்', 'ஆன்மீகம்', 'spiritual', 'aanmeegam'],
+
+        editorial: ['தலையங்கம்', 'editorial', 'thalaiyangam'],
+        'தலையங்கம்': ['தலையங்கம்', 'editorial', 'thalaiyangam'],
+
+        blogs: ['வலைப்பதிவுகள்', 'வலைப்பதிவு', 'blogs', 'blog', 'valaipathivugal'],
+        'வலைப்பதிவுகள்': ['வலைப்பதிவுகள்', 'வலைப்பதிவு', 'blogs', 'blog', 'valaipathivugal'],
+
+        magazine: ['மாத இதழ்', 'இதழ்', 'magazine'],
+        'மாத இதழ்': ['மாத இதழ்', 'இதழ்', 'magazine'],
+
+        education: ['கல்வி', 'கல்வி & வேலைவாய்ப்பு', 'education', 'jobs'],
+        'கல்வி': ['கல்வி', 'கல்வி & வேலைவாய்ப்பு', 'education', 'jobs'],
+
+        tech: ['தொழில்நுட்பம்', 'tech', 'technology'],
+        'தொழில்நுட்பம்': ['தொழில்நுட்பம்', 'tech', 'technology']
+      };
+
+      const matchedList = CATEGORY_SYNONYMS[catNorm] || CATEGORY_SYNONYMS[category] || [category];
+
+      const catConditions = [];
+      for (const syn of matchedList) {
+        params.push(`%${syn}%`);
+        catConditions.push(`category ILIKE $${params.length}`);
+      }
+
+      // If filtering by districts, also include any article that has a specific district assigned
+      if (catNorm === 'districts' || category === 'மாவட்டங்கள்') {
+        catConditions.push(`(district IS NOT NULL AND district != 'all' AND district != '')`);
+      }
+
+      whereConditions.push(`(${catConditions.join(' OR ')})`);
     }
 
     // Filter by district
@@ -343,6 +465,7 @@ router.post('/', authenticate, requireReporterOrAdmin, async (req, res) => {
     const isValidUUID = (str) => typeof str === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(str);
     const authorId = isValidUUID(req.user?.id) ? req.user.id : null;
     const authorFullName = req.user?.full_name || req.user?.username || authorName;
+    const effectiveStatus = req.user?.role === 'admin' ? (status || 'published') : 'pending';
 
     const insertSql = `
       INSERT INTO news (
@@ -370,7 +493,7 @@ router.post('/', authenticate, requireReporterOrAdmin, async (req, res) => {
       nextOrder,
       authorId,
       authorFullName,
-      status
+      effectiveStatus
     ]);
 
     const created = formatNewsRow(result.rows[0]);
@@ -380,6 +503,8 @@ router.post('/', authenticate, requireReporterOrAdmin, async (req, res) => {
       await query(`UPDATE news SET is_lead_hero = FALSE WHERE id != $1;`, [created.id]);
       await query(`UPDATE home_builder_settings SET lead_hero_id = $1 WHERE id = 1;`, [created.id]);
     }
+
+    notifyNewsClients('created', { id: created.id });
 
     res.status(201).json({
       success: true,
@@ -414,7 +539,11 @@ router.put('/:id', authenticate, requireReporterOrAdmin, async (req, res) => {
       isTopStory,
       displayOrder,
       authorName,
-      status
+      status,
+      viewsCount,
+      views_count,
+      likesCount,
+      likes_count
     } = req.body;
 
     const existingRes = await query(`SELECT * FROM news WHERE id = $1;`, [id]);
@@ -439,14 +568,21 @@ router.put('/:id', authenticate, requireReporterOrAdmin, async (req, res) => {
     const updatedOrder = displayOrder !== undefined ? parseInt(displayOrder, 10) : current.display_order;
     const updatedAuthor = authorName !== undefined ? authorName : current.author_name;
     const updatedStatus = status !== undefined ? status : current.status;
+    const updatedViews = (viewsCount !== undefined || views_count !== undefined)
+      ? Math.max(0, parseInt(viewsCount ?? views_count, 10) || 0)
+      : current.views_count;
+    const updatedLikes = (likesCount !== undefined || likes_count !== undefined)
+      ? Math.max(0, parseInt(likesCount ?? likes_count, 10) || 0)
+      : current.likes_count;
 
     const updateSql = `
       UPDATE news
       SET title = $1, subtitle = $2, summary = $3, content = $4, category = $5,
           district = $6, main_image = $7, seo_keywords = $8, tags = $9,
           is_breaking = $10, is_lead_hero = $11, is_top_story = $12,
-          display_order = $13, author_name = $14, status = $15
-      WHERE id = $16
+          display_order = $13, author_name = $14, status = $15,
+          views_count = $16, likes_count = $17
+      WHERE id = $18
       RETURNING *;
     `;
 
@@ -466,6 +602,8 @@ router.put('/:id', authenticate, requireReporterOrAdmin, async (req, res) => {
       updatedOrder,
       updatedAuthor,
       updatedStatus,
+      updatedViews,
+      updatedLikes,
       id
     ]);
 
@@ -475,6 +613,8 @@ router.put('/:id', authenticate, requireReporterOrAdmin, async (req, res) => {
       await query(`UPDATE news SET is_lead_hero = FALSE WHERE id != $1;`, [id]);
       await query(`UPDATE home_builder_settings SET lead_hero_id = $1 WHERE id = 1;`, [id]);
     }
+
+    notifyNewsClients('updated', { id, updated });
 
     res.json({
       success: true,
@@ -510,6 +650,7 @@ router.patch('/:id/status', authenticate, requireReporterOrAdmin, async (req, re
     }
 
     const updated = formatNewsRow(result.rows[0]);
+    notifyNewsClients('status_change', { id, status });
     res.json({
       success: true,
       message: `செய்தி நிலை '${status}' என மாற்றப்பட்டது`,
@@ -531,6 +672,8 @@ router.delete('/:id', authenticate, requireReporterOrAdmin, async (req, res) => 
     if (result.rows.length === 0) {
       return res.status(404).json({ success: false, message: 'செய்தி கிடைக்கவில்லை' });
     }
+
+    notifyNewsClients('deleted', { id });
 
     res.json({
       success: true,

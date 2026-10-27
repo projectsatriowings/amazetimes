@@ -28,13 +28,19 @@ const API_BASE = import.meta.env.VITE_API_URL
   ? import.meta.env.VITE_API_URL.replace(/\/$/, '')
   : (import.meta.env.DEV ? 'http://localhost:5000/api' : '/api');
 
+// 100ms silent WAV audio to prime and unlock iOS Safari media engine synchronously on user touch
+const SILENT_AUDIO_DATA_URI = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA';
+
 /**
  * VoiceReaderPlayer
  * 
- * Primary Engine: Universal HTML5 Audio streaming from backend Google Tamil TTS (/api/tts/stream)
- * Fallback Engine: Web Speech API with ~150-char sentence chunking and Chrome 15s keepalive
- * 
- * Supports forwardRef for imperative control (togglePlay, play, pause, stop).
+ * Primary Engine: Universal HTML5 Audio streaming from backend Google Tamil TTS (/api/tts/prepare & /api/tts/stream/:id)
+ * Features:
+ * - Eliminates 414 Request-URI Too Large & net::ERR_CONNECTION_RESET by using POST /prepare with short MD5 hash streaming
+ * - iOS Safari & mobile Android autoplay gesture priming for instant multi-device playback
+ * - Supports HTTP 206 Partial Content for instant scrubbing/seeking
+ * - Fallback Engine: Web Speech API with sentence chunking & Chrome 15s keepalive
+ * - Full imperative control via forwardRef (togglePlay, play, pause, stop).
  */
 const VoiceReaderPlayer = forwardRef(function VoiceReaderPlayer(
   {
@@ -49,6 +55,7 @@ const VoiceReaderPlayer = forwardRef(function VoiceReaderPlayer(
   // State
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingText, setLoadingText] = useState('இணைக்கிறது...');
   const [engine, setEngine] = useState('stream'); // 'stream' | 'webspeech'
   const [speed, setSpeed] = useState(1);
   const [currentTime, setCurrentTime] = useState(0);
@@ -65,6 +72,7 @@ const VoiceReaderPlayer = forwardRef(function VoiceReaderPlayer(
   const activeChunkIndexRef = useRef(0);
   const isPlayingRef = useRef(false);
   const chunksRef = useRef([]);
+  const currentStreamUrlRef = useRef('');
 
   // Pre-normalize text and prepare chunks
   const normalizedText = React.useMemo(() => {
@@ -76,6 +84,20 @@ const VoiceReaderPlayer = forwardRef(function VoiceReaderPlayer(
     setChunks(generatedChunks);
     chunksRef.current = generatedChunks;
   }, [normalizedText]);
+
+  // Preload synthesis voices for mobile browsers (Android Chrome, iOS Safari)
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      window.speechSynthesis.getVoices();
+      const onVoicesChanged = () => {
+        window.speechSynthesis.getVoices();
+      };
+      window.speechSynthesis.addEventListener('voiceschanged', onVoicesChanged);
+      return () => {
+        window.speechSynthesis.removeEventListener('voiceschanged', onVoicesChanged);
+      };
+    }
+  }, []);
 
   // Keep state and ref synchronized
   useEffect(() => {
@@ -102,6 +124,7 @@ const VoiceReaderPlayer = forwardRef(function VoiceReaderPlayer(
     if (!window.speechSynthesis) {
       setErrorMessage('உங்கள் உலாவியில் குரல் வசதி ஆதரிக்கப்படவில்லை.');
       setIsPlaying(false);
+      setIsLoading(false);
       return;
     }
 
@@ -109,6 +132,7 @@ const VoiceReaderPlayer = forwardRef(function VoiceReaderPlayer(
     if (index >= currentChunks.length) {
       // Completed all chunks
       setIsPlaying(false);
+      setIsLoading(false);
       setActiveChunkIndex(0);
       stopKeepAlive();
       return;
@@ -122,9 +146,13 @@ const VoiceReaderPlayer = forwardRef(function VoiceReaderPlayer(
     utterance.rate = speed;
     utterance.volume = isMuted ? 0 : volume;
 
-    // Try finding Tamil voice if installed
+    // Detect Tamil voice if installed on device
     const voices = window.speechSynthesis.getVoices() || [];
-    const tamilVoice = voices.find(v => v.lang.includes('ta') || v.lang.includes('ta-IN'));
+    const tamilVoice =
+      voices.find(v => v.lang === 'ta-IN' || v.lang === 'ta_IN') ||
+      voices.find(v => v.lang && v.lang.toLowerCase().startsWith('ta')) ||
+      voices.find(v => v.name && v.name.toLowerCase().includes('tamil'));
+
     if (tamilVoice) {
       utterance.voice = tamilVoice;
     }
@@ -147,6 +175,7 @@ const VoiceReaderPlayer = forwardRef(function VoiceReaderPlayer(
         speakWebSpeechChunk(index + 1);
       } else {
         setIsPlaying(false);
+        setIsLoading(false);
         stopKeepAlive();
       }
     };
@@ -163,10 +192,20 @@ const VoiceReaderPlayer = forwardRef(function VoiceReaderPlayer(
     window.speechSynthesis.speak(utterance);
   }, [speed, volume, isMuted, stopKeepAlive]);
 
-  // Primary HTML5 Stream Playback
+  // Synchronously prime the HTML5 Audio on user tap to unlock iOS Safari & Android mobile autoplay
+  const primeAudioOnUserGesture = useCallback(() => {
+    const audio = audioRef.current;
+    if (audio && (!audio.src || audio.src === '')) {
+      audio.src = SILENT_AUDIO_DATA_URI;
+      audio.play().catch(() => {});
+    }
+  }, []);
+
+  // Primary HTML5 Stream Playback using POST /api/tts/prepare & short hash streaming
   const playStreamAudio = useCallback(async () => {
     if (!normalizedText) return;
     setIsLoading(true);
+    setLoadingText('ஆடியோ தயாராகிறது...');
     setErrorMessage('');
 
     // If device is offline, jump directly to Web Speech fallback
@@ -181,34 +220,102 @@ const VoiceReaderPlayer = forwardRef(function VoiceReaderPlayer(
       const audio = audioRef.current;
       if (!audio) return;
 
-      const streamUrl = `${API_BASE}/tts/stream?text=${encodeURIComponent(normalizedText)}&speed=${speed}`;
-      
-      // Only set new src if changed
-      if (audio.src !== streamUrl) {
-        audio.src = streamUrl;
+      // 1. Request audio preparation via POST (avoids 414 Request-URI Too Large & ERR_CONNECTION_RESET)
+      const prepRes = await fetch(`${API_BASE}/tts/prepare`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          text: normalizedText,
+          speed: speed
+        })
+      });
+
+      if (!prepRes.ok) {
+        throw new Error(`TTS server responded with status ${prepRes.status}`);
+      }
+
+      const prepData = await prepRes.json();
+      if (!prepData.success || !prepData.streamUrl) {
+        throw new Error(prepData.message || 'Failed to prepare audio stream');
+      }
+
+      // Format clean absolute or relative stream URL
+      const streamPath = prepData.streamUrl;
+      const cleanStreamUrl = streamPath.startsWith('http')
+        ? streamPath
+        : `${API_BASE.replace(/\/api$/, '')}${streamPath}`;
+
+      currentStreamUrlRef.current = cleanStreamUrl;
+
+      // Only assign src and load if changed
+      if (audio.src !== cleanStreamUrl) {
+        audio.src = cleanStreamUrl;
         audio.load();
       }
 
       audio.playbackRate = speed;
       audio.volume = isMuted ? 0 : volume;
 
+      setLoadingText('ஒலிபரப்பப்படுகிறது...');
       await audio.play();
       setIsPlaying(true);
       setIsLoading(false);
       setEngine('stream');
     } catch (err) {
-      console.warn('[VoiceReader] Stream playback failed, falling back to Web Speech:', err);
+      console.warn('[VoiceReader] Stream playback failed, attempting synthesize blob fallback:', err);
+      
+      // Fallback 1: Try direct POST synthesize blob
+      try {
+        const audio = audioRef.current;
+        const synthRes = await fetch(`${API_BASE}/tts/synthesize`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: normalizedText, speed: speed })
+        });
+
+        if (synthRes.ok) {
+          const blob = await synthRes.blob();
+          if (blob && blob.size > 0 && audio) {
+            const blobUrl = URL.createObjectURL(blob);
+            audio.src = blobUrl;
+            audio.playbackRate = speed;
+            audio.volume = isMuted ? 0 : volume;
+            await audio.play();
+            setIsPlaying(true);
+            setIsLoading(false);
+            setEngine('stream');
+            return;
+          }
+        }
+      } catch (blobErr) {
+        console.warn('[VoiceReader] Synthesize blob fallback failed:', blobErr);
+      }
+
+      // Fallback 2: Device Web Speech API
+      console.warn('[VoiceReader] Switching to device Web Speech engine');
       setEngine('webspeech');
       setIsLoading(false);
       speakWebSpeechChunk(activeChunkIndexRef.current);
     }
   }, [normalizedText, speed, volume, isMuted, speakWebSpeechChunk]);
 
-  // Play handler
+  // Master Play handler
   const handlePlay = useCallback(() => {
+    // Synchronously prime audio element on user tap to unlock mobile autoplay
+    primeAudioOnUserGesture();
+
     if (engine === 'stream') {
       const audio = audioRef.current;
-      if (audio && audio.src && !audio.ended && audio.currentTime > 0) {
+      if (
+        audio &&
+        audio.src &&
+        !audio.src.startsWith('data:') &&
+        !audio.ended &&
+        audio.currentTime > 0
+      ) {
         audio.play().then(() => setIsPlaying(true)).catch(() => {
           playStreamAudio();
         });
@@ -218,7 +325,7 @@ const VoiceReaderPlayer = forwardRef(function VoiceReaderPlayer(
     } else {
       speakWebSpeechChunk(activeChunkIndexRef.current);
     }
-  }, [engine, playStreamAudio, speakWebSpeechChunk]);
+  }, [engine, primeAudioOnUserGesture, playStreamAudio, speakWebSpeechChunk]);
 
   // Pause handler
   const handlePause = useCallback(() => {
@@ -230,6 +337,7 @@ const VoiceReaderPlayer = forwardRef(function VoiceReaderPlayer(
     }
     stopKeepAlive();
     setIsPlaying(false);
+    setIsLoading(false);
   }, [engine, stopKeepAlive]);
 
   // Stop handler (resets position to start)
@@ -243,6 +351,7 @@ const VoiceReaderPlayer = forwardRef(function VoiceReaderPlayer(
     }
     stopKeepAlive();
     setIsPlaying(false);
+    setIsLoading(false);
     setCurrentTime(0);
     setActiveChunkIndex(0);
     activeChunkIndexRef.current = 0;
@@ -282,7 +391,7 @@ const VoiceReaderPlayer = forwardRef(function VoiceReaderPlayer(
     }
   };
 
-  // Speed change
+  // Speed change: update playbackRate in real time without reloading audio
   const handleChangeSpeed = (newSpeed) => {
     setSpeed(newSpeed);
     if (audioRef.current) {
@@ -317,13 +426,21 @@ const VoiceReaderPlayer = forwardRef(function VoiceReaderPlayer(
     const audio = audioRef.current;
     if (!audio) return;
 
-    const onPlay = () => setIsPlaying(true);
+    const onPlay = () => {
+      setIsPlaying(true);
+      setIsLoading(false);
+    };
     const onPause = () => setIsPlaying(false);
     const onWaiting = () => setIsLoading(true);
-    const onPlaying = () => setIsLoading(false);
+    const onPlaying = () => {
+      setIsLoading(false);
+      setIsPlaying(true);
+    };
     const onEnded = () => {
       setIsPlaying(false);
+      setIsLoading(false);
       setCurrentTime(0);
+      setActiveChunkIndex(0);
     };
     const onTimeUpdate = () => {
       setCurrentTime(audio.currentTime);
@@ -342,11 +459,16 @@ const VoiceReaderPlayer = forwardRef(function VoiceReaderPlayer(
       setIsLoading(false);
     };
     const onError = () => {
+      // Ignore errors on the silent priming data-uri
+      if (audio.src && audio.src.startsWith('data:')) return;
+
       console.warn('[VoiceReader] Audio stream error event, switching to Web Speech');
-      setEngine('webspeech');
-      setIsLoading(false);
-      if (isPlayingRef.current) {
-        speakWebSpeechChunk(activeChunkIndexRef.current);
+      if (engine === 'stream') {
+        setEngine('webspeech');
+        setIsLoading(false);
+        if (isPlayingRef.current) {
+          speakWebSpeechChunk(activeChunkIndexRef.current);
+        }
       }
     };
 
@@ -369,9 +491,9 @@ const VoiceReaderPlayer = forwardRef(function VoiceReaderPlayer(
       audio.removeEventListener('loadedmetadata', onLoadedMetadata);
       audio.removeEventListener('error', onError);
     };
-  }, [chunks.length, speakWebSpeechChunk]);
+  }, [chunks.length, engine, speakWebSpeechChunk]);
 
-  // Cleanup on unmount
+  // Cleanup on unmount or article change
   useEffect(() => {
     if (autoPlay) {
       handlePlay();
@@ -388,6 +510,18 @@ const VoiceReaderPlayer = forwardRef(function VoiceReaderPlayer(
     };
   }, [autoPlay, handlePlay, stopKeepAlive]);
 
+  // Reset audio source if article text changes
+  useEffect(() => {
+    if (audioRef.current && currentStreamUrlRef.current) {
+      audioRef.current.pause();
+      audioRef.current.src = '';
+      currentStreamUrlRef.current = '';
+      setIsPlaying(false);
+      setCurrentTime(0);
+      setActiveChunkIndex(0);
+    }
+  }, [normalizedText]);
+
   // Format mm:ss
   const formatTime = (secs) => {
     if (!secs || isNaN(secs)) return '0:00';
@@ -396,12 +530,18 @@ const VoiceReaderPlayer = forwardRef(function VoiceReaderPlayer(
     return `${m}:${s < 10 ? '0' : ''}${s}`;
   };
 
-  const currentDisplayChunk = chunks[activeChunkIndex] || normalizedText.slice(0, 100);
+  const currentDisplayChunk = chunks[activeChunkIndex] || (normalizedText ? normalizedText.slice(0, 100) : '');
 
   return (
     <div className={`w-full bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white rounded-2xl p-4 sm:p-5 shadow-2xl border border-indigo-500/30 transition-all ${className}`}>
-      {/* Hidden HTML5 Audio Element */}
-      <audio ref={audioRef} preload="none" />
+      {/* Universal Cross-Device HTML5 Audio Element with Inline Mobile Playback */}
+      <audio
+        ref={audioRef}
+        preload="auto"
+        playsInline
+        webkit-playsinline="true"
+        crossOrigin="anonymous"
+      />
 
       {/* Top Bar: Engine info & Equalizer */}
       <div className="flex items-center justify-between pb-3 border-b border-indigo-900/60 text-xs">
@@ -515,7 +655,7 @@ const VoiceReaderPlayer = forwardRef(function VoiceReaderPlayer(
             ) : (
               <Play className="w-4 h-4 fill-slate-950 text-slate-950 ml-0.5" />
             )}
-            <span>{isLoading ? 'இணைக்கிறது...' : isPlaying ? 'நிறுத்துக' : 'கேட்க'}</span>
+            <span>{isLoading ? loadingText : isPlaying ? 'நிறுத்துக' : 'கேட்க'}</span>
           </button>
 
           {/* Forward 10s */}

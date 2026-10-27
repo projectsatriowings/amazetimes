@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Home, Grid, Radio, FileText, Bookmark, User } from 'lucide-react';
+import TopBar from './components/TopBar';
 import Header from './components/Header';
 import Ticker from './components/Ticker';
 import LiveWire from './components/LiveWire';
@@ -19,7 +20,9 @@ import LiveTVModal from './components/LiveTVModal';
 import BookmarksDrawer from './components/BookmarksDrawer';
 import DemoGuideModal from './components/DemoGuideModal';
 import GoldCalculatorModal from './components/GoldCalculatorModal';
+import GoldCalculatorBanner from './components/GoldCalculatorBanner';
 import MagazineShowcase from './components/MagazineShowcase';
+import MagazineHubSection from './components/MagazineHubSection';
 import SpecialDaysFestivalCard from './components/SpecialDaysFestivalCard';
 import CinemaAndSports from './components/CinemaAndSports';
 import CinemaSportsHub from './components/CinemaSportsHub';
@@ -27,7 +30,15 @@ import CinemaSportsSpotlightBar from './components/CinemaSportsSpotlightBar';
 import DistrictNewsHub from './components/DistrictNewsHub';
 import GovernmentBirthdaySection from './components/GovernmentBirthdaySection';
 import HomepageBirthdayPopup from './components/HomepageBirthdayPopup';
+import VideoGallery from './components/VideoGallery';
+import SearchModal from './components/SearchModal';
+import RasiPalanModal from './components/RasiPalanModal';
+import PWAInstallModal from './components/PWAInstallModal';
+import MagazinePromoModal from './components/MagazinePromoModal';
+import VideoPlayerModal from './components/VideoPlayerModal';
+import PushNotificationPrompt from './components/PushNotificationPrompt';
 import SocialMediaPage from './pages/SocialMediaPage';
+import ReporterDashboard from './pages/ReporterDashboard';
 import { GoldMarketDashboard } from './components/GoldMarketDashboard';
 import Toast from './components/Toast';
 import NotFoundPage from './components/NotFoundPage';
@@ -43,6 +54,7 @@ import UserProfileModal from './components/modals/UserProfileModal';
 
 import { api, getCurrentUser, setCurrentUser as persistCurrentUser, setToken, getReaderUser, setReaderUser } from './services/api';
 import { articlesData as fallbackArticlesData, categoryNewsMap, shortsStories as fallbackShorts } from './data/newsData';
+
 
 export default function App() {
   const [activeCategory, setActiveCategory] = useState('all');
@@ -183,6 +195,10 @@ export default function App() {
   const [isDemoGuideOpen, setIsDemoGuideOpen] = useState(false);
   const [isBookmarksOpen, setIsBookmarksOpen] = useState(false);
   const [isGoldCalculatorOpen, setIsGoldCalculatorOpen] = useState(false);
+  const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
+  const [isRasiModalOpen, setIsRasiModalOpen] = useState(false);
+  const [isPWAInstallModalOpen, setIsPWAInstallModalOpen] = useState(false);
+  const [activeVideoPlayer, setActiveVideoPlayer] = useState(null);
   const [activeStoryIndex, setActiveStoryIndex] = useState(null);
 
   // Extra loaded cards state for "Load More"
@@ -720,9 +736,43 @@ export default function App() {
     );
   }
 
+  // ROUTE 3: Dedicated Reporter Portal (/reporter)
+  if (currentPath === '/reporter') {
+    if (!currentUser || (currentUser.role !== 'reporter' && currentUser.role !== 'admin')) {
+      return (
+        <div className={`min-h-screen ${fontSizeClass}`}>
+          <LoginPage
+            onLoginSuccess={handleLoginSuccess}
+            onNavigateHome={() => navigateTo('/')}
+            onToast={addToast}
+          />
+          <Toast toasts={toasts} onRemoveToast={removeToast} />
+        </div>
+      );
+    }
+
+    return (
+      <div className={`min-h-screen ${fontSizeClass}`}>
+        <ReporterDashboard />
+        <Toast toasts={toasts} onRemoveToast={removeToast} />
+      </div>
+    );
+  }
+
   return (
     <div className={`min-h-screen flex flex-col w-full max-w-full overflow-x-hidden min-w-0 ${fontSizeClass}`}>
-      {/* Newspaper Top Bar & Header */}
+      {/* 1.1 Super Utility Top Bar */}
+      <TopBar
+        isDark={isDark}
+        onToggleDarkMode={toggleDarkMode}
+        fontSizeClass={fontSizeClass}
+        onChangeFontSize={handleChangeFontSize}
+        savedBookmarksCount={savedBookmarks.length}
+        onOpenBookmarks={() => setIsBookmarksOpen(true)}
+        onOpenPWAInstall={() => setIsPWAInstallModalOpen(true)}
+      />
+
+      {/* Newspaper Header */}
       <Header
         activeCategory={activeCategory}
         onSelectCategory={handleSelectCategory}
@@ -738,6 +788,7 @@ export default function App() {
         onOpenLiveTV={() => setIsLiveTVOpen(true)}
         onOpenDemoGuide={() => setIsDemoGuideOpen(true)}
         onOpenGoldCalculator={() => setIsGoldCalculatorOpen(true)}
+        onOpenSearchModal={() => setIsSearchModalOpen(true)}
         onSpeak={speakTamilText}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
@@ -816,6 +867,9 @@ export default function App() {
               onSelectCategory={handleSelectCategory}
             />
 
+            {/* 1.6 Chennai Gold & Bullion Quick Calculator Banner */}
+            <GoldCalculatorBanner onOpenCalculator={() => setIsGoldCalculatorOpen(true)} />
+
             {/* 2. LIVE COMMODITY & GOLD MARKET DASHBOARD (Full Home Section) */}
             <section className="space-y-4" id="business-commodity">
               <div className="flex items-center justify-between border-b-2 border-emerald-500 pb-2">
@@ -847,13 +901,13 @@ export default function App() {
             {/* 6. SPECIAL DAYS FESTIVAL CARD WITH LIVE CONFETTI & WISHES */}
             <SpecialDaysFestivalCard onToast={addToast} />
 
-            {/* 7. DIGITAL MONTHLY MAGAZINE & E-PAPER BANNER */}
-            <MagazineShowcase
+            {/* 7. DIGITAL MONTHLY MAGAZINE & ARCHIVE HUB */}
+            <MagazineHubSection
               onOpenEPaper={() => setIsEPaperOpen(true)}
               onToast={addToast}
             />
 
-            {/* 7. STATEWIDE & CATEGORY NEWS GRID (With Rich Engagement Meta) */}
+            {/* 8. STATEWIDE & CATEGORY NEWS GRID (With Rich Engagement Meta) */}
             <SecondaryNewsGrid
               categoryTitle={currentFallback.title}
               categorySubtitle={currentFallback.subtitle}
@@ -866,7 +920,7 @@ export default function App() {
               onLoadMore={handleLoadMore}
             />
 
-            {/* 4. MULTIMEDIA, COMMUNITY & LIVE FEEDS BAND */}
+            {/* 9. MULTIMEDIA, COMMUNITY & LIVE FEEDS BAND */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6 items-start pt-2">
               {/* Col A (4 cols): Live Wire Feed + Audio Brief */}
               <div className="lg:col-span-4 space-y-6">
@@ -892,6 +946,9 @@ export default function App() {
                 <QuizPoll onToast={addToast} />
               </div>
             </div>
+
+            {/* 10. VIDEO & SOCIAL MEDIA HUB (YouTube, Instagram Reels, Facebook) */}
+            <VideoGallery onOpenVideoPlayer={(vid) => setActiveVideoPlayer(vid)} />
           </>
         )}
       </main>
@@ -1143,6 +1200,37 @@ export default function App() {
 
       {/* Homepage VIP Birthday Alert Popup (Session Based) */}
       <HomepageBirthdayPopup onToast={addToast} />
+
+      {/* 2. Interactive Modals & Popups from Master Inventory */}
+      <SearchModal
+        isOpen={isSearchModalOpen}
+        onClose={() => setIsSearchModalOpen(false)}
+        onOpenArticle={openArticleModal}
+      />
+
+      <RasiPalanModal
+        isOpen={isRasiModalOpen}
+        onClose={() => setIsRasiModalOpen(false)}
+        onSpeak={speakTamilText}
+      />
+
+      <PWAInstallModal
+        isOpen={isPWAInstallModalOpen}
+        onClose={() => setIsPWAInstallModalOpen(false)}
+      />
+
+      <MagazinePromoModal
+        onOpenEPaper={() => setIsEPaperOpen(true)}
+      />
+
+      <VideoPlayerModal
+        isOpen={Boolean(activeVideoPlayer)}
+        video={activeVideoPlayer}
+        onClose={() => setActiveVideoPlayer(null)}
+      />
+
+      {/* Breaking News Push Notification Permission Prompt */}
+      <PushNotificationPrompt />
 
       {/* Dynamic Toast Container */}
       <Toast toasts={toasts} onRemoveToast={removeToast} />

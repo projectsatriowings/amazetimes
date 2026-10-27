@@ -107,6 +107,12 @@ export function setCurrentUser(user) {
   }
 }
 
+export function logout() {
+  setToken(null);
+  setCurrentUser(null);
+  setReaderUser(null);
+}
+
 // Generate or retrieve persistent visitor UUID
 export function getVisitorId() {
   let vid = localStorage.getItem('amaze_unique_visitor_id') ||
@@ -251,7 +257,7 @@ export const api = {
   getNews: async (params = {}) => {
     const cleanParams = {};
     for (const [key, val] of Object.entries(params)) {
-      if (val !== undefined && val !== null && val !== '' && val !== 'undefined' && val !== 'all' && key !== '_t') {
+      if (val !== undefined && val !== null && val !== '' && val !== 'undefined' && (key === 'limit' || val !== 'all') && key !== '_t') {
         cleanParams[key] = val;
       }
     }
@@ -280,6 +286,7 @@ export const api = {
   getArticles: function(params = {}) { return this.getNews(params); },
   getNewsById: (id) => request(`/news/${id}`),
   getArticle: function(id) { return this.getNewsById(id); },
+  getNewsVersion: () => request('/news/version'),
 
   // Permanent View Count Engine
   recordNewsView: (id) => request(`/news/${id}/view`, { method: 'POST' }),
@@ -291,29 +298,79 @@ export const api = {
   }),
 
   // #1 Priority Make First Action
-  makeNewsFirst: (id) => request(`/news/${id}/make-first`, { method: 'POST' }),
+  makeNewsFirst: async (id) => {
+    newsCache.clear();
+    const res = await request(`/news/${id}/make-first`, { method: 'POST' });
+    try {
+      if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+        new BroadcastChannel('amaze_news_sync').postMessage({ action: 'make_first', id, timestamp: Date.now() });
+        new BroadcastChannel('adutha_news_sync').postMessage({ action: 'make_first', id, timestamp: Date.now() });
+      }
+    } catch (_) {}
+    return res;
+  },
 
   // News CRUD
-  createNews: (newsData) => request('/news', {
-    method: 'POST',
-    body: JSON.stringify(newsData)
-  }),
+  createNews: async (newsData) => {
+    newsCache.clear();
+    const res = await request('/news', {
+      method: 'POST',
+      body: JSON.stringify(newsData)
+    });
+    try {
+      if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+        new BroadcastChannel('amaze_news_sync').postMessage({ action: 'created', timestamp: Date.now() });
+        new BroadcastChannel('adutha_news_sync').postMessage({ action: 'created', timestamp: Date.now() });
+      }
+    } catch (_) {}
+    return res;
+  },
   createArticle: function(data) { return this.createNews(data); },
   addNews: function(data) { return this.createNews(data); },
 
-  updateNews: (id, newsData) => request(`/news/${id}`, {
-    method: 'PUT',
-    body: JSON.stringify(newsData)
-  }),
+  updateNews: async (id, newsData) => {
+    newsCache.clear();
+    const res = await request(`/news/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(newsData)
+    });
+    try {
+      if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+        new BroadcastChannel('amaze_news_sync').postMessage({ action: 'updated', id, timestamp: Date.now() });
+        new BroadcastChannel('adutha_news_sync').postMessage({ action: 'updated', id, timestamp: Date.now() });
+      }
+    } catch (_) {}
+    return res;
+  },
   updateArticle: function(id, data) { return this.updateNews(id, data); },
 
-  updateNewsStatus: (id, status) => request(`/news/${id}/status`, {
-    method: 'PATCH',
-    body: JSON.stringify({ status })
-  }),
+  updateNewsStatus: async (id, status) => {
+    newsCache.clear();
+    const res = await request(`/news/${id}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status })
+    });
+    try {
+      if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+        new BroadcastChannel('amaze_news_sync').postMessage({ action: 'status_change', id, status, timestamp: Date.now() });
+        new BroadcastChannel('adutha_news_sync').postMessage({ action: 'status_change', id, status, timestamp: Date.now() });
+      }
+    } catch (_) {}
+    return res;
+  },
   updateArticleStatus: function(id, status) { return this.updateNewsStatus(id, status); },
 
-  deleteNews: (id) => request(`/news/${id}`, { method: 'DELETE' }),
+  deleteNews: async (id) => {
+    newsCache.clear();
+    const res = await request(`/news/${id}`, { method: 'DELETE' });
+    try {
+      if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+        new BroadcastChannel('amaze_news_sync').postMessage({ action: 'deleted', id, timestamp: Date.now() });
+        new BroadcastChannel('adutha_news_sync').postMessage({ action: 'deleted', id, timestamp: Date.now() });
+      }
+    } catch (_) {}
+    return res;
+  },
   deleteArticle: function(id) { return this.deleteNews(id); },
 
   getNewsStats: async function() {
@@ -592,7 +649,10 @@ export const api = {
   updateSocialMediaSettings: (settings) => request('/social-media', {
     method: 'POST',
     body: JSON.stringify(settings)
-  })
+  }),
+
+  // Media & Image URL Helper
+  getMediaUrl: (url) => getMediaUrl(url)
 };
 
 export default api;
