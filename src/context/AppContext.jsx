@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
-import { api } from '../services/api';
+import { api, API_BASE_URL } from '../services/api';
 import { defaultHoroscopeData } from '../data/horoscopeData';
 import {
   defaultPanchangamData,
@@ -184,15 +184,16 @@ export const AppProvider = ({ children }) => {
   });
 
   useEffect(() => {
-    let visitorId = localStorage.getItem('amaze_unique_visitor_id') ||
+    let visitorId = localStorage.getItem('amazetimes_unique_visitor_id') ||
+                    localStorage.getItem('amaze_unique_visitor_id') ||
                     localStorage.getItem('amaze_visitor_id') ||
                     localStorage.getItem('adutha_visitor_id');
     if (!visitorId) {
       visitorId = 'v_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
-      localStorage.setItem('amaze_unique_visitor_id', visitorId);
-    } else if (!localStorage.getItem('amaze_unique_visitor_id')) {
-      localStorage.setItem('amaze_unique_visitor_id', visitorId);
     }
+    localStorage.setItem('amazetimes_unique_visitor_id', visitorId);
+    localStorage.setItem('amaze_unique_visitor_id', visitorId);
+
 
     let consecutiveFailures = 0;
     const sendHeartbeatPing = async () => {
@@ -313,6 +314,8 @@ export const AppProvider = ({ children }) => {
     };
   };
 
+  const latestNewsVersionRef = useRef(0);
+
   const fetchNews = async () => {
     try {
       const res = await api.getNews({ limit: 'all', _t: Date.now() });
@@ -326,6 +329,113 @@ export const AppProvider = ({ children }) => {
     }
   };
 
+  // Multi-Device & Cross-Tab Real-Time News Sync
+  useEffect(() => {
+    // 1. BroadcastChannel for 0ms cross-tab sync within same browser
+    let syncChannel = null;
+    try {
+      if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+        syncChannel = new BroadcastChannel('amazetimes_news_sync');
+        syncChannel.onmessage = (event) => {
+          fetchNews();
+        };
+      }
+    } catch (_) {}
+
+    // 2. Storage event secondary fallback for older browsers
+    const handleStorage = (e) => {
+      if (e.key === 'amazetimes_news_sync' || e.key === 'amazetimes_news_version') {
+        fetchNews();
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+
+    // 3. Tab focus & visibility check: micro-version check (< 100 bytes)
+    const checkVersionAndSync = async () => {
+      try {
+        const res = await api.getNewsVersion();
+        if (res && res.success && res.version) {
+          if (latestNewsVersionRef.current && res.version !== latestNewsVersionRef.current) {
+            fetchNews();
+          }
+          latestNewsVersionRef.current = res.version;
+        }
+      } catch (_) {}
+    };
+
+    const handleFocus = () => checkVersionAndSync();
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        checkVersionAndSync();
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    // 4. Server-Sent Events (SSE) Live Stream for 0ms Multi-Device Real-Time Sync
+    let eventSource = null;
+    let reconnectTimeout = null;
+
+    const connectSSE = () => {
+      try {
+        const sseUrl = `${API_BASE_URL}/news/live-stream`;
+        eventSource = new EventSource(sseUrl);
+
+        eventSource.addEventListener('connected', (e) => {
+          try {
+            const data = JSON.parse(e.data);
+            if (data?.version) latestNewsVersionRef.current = data.version;
+          } catch (_) {}
+        });
+
+        eventSource.addEventListener('news_update', (e) => {
+          try {
+            const data = JSON.parse(e.data);
+            if (data?.version) latestNewsVersionRef.current = data.version;
+          } catch (_) {}
+          fetchNews();
+        });
+
+        eventSource.onerror = () => {
+          if (eventSource) {
+            eventSource.close();
+            eventSource = null;
+          }
+          reconnectTimeout = setTimeout(connectSSE, 5000);
+        };
+      } catch (err) {
+        reconnectTimeout = setTimeout(connectSSE, 5000);
+      }
+    };
+
+    connectSSE();
+
+    return () => {
+      if (syncChannel) {
+        try { syncChannel.close(); } catch (_) {}
+      }
+      window.removeEventListener('storage', handleStorage);
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibility);
+      if (eventSource) eventSource.close();
+      if (reconnectTimeout) clearTimeout(reconnectTimeout);
+    };
+  }, []);
+
+  const notifyCrossTabSync = () => {
+    try {
+      if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+        const ch = new BroadcastChannel('amazetimes_news_sync');
+        ch.postMessage({ type: 'news_update', timestamp: Date.now() });
+        ch.close();
+      }
+    } catch (_) {}
+    try {
+      localStorage.setItem('amazetimes_news_sync', String(Date.now()));
+    } catch (_) {}
+  };
+
   const addNews = async (newsData) => {
     try {
       const res = await api.createNews(newsData);
@@ -334,6 +444,7 @@ export const AppProvider = ({ children }) => {
         setNewsList((prev) => [dbItem, ...prev.filter((n) => String(n.id || n._id) !== String(dbItem.id))]);
         showToast('செய்தி DB-யில் வெற்றிகரமாக சேமிக்கப்பட்டது!');
         window.dispatchEvent(new CustomEvent('amaze:content_updated'));
+        notifyCrossTabSync();
         return { success: true, data: dbItem };
       }
     } catch (e) {
@@ -352,6 +463,7 @@ export const AppProvider = ({ children }) => {
         setNewsList((prev) => prev.map((item) => (String(item.id || item._id) === idStr ? dbItem : item)));
         showToast('செய்தி DB-யில் புதுப்பிக்கப்பட்டது!');
         window.dispatchEvent(new CustomEvent('amaze:content_updated'));
+        notifyCrossTabSync();
         return { success: true, data: dbItem };
       }
     } catch (e) {
@@ -369,6 +481,7 @@ export const AppProvider = ({ children }) => {
         setNewsList((prev) => prev.filter((item) => String(item.id || item._id) !== idStr));
         showToast('செய்தி DB-யிலிருந்து நீக்கப்பட்டது!');
         window.dispatchEvent(new CustomEvent('amaze:content_updated'));
+        notifyCrossTabSync();
         return { success: true };
       }
     } catch (e) {
@@ -377,6 +490,7 @@ export const AppProvider = ({ children }) => {
     showToast('DB-யில் செய்தி நீக்குவதில் பிழை');
     return { success: false };
   };
+
 
 
 

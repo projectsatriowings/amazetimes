@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X, Heart, Share2, Sparkles, Send, CheckCircle2, MessageCircle } from 'lucide-react';
+import { shareBirthdayItem } from '../utils/birthdayShare';
 
 export default function BirthdayWishModal({ official, isOpen, onClose, onWishAdded, onToast }) {
   if (!isOpen || !official) return null;
@@ -17,14 +18,14 @@ export default function BirthdayWishModal({ official, isOpen, onClose, onWishAdd
     if (onToast) onToast('உங்கள் மனமார்ந்த வாழ்த்து பதிவு செய்யப்பட்டது! 🎉');
   };
 
-  const generateWhatsAppShare = () => {
-    const greeting = customMsg.trim() || official.greeting_text || official.greetingText || 'இனிய பிறந்தநாள் நல்வாழ்த்துகள்!';
-    const sender = readerName.trim() ? `\nவாழ்த்துபவர்: ${readerName}` : '';
-    const shareText = `🎂 *${official.name} அவர்களுக்கு இனிய பிறந்தநாள் நல்வாழ்த்துகள்!* 💐\n\n"${greeting}"${sender}\n\n📰 *அமேஸ் டைம்ஸ் - தமிழ் செய்திகள் நாளிதழ்*\n👉 வாழ்த்துக் கார்டு: ${window.location.origin}\n📺 யூடியூப்: https://www.youtube.com/@AmazeTimes\n📸 இன்ஸ்டாகிராம்: https://www.instagram.com/amazetimes\n💬 வாட்ஸ்அப் சேனல்: https://whatsapp.com/channel/amazetimes`;
-
-    const encoded = encodeURIComponent(shareText);
-    window.open(`https://api.whatsapp.com/send?text=${encoded}`, '_blank');
+  const handleShareClick = () => {
+    const itemToShare = {
+      ...official,
+      greeting_text: customMsg.trim() || official.greeting_text || official.greetingText
+    };
+    shareBirthdayItem({ item: itemToShare, showToast: onToast });
   };
+
 
   return (
     <div 
@@ -144,12 +145,13 @@ export default function BirthdayWishModal({ official, isOpen, onClose, onWishAdd
             </p>
             <button
               type="button"
-              onClick={generateWhatsAppShare}
+              onClick={handleShareClick}
               className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-2.5 rounded-xl text-xs flex items-center justify-center gap-2 transition-all shadow-md cursor-pointer"
             >
-              <MessageCircle className="w-4 h-4" />
-              <span>வாட்ஸ்அப்பில் பகிர்க (WhatsApp Formatted Card)</span>
+              <Share2 className="w-4 h-4" />
+              <span>வாழ்த்துக் கார்டைப் பகிர்க (Poster & Caption)</span>
             </button>
+
           </div>
 
         </div>

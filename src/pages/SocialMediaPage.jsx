@@ -96,17 +96,34 @@ export default function SocialMediaPage({ onNavigate, onToast }) {
     let isMounted = true;
     const fetchSettings = async () => {
       try {
-        const res = await api.getSocialMediaSettings();
-        if (isMounted && res && res.success && res.data) {
-          setSocialData(prev => ({
-            ...prev,
-            ...res.data,
-            whatsappAnnouncements: res.data.whatsappAnnouncements?.length > 0 
-              ? res.data.whatsappAnnouncements 
-              : prev.whatsappAnnouncements
-          }));
-          if (res.data.featuredVideos?.[0]?.videoId) {
-            setActiveVideoId(res.data.featuredVideos[0].videoId);
+        const [settingsRes, videosRes] = await Promise.allSettled([
+          api.getSocialMediaSettings(),
+          api.getSocialVideos()
+        ]);
+
+        if (isMounted) {
+          let foundVideos = [];
+          if (videosRes.status === 'fulfilled' && videosRes.value?.success && Array.isArray(videosRes.value?.videos)) {
+            foundVideos = videosRes.value.videos;
+          }
+
+          if (settingsRes.status === 'fulfilled' && settingsRes.value?.success && settingsRes.value?.data) {
+            const data = settingsRes.value.data;
+            const mergedVideos = foundVideos.length > 0 ? foundVideos : (data.featuredVideos || []);
+            setSocialData(prev => ({
+              ...prev,
+              ...data,
+              featuredVideos: mergedVideos,
+              whatsappAnnouncements: data.whatsappAnnouncements?.length > 0 
+                ? data.whatsappAnnouncements 
+                : prev.whatsappAnnouncements
+            }));
+
+            const topId = mergedVideos[0]?.videoId || mergedVideos[0]?.id;
+            if (topId) setActiveVideoId(topId);
+          } else if (foundVideos.length > 0) {
+            setSocialData(prev => ({ ...prev, featuredVideos: foundVideos }));
+            setActiveVideoId(foundVideos[0].videoId || foundVideos[0].id);
           }
         }
       } catch (err) {
@@ -118,6 +135,7 @@ export default function SocialMediaPage({ onNavigate, onToast }) {
     fetchSettings();
     return () => { isMounted = false; };
   }, []);
+
 
   const handleShare = async () => {
     const shareData = {
@@ -426,13 +444,14 @@ export default function SocialMediaPage({ onNavigate, onToast }) {
 
             <div className="relative aspect-video w-full rounded-2xl overflow-hidden bg-black shadow-inner border border-slate-800">
               <iframe
-                src={`https://www.youtube.com/embed/${activeVideoId || 'dQw4w9WgXcQ'}?autoplay=0&rel=0`}
+                src={`https://www.youtube.com/embed/${activeVideoId || socialData?.featuredVideos?.[0]?.videoId || ''}?autoplay=0&rel=0`}
                 title="Amaze Times Live Bulletin"
                 className="w-full h-full border-0"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
               ></iframe>
             </div>
+
 
             <div className="flex items-center justify-between flex-wrap gap-2 pt-2 border-t border-slate-100 dark:border-slate-800/80">
               <div>

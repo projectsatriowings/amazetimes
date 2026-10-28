@@ -74,6 +74,60 @@ export default function ArticleReaderModal({
     }
   };
 
+  const currentUrl = typeof window !== 'undefined' ? `${window.location.origin}/?article=${articleData?.id || ''}` : '';
+
+  // Inject JSON-LD structured data for NewsArticle for SEO & Google Discover
+  useEffect(() => {
+    if (!isOpen || !articleData) return;
+
+    const schemaId = 'newsarticle-jsonld-schema';
+    let script = document.getElementById(schemaId);
+    if (!script) {
+      script = document.createElement('script');
+      script.id = schemaId;
+      script.type = 'application/ld+json';
+      document.head.appendChild(script);
+    }
+
+    const jsonLd = {
+      "@context": "https://schema.org",
+      "@type": "NewsArticle",
+      "mainEntityOfPage": {
+        "@type": "WebPage",
+        "@id": currentUrl || `https://amazetimes.com/?article=${articleData.id}`
+      },
+      "headline": articleData.title || '',
+      "description": (articleData.desc || articleData.content || '').slice(0, 200),
+      "image": [
+        articleData.image || articleData.imageUrl || 'https://amazetimes.com/og-image.jpg'
+      ],
+      "datePublished": articleData.createdAt || articleData.date || new Date().toISOString(),
+      "dateModified": articleData.updatedAt || articleData.createdAt || new Date().toISOString(),
+      "author": {
+        "@type": "Person",
+        "name": articleData.author || "Amaze Times ஆசிரியர் குழு",
+        "url": "https://amazetimes.com"
+      },
+      "publisher": {
+        "@type": "NewsMediaOrganization",
+        "name": "Amaze Times",
+        "url": "https://amazetimes.com",
+        "logo": {
+          "@type": "ImageObject",
+          "url": "https://amazetimes.com/og-image.jpg"
+        }
+      },
+      "articleSection": articleData.category || "செய்திகள்"
+    };
+
+    script.textContent = JSON.stringify(jsonLd);
+
+    return () => {
+      const el = document.getElementById(schemaId);
+      if (el) el.remove();
+    };
+  }, [isOpen, articleData, currentUrl]);
+
   if (!isOpen || !articleData) return null;
 
   // Combine title and body for complete reading experience
@@ -81,8 +135,6 @@ export default function ArticleReaderModal({
     articleData.title,
     articleData.content || articleData.body || articleData.desc || ''
   ].filter(Boolean).join('. ');
-
-  const currentUrl = typeof window !== 'undefined' ? `${window.location.origin}/?article=${articleData.id}` : '';
 
   const handleCopyLink = () => {
     if (navigator.clipboard) {
@@ -327,6 +379,10 @@ export default function ArticleReaderModal({
             <img 
               src={articleData.image} 
               alt={articleData.title} 
+              width="800"
+              height="450"
+              loading="lazy"
+              decoding="async"
               className="w-full h-full object-cover"
               onError={(e) => { e.currentTarget.src = '/Amaze times.jpg'; }}
             />

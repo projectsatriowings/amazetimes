@@ -5,102 +5,155 @@ import { authenticate, requireReporterOrAdmin, optionalAuth } from '../middlewar
 
 const router = express.Router();
 
-// Sliding-window in-memory store for active live visitors
-const activeVisitors = new Map(); // visitorId -> lastPingTimestamp
+// Sliding-window in-memory store for active live visitors (visitorHash -> lastPingTimestamp)
+const activeVisitors = new Map();
 
-// Pre-cached set of unique visitor IDs to prevent duplicate database writes and preserve lifetime counts
-const knownVisitorsSet = new Set();
-let isVisitorsPreloaded = false;
+// In-memory set of known visitor hashes for 0ms deduplication
+const knownVisitorHashes = new Set();
+let isInitialized = false;
 
-// Pre-cache existing visitor_ids from visitor_logs on boot
-async function preCacheKnownVisitors() {
+// Initialize analytics_visitors table and pre-load visitor hashes
+async function initAnalyticsEngine() {
   try {
-    const res = await query('SELECT DISTINCT visitor_id FROM visitor_logs WHERE visitor_id IS NOT NULL');
+    await query(`
+      CREATE TABLE IF NOT EXISTS analytics_visitors (
+        id SERIAL PRIMARY KEY,
+        visitor_hash VARCHAR(128) UNIQUE NOT NULL,
+        ip_address VARCHAR(100),
+        user_agent TEXT,
+        first_seen TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        last_seen TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+      CREATE INDEX IF NOT EXISTS idx_analytics_visitors_hash ON analytics_visitors(visitor_hash);
+      CREATE INDEX IF NOT EXISTS idx_analytics_visitors_last_seen ON analytics_visitors(last_seen);
+    `);
+
+    // Ensure site_analytics table exists
+    await query(`
+      CREATE TABLE IF NOT EXISTS site_analytics (
+        id SERIAL PRIMARY KEY,
+        total_views BIGINT DEFAULT 0,
+        total_visitors BIGINT DEFAULT 0,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+      INSERT INTO site_analytics (id, total_views, total_visitors)
+      VALUES (1, 0, 0)
+      ON CONFLICT (id) DO NOTHING;
+    `);
+
+    // Pre-cache known hashes
+    const res = await query('SELECT visitor_hash FROM analytics_visitors;');
     if (res && res.rows) {
       for (const row of res.rows) {
-        if (row.visitor_id) {
-          knownVisitorsSet.add(String(row.visitor_id).trim());
-        }
+        if (row.visitor_hash) knownVisitorHashes.add(row.visitor_hash);
       }
     }
-    isVisitorsPreloaded = true;
-    console.log(`📡 [Analytics] Pre-cached ${knownVisitorsSet.size} unique visitors from visitor_logs into memory`);
 
-    // Ensure site_analytics reflects at least the count of known unique visitors
-    const statsRes = await query('SELECT total_visitors FROM site_analytics WHERE id = 1');
-    const dbTotal = statsRes.rows[0]?.total_visitors || 0;
-    if (knownVisitorsSet.size > dbTotal) {
-      await query('UPDATE site_analytics SET total_visitors = $1, updated_at = CURRENT_TIMESTAMP WHERE id = 1', [knownVisitorsSet.size]);
+    // Sync site_analytics with genuine lifetime count
+    const countRes = await query('SELECT COUNT(*) AS count FROM analytics_visitors;');
+    const totalLifetime = parseInt(countRes.rows[0]?.count || 0, 10);
+
+    const statsRes = await query('SELECT total_visitors FROM site_analytics WHERE id = 1;');
+    const dbTotal = parseInt(statsRes.rows[0]?.total_visitors || 0, 10);
+
+    if (totalLifetime > dbTotal) {
+      await query('UPDATE site_analytics SET total_visitors = $1, updated_at = CURRENT_TIMESTAMP WHERE id = 1;', [totalLifetime]);
     }
+
+    isInitialized = true;
+    console.log(`📊 [Analytics Engine] Genuine analytics active with ${totalLifetime} lifetime unique visitors.`);
   } catch (err) {
-    console.warn('⚠️ [Analytics] Pre-cache visitor_logs initialization notice:', err.message);
+    console.warn('⚠️ [Analytics Engine] Initialization notice:', err.message);
   }
 }
 
-// Initialize on server start
-preCacheKnownVisitors();
+initAnalyticsEngine();
 
-// Purge sessions older than 45 seconds
+// Purge inactive sessions older than 45 seconds
 const cleanupInactiveVisitors = () => {
-  const now = Date.now();
-  for (const [id, lastSeen] of activeVisitors.entries()) {
-    if (now - lastSeen > 45000) {
-      activeVisitors.delete(id);
+  const cutoff = Date.now() - 45000;
+  for (const [hash, lastSeen] of activeVisitors.entries()) {
+    if (lastSeen < cutoff) {
+      activeVisitors.delete(hash);
     }
   }
 };
-
 setInterval(cleanupInactiveVisitors, 15000);
 
-// POST /api/analytics/heartbeat - Real-time active viewer ping with 45s sliding window
+/**
+ * Generate a deterministic fingerprint hash from IP + UserAgent + Client visitorId
+ */
+function generateVisitorFingerprint(req) {
+  const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress || req.ip || '127.0.0.1';
+  const userAgent = req.headers['user-agent'] || 'unknown';
+  const clientVisitorId = req.body.visitorId || req.body.visitor_id || req.headers['x-visitor-id'] || '';
+
+  const raw = `${ip}###${userAgent}###${clientVisitorId}###amaze_2026`;
+  const hash = crypto.createHash('sha256').update(raw).digest('hex');
+  return { hash, ip, userAgent };
+}
+
+// POST /api/analytics/heartbeat - Genuine heartbeat ping with 24-hr deduplication
 router.post('/heartbeat', async (req, res) => {
   try {
-    const visitorId = req.body.visitorId || req.body.visitor_id || req.headers['x-visitor-id'] || 'v_anon';
+    const { hash, ip, userAgent } = generateVisitorFingerprint(req);
     const now = Date.now();
 
-    // Register active viewer in sliding window
-    activeVisitors.set(visitorId, now);
+    // 1. Sliding window live counter
+    activeVisitors.set(hash, now);
     cleanupInactiveVisitors();
 
-    const clientIp = req.ip || req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '';
-    const userAgent = req.headers['user-agent'] || '';
+    // 2. 24-Hour Deduplication & Lifetime Count Tracking
+    const isKnownInMemory = knownVisitorHashes.has(hash);
 
-    // Check if visitor is already known in memory set
-    if (!knownVisitorsSet.has(visitorId)) {
+    if (!isKnownInMemory) {
       try {
-        // Double-check database in case another instance or pre-cache was pending
-        const checkRes = await query('SELECT 1 FROM visitor_logs WHERE visitor_id = $1 LIMIT 1', [visitorId]);
+        const checkRes = await query(
+          'SELECT id, last_seen FROM analytics_visitors WHERE visitor_hash = $1 LIMIT 1;',
+          [hash]
+        );
+
         if (checkRes.rows.length === 0) {
-          // New unique lifetime visitor: insert log & increment site_analytics
+          // New lifetime unique visitor
           await query(`
-            INSERT INTO visitor_logs (visitor_id, ip_address, user_agent)
-            VALUES ($1, $2, $3);
-          `, [visitorId, clientIp, userAgent]);
+            INSERT INTO analytics_visitors (visitor_hash, ip_address, user_agent, first_seen, last_seen)
+            VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            ON CONFLICT (visitor_hash) DO NOTHING;
+          `, [hash, ip, userAgent]);
 
           await query(`
             UPDATE site_analytics
             SET total_visitors = total_visitors + 1, updated_at = CURRENT_TIMESTAMP
             WHERE id = 1;
           `);
+        } else {
+          // Returning visitor: update last_seen if > 24 hours
+          const lastSeen = new Date(checkRes.rows[0].last_seen).getTime();
+          const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
+          if (now - lastSeen > TWENTY_FOUR_HOURS) {
+            await query(
+              'UPDATE analytics_visitors SET last_seen = CURRENT_TIMESTAMP WHERE visitor_hash = $1;',
+              [hash]
+            );
+          }
         }
-        knownVisitorsSet.add(visitorId);
-      } catch (e) {
-        console.warn('[Analytics] Error recording unique visitor log:', e.message);
+        knownVisitorHashes.add(hash);
+      } catch (dbErr) {
+        console.warn('[Analytics Heartbeat] DB check notice:', dbErr.message);
       }
     }
 
-    // Retrieve current stats
-    const statsRes = await query(`SELECT total_views, total_visitors FROM site_analytics WHERE id = 1;`);
-    const totalViews = statsRes.rows[0]?.total_views || 0;
-    const totalVisitors = statsRes.rows[0]?.total_visitors || knownVisitorsSet.size || 0;
+    // 3. Fetch genuine stats
+    const statsRes = await query('SELECT total_views, total_visitors FROM site_analytics WHERE id = 1;');
+    const totalViews = parseInt(statsRes.rows[0]?.total_views || 0, 10);
+    const totalVisitors = parseInt(statsRes.rows[0]?.total_visitors || knownVisitorHashes.size || 0, 10);
     const liveCount = Math.max(1, activeVisitors.size);
 
     res.json({
       success: true,
       liveCount,
-      live_count: liveCount,
-      totalViews: parseInt(totalViews, 10),
-      totalVisitors: parseInt(totalVisitors, 10)
+      totalVisitors,
+      totalViews
     });
   } catch (err) {
     console.error('Heartbeat error:', err);
@@ -108,21 +161,20 @@ router.post('/heartbeat', async (req, res) => {
       success: false,
       message: err.message,
       liveCount: Math.max(1, activeVisitors.size),
-      totalVisitors: knownVisitorsSet.size || 0
+      totalVisitors: knownVisitorHashes.size || 0,
+      totalViews: 0
     });
   }
 });
 
-// GET /api/analytics/pulse - Live visitor pulse counter
+// GET /api/analytics/pulse - Live visitor count (Zero artificial multipliers)
 router.get('/pulse', (req, res) => {
   cleanupInactiveVisitors();
-  const baseReaders = 145;
-  const jitter = Math.floor(Math.sin(Date.now() / 60000) * 8) + Math.min(25, activeVisitors.size);
-  const activeCount = Math.max(1, baseReaders + jitter);
+  const liveCount = Math.max(1, activeVisitors.size);
   res.json({
     success: true,
-    activeVisitors: activeCount,
-    liveCount: activeCount
+    activeVisitors: liveCount,
+    liveCount
   });
 });
 
@@ -142,14 +194,14 @@ router.get('/stats', optionalAuth, async (req, res) => {
       FROM news;
     `);
 
-    const analyticsRes = await query(`SELECT total_views, total_visitors FROM site_analytics WHERE id = 1;`);
-    const totalViews = analyticsRes.rows[0]?.total_views || 0;
-    const totalVisitors = analyticsRes.rows[0]?.total_visitors || knownVisitorsSet.size || 0;
+    const analyticsRes = await query('SELECT total_views, total_visitors FROM site_analytics WHERE id = 1;');
+    const totalViews = parseInt(analyticsRes.rows[0]?.total_views || 0, 10);
+    const totalVisitors = parseInt(analyticsRes.rows[0]?.total_visitors || knownVisitorHashes.size || 0, 10);
 
     const todayVisitorRes = await query(`
-      SELECT COUNT(DISTINCT visitor_id) AS today_visitors
-      FROM visitor_logs
-      WHERE visited_at >= CURRENT_DATE;
+      SELECT COUNT(DISTINCT visitor_hash) AS today_visitors
+      FROM analytics_visitors
+      WHERE last_seen >= CURRENT_DATE;
     `);
 
     const nRow = newsStatsRes.rows[0] || {};
@@ -159,8 +211,8 @@ router.get('/stats', optionalAuth, async (req, res) => {
     res.json({
       success: true,
       liveCount,
-      totalVisitors: parseInt(totalVisitors, 10),
-      totalViews: parseInt(totalViews, 10),
+      totalVisitors,
+      totalViews,
       data: {
         liveCount,
         totalNews: parseInt(nRow.total_news || 0, 10),
@@ -169,8 +221,8 @@ router.get('/stats', optionalAuth, async (req, res) => {
         draftNews: parseInt(nRow.draft_news || 0, 10),
         articleViews: parseInt(nRow.article_views || 0, 10),
         articleLikes: parseInt(nRow.article_likes || 0, 10),
-        totalViews: parseInt(totalViews, 10),
-        totalVisitors: parseInt(totalVisitors, 10),
+        totalViews,
+        totalVisitors,
         todayVisitors: Math.max(todayVisitors, 1)
       }
     });
@@ -180,26 +232,11 @@ router.get('/stats', optionalAuth, async (req, res) => {
   }
 });
 
-// POST /api/analytics/track - Backwards compatible visitor track
+// POST /api/analytics/track - Backwards compatible visitor tracking
 router.post('/track', async (req, res) => {
   try {
-    const { visitor_id, device_type } = req.body;
-    const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1';
-    const userAgent = req.headers['user-agent'] || 'unknown';
-
-    const clientUuid = visitor_id || req.headers['x-visitor-id'] || 'anon';
-    const rawSignature = `${ip}|${userAgent}|${clientUuid}|amaze_salt_2026`;
-    const visitorHash = crypto.createHash('sha256').update(rawSignature).digest('hex');
-
-    // Also register in sliding window
-    activeVisitors.set(clientUuid, Date.now());
-
-    try {
-      await query(`
-        INSERT INTO visitor_logs (visitor_id, ip_address, user_agent)
-        VALUES ($1, $2, $3);
-      `, [clientUuid, ip, userAgent]);
-    } catch (_) {}
+    const { hash, ip, userAgent } = generateVisitorFingerprint(req);
+    activeVisitors.set(hash, Date.now());
 
     res.json({
       success: true,
@@ -229,14 +266,14 @@ router.get('/dashboard-stats', authenticate, requireReporterOrAdmin, async (req,
     `);
 
     const row = nStats.rows[0] || {};
-    const analyticsRes = await query(`SELECT total_views, total_visitors FROM site_analytics WHERE id = 1;`);
-    const totalViews = analyticsRes.rows[0]?.total_views || 0;
-    const totalVisitors = analyticsRes.rows[0]?.total_visitors || knownVisitorsSet.size || 0;
+    const analyticsRes = await query('SELECT total_views, total_visitors FROM site_analytics WHERE id = 1;');
+    const totalViews = parseInt(analyticsRes.rows[0]?.total_views || 0, 10);
+    const totalVisitors = parseInt(analyticsRes.rows[0]?.total_visitors || knownVisitorHashes.size || 0, 10);
 
     const todayVisitorRes = await query(`
-      SELECT COUNT(DISTINCT visitor_id) AS today_visitors
-      FROM visitor_logs
-      WHERE visited_at >= CURRENT_DATE;
+      SELECT COUNT(DISTINCT visitor_hash) AS today_visitors
+      FROM analytics_visitors
+      WHERE last_seen >= CURRENT_DATE;
     `);
     const todayVisitors = parseInt(todayVisitorRes.rows[0]?.today_visitors || 0, 10);
 
@@ -251,13 +288,13 @@ router.get('/dashboard-stats', authenticate, requireReporterOrAdmin, async (req,
           total_article_views: parseInt(row.total_views || 0, 10)
         },
         visitors: {
-          today_uniques: todayVisitors,
-          all_time_uniques: parseInt(totalVisitors, 10),
+          today_uniques: Math.max(todayVisitors, 1),
+          all_time_uniques: totalVisitors,
           active_now: Math.max(1, activeVisitors.size)
         },
         liveCount: Math.max(1, activeVisitors.size),
-        totalViews: parseInt(totalViews, 10),
-        totalVisitors: parseInt(totalVisitors, 10)
+        totalViews,
+        totalVisitors
       }
     });
   } catch (error) {

@@ -38,6 +38,7 @@ import VideoPlayerModal from './components/VideoPlayerModal';
 import PushNotificationPrompt from './components/PushNotificationPrompt';
 import SocialMediaPage from './pages/SocialMediaPage';
 import ReporterDashboard from './pages/ReporterDashboard';
+import CategoryPage from './pages/CategoryPage';
 import { GoldMarketDashboard } from './components/GoldMarketDashboard';
 import Toast from './components/Toast';
 import NotFoundPage from './components/NotFoundPage';
@@ -768,7 +769,9 @@ export default function App() {
 
   // 100% Authentic Database News — Real Lead Hero & Display Cards directly from PostgreSQL
   const leadData = backendLeadArticle;
-  let displayCards = [...backendArticles, ...extraCards];
+  const rawCards = [...backendArticles, ...extraCards];
+  // Deduplicate by id to prevent duplicated cards when combining primary news with paginated lists
+  let displayCards = Array.from(new Map(rawCards.map(a => [String(a.id || a._id), a])).values());
 
   if (searchQuery.trim()) {
     const q = searchQuery.toLowerCase();

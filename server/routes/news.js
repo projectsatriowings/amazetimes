@@ -1,11 +1,18 @@
 import express from 'express';
 import { query, ensureHttpsUrl } from '../db.js';
 import { authenticate, requireReporterOrAdmin, optionalAuth } from '../middleware/auth.js';
+import {
+  getCachedNews,
+  setCachedNews,
+  getNewsVersion,
+  invalidateNewsCache,
+  registerSseClient
+} from '../services/newsCacheService.js';
 
 const router = express.Router();
 
 // Helper to format an article row uniformly
-const formatNewsRow = (r) => {
+export const formatNewsRow = (r) => {
   return {
     id: r.id,
     _id: String(r.id),
@@ -37,9 +44,10 @@ const formatNewsRow = (r) => {
     authorName: r.author_name || 'செய்தி ஆசிரியர்',
     author: r.author_name || 'செய்தி ஆசிரியர்',
     status: r.status || 'published',
-    viewsCount: parseInt(r.views_count || r.view_count || 0, 10),
-    views_count: parseInt(r.views_count || r.view_count || 0, 10),
-    view_count: parseInt(r.views_count || r.view_count || 0, 10),
+    viewsCount: parseInt(r.views_count || r.view_count || r.views || 0, 10),
+    views_count: parseInt(r.views_count || r.view_count || r.views || 0, 10),
+    view_count: parseInt(r.views_count || r.view_count || r.views || 0, 10),
+    views: parseInt(r.views_count || r.view_count || r.views || 0, 10),
     likesCount: parseInt(r.likes_count || 0, 10),
     likes_count: parseInt(r.likes_count || 0, 10),
     publishedAt: r.published_at || r.created_at,
@@ -50,58 +58,24 @@ const formatNewsRow = (r) => {
   };
 };
 
-// In-memory version tracker & SSE client set for Zero-Reload Real-Time Sync
-let globalNewsVersion = Date.now();
-const sseClients = new Set();
-
+// Backwards-compatible notify alias
 export const notifyNewsClients = (action, payload = {}) => {
-  globalNewsVersion = Date.now();
-  const data = JSON.stringify({ action, version: globalNewsVersion, timestamp: Date.now(), ...payload });
-  sseClients.forEach((client) => {
-    try {
-      client.write(`event: news_update\ndata: ${data}\n\n`);
-    } catch (_) {
-      sseClients.delete(client);
-    }
-  });
+  invalidateNewsCache(action, payload?.article || payload?.updated || payload);
 };
 
-// GET /api/news/version - Smart micro-version check (100 bytes)
+// GET /api/news/version - Ultra-lightweight micro-version check (< 100 bytes)
 router.get('/version', (req, res) => {
   res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
   res.json({
     success: true,
-    version: globalNewsVersion,
+    version: getNewsVersion(),
     timestamp: Date.now()
   });
 });
 
-// GET /api/news/live-stream - Server-Sent Events (SSE) stream for instantaneous updates
+// GET /api/news/live-stream - Server-Sent Events (SSE) stream for zero-reload updates
 router.get('/live-stream', (req, res) => {
-  res.setHeader('Content-Type', 'text/event-stream');
-  res.setHeader('Cache-Control', 'no-cache, no-transform');
-  res.setHeader('Connection', 'keep-alive');
-  res.flushHeaders?.();
-
-  // Send initial handshake ping
-  res.write(`event: connected\ndata: ${JSON.stringify({ version: globalNewsVersion, timestamp: Date.now() })}\n\n`);
-
-  sseClients.add(res);
-
-  // Keep-alive heartbeat every 25s
-  const heartbeat = setInterval(() => {
-    try {
-      res.write(': keep-alive\n\n');
-    } catch (_) {
-      clearInterval(heartbeat);
-      sseClients.delete(res);
-    }
-  }, 25000);
-
-  req.on('close', () => {
-    clearInterval(heartbeat);
-    sseClients.delete(res);
-  });
+  registerSseClient(req, res);
 });
 
 // GET /api/news & /api/articles - List news with pagination, category/district filters, search
@@ -127,12 +101,36 @@ router.get('/', optionalAuth, async (req, res) => {
     const pageNum = Math.max(1, parseInt(page, 10) || 1);
     const offset = (pageNum - 1) * limitNum;
 
+    const isAdminOrReporter = req.user && (req.user.role === 'admin' || req.user.role === 'reporter');
+
+    // Sub-5ms caching for default public landing feed
+    const isDefaultQuery =
+      (!category || category === 'all') &&
+      (!district || district === 'all') &&
+      (!status || status === 'published' || status === 'all') &&
+      (!search || !search.trim()) &&
+      !is_breaking &&
+      !is_lead_hero &&
+      !is_top_story &&
+      !author_id &&
+      !author_name &&
+      pageNum === 1;
+
+    if (isDefaultQuery && !isAdminOrReporter) {
+      const cached = getCachedNews();
+      if (cached) {
+        res.setHeader('X-Cache', 'HIT');
+        return res.json(cached);
+      }
+    }
+
     const whereConditions = [];
     const params = [];
 
     // Filter by author if requested
     if (author_id) {
       params.push(author_id);
+
       whereConditions.push(`author_id = $${params.length}`);
     } else if (author_name) {
       params.push(author_name);
@@ -140,7 +138,6 @@ router.get('/', optionalAuth, async (req, res) => {
     }
 
     // Filter by status (public users can only view 'published')
-    const isAdminOrReporter = req.user && (req.user.role === 'admin' || req.user.role === 'reporter');
     if (!isAdminOrReporter) {
       whereConditions.push(`status = 'published'`);
     } else if (status && status !== 'all' && status !== 'undefined') {
@@ -263,7 +260,7 @@ router.get('/', optionalAuth, async (req, res) => {
     const result = await query(selectSql, params);
     const formattedNews = result.rows.map(formatNewsRow);
 
-    res.json({
+    const responsePayload = {
       success: true,
       news: formattedNews,
       data: formattedNews,
@@ -274,12 +271,20 @@ router.get('/', optionalAuth, async (req, res) => {
         total: totalCount,
         totalPages: Math.ceil(totalCount / limitNum) || 1
       }
-    });
+    };
+
+    if (isDefaultQuery && !isAdminOrReporter) {
+      setCachedNews(responsePayload);
+      res.setHeader('X-Cache', 'MISS');
+    }
+
+    res.json(responsePayload);
   } catch (err) {
     console.error('Error fetching news:', err);
     res.status(500).json({ success: false, message: 'செய்திகளை ஏற்றுவதில் பிழை: ' + err.message });
   }
 });
+
 
 // GET /api/news/:id - Fetch single article
 router.get('/:id', async (req, res) => {
@@ -417,6 +422,8 @@ router.post('/:id/make-first', authenticate, requireReporterOrAdmin, async (req,
     }
 
     const updated = formatNewsRow(result.rows[0]);
+    invalidateNewsCache('update', updated);
+
     res.json({
       success: true,
       message: 'செய்தி வெற்றிகரமாக முகப்புப் பக்கத்தின் முதல் இடத்திற்கு கொண்டு செல்லப்பட்டது (#1 Priority)',
@@ -424,6 +431,7 @@ router.post('/:id/make-first', authenticate, requireReporterOrAdmin, async (req,
       news: updated,
       data: updated
     });
+
   } catch (err) {
     console.error('Error in make-first:', err);
     res.status(500).json({ success: false, message: err.message });

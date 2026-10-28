@@ -20,6 +20,7 @@ import {
   Loader2
 } from 'lucide-react';
 import {
+  normalizeTamilForSpeech,
   normalizeTamilSpeech,
   chunkTamilText
 } from '../utils/tamilSpeechNormalizer';
@@ -74,10 +75,11 @@ const VoiceReaderPlayer = forwardRef(function VoiceReaderPlayer(
   const chunksRef = useRef([]);
   const currentStreamUrlRef = useRef('');
 
-  // Pre-normalize text and prepare chunks
+  // Pre-normalize text and prepare chunks using normalizeTamilForSpeech
   const normalizedText = React.useMemo(() => {
-    return normalizeTamilSpeech(text || title || '');
+    return normalizeTamilForSpeech(text || title || '');
   }, [text, title]);
+
 
   useEffect(() => {
     const generatedChunks = chunkTamilText(normalizedText, 140);

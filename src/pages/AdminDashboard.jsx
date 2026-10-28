@@ -321,8 +321,50 @@ export const AdminDashboard = () => {
     }
   };
 
+  // Helper to cleanly reset editing article state and pre-select current active domain/category
+  const resetEditingArticle = (targetCategory = null) => {
+    setEditingArticle(null);
+    let defaultCat = targetCategory;
+    if (!defaultCat) {
+      if (categoryFilter && categoryFilter !== 'all') {
+        defaultCat = categoryFilter;
+      } else if (activeTab && activeTab.startsWith('category-')) {
+        defaultCat = activeTab.replace('category-', '');
+      } else {
+        defaultCat = 'தமிழ்நாடு';
+      }
+    }
+    setNewsForm({
+      title: '',
+      subtitle: '',
+      summary: '',
+      content: '',
+      seoKeywords: '',
+      tags: '',
+      category: defaultCat,
+      subCategory: 'news',
+      district: districtFilter !== 'all' ? districtFilter : 'all',
+      mainImage: '',
+      authorName: user?.name || 'ஆசிரியர்',
+      isBreaking: false,
+      isLeadHero: false,
+      isTopStory: false,
+      status: 'published'
+    });
+  };
+
+  // Reset editing article whenever switching tabs to prevent ghost overrides
+  useEffect(() => {
+    resetEditingArticle();
+  }, [activeTab]);
+
+  const handleCloseNewsModal = () => {
+    setShowNewsModal(false);
+    resetEditingArticle();
+  };
+
   // Handlers for News
-  const handleOpenNewsModal = (article = null) => {
+  const handleOpenNewsModal = (article = null, targetCategory = null) => {
     if (article) {
       setEditingArticle(article);
       const resolvedContent = article.content || (Array.isArray(article.paragraphs) ? article.paragraphs.join('\n\n') : (article.summary || ''));
@@ -336,6 +378,7 @@ export const AdminDashboard = () => {
         seoKeywords: article.seoKeywords || '',
         tags: article.tags || '',
         category: article.category || 'தமிழ்நாடு',
+        subCategory: article.subCategory || 'news',
         district: article.district || 'all',
         mainImage: resolvedImg,
         authorName: resolvedAuthor,
@@ -345,23 +388,7 @@ export const AdminDashboard = () => {
         status: article.status || 'published'
       });
     } else {
-      setEditingArticle(null);
-      setNewsForm({
-        title: '',
-        subtitle: '',
-        summary: '',
-        content: '',
-        seoKeywords: '',
-        tags: '',
-        category: 'தமிழ்நாடு',
-        district: 'all',
-        mainImage: '',
-        authorName: 'ஆசிரியர்',
-        isBreaking: false,
-        isLeadHero: false,
-        isTopStory: false,
-        status: 'published'
-      });
+      resetEditingArticle(targetCategory);
     }
     setShowNewsModal(true);
   };
@@ -378,12 +405,10 @@ export const AdminDashboard = () => {
       if (editingArticle) {
         const targetId = editingArticle._id || editingArticle.id;
         result = await updateNews(targetId, newsForm);
-
       } else {
         result = await addNews(newsForm);
-
       }
-      setShowNewsModal(false);
+      handleCloseNewsModal();
       if (result && result.data) {
         setArticles((prev) => [result.data, ...prev.filter(a => String(a.id || a._id) !== String(result.data.id || result.data._id))]);
       }
@@ -2186,7 +2211,7 @@ export const AdminDashboard = () => {
               <h3 className="font-black text-amber-400 text-lg flex items-center gap-2">
                 {editingArticle ? 'செய்தி திருத்துதல்' : 'புதிய செய்தி உருவாக்குதல்'}
               </h3>
-              <button onClick={() => setShowNewsModal(false)} className="text-slate-400 hover:text-white font-bold cursor-pointer">
+              <button onClick={handleCloseNewsModal} className="text-slate-400 hover:text-white font-bold cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>

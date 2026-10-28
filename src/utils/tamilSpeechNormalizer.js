@@ -1,15 +1,10 @@
 /**
- * Tamil Speech Normalizer & Text-to-Speech Preprocessor
+ * Tamil Speech Normalizer & AI Voice Reader Preprocessor
+ * Brand: Amaze Times
  * 
- * Provides:
- * 1. Number to Tamil words converter (0 to 99,99,99,999)
- * 2. Currency normalization (ரூ. -> ரூபாய் without dots)
- * 3. Percentage expansion (50% -> ஐம்பது சதவீதம்)
- * 4. Tamil & English initials de-dotting (மு.க.ஸ்டாலின் -> மு க ஸ்டாலின்)
- * 5. Common abbreviation expansions (கி.மீ. -> கிலோமீட்டர், எ.கா. -> எடுத்துக்காட்டாக)
- * 6. Ellipses & colons converted to natural pause commas
- * 7. Acronym pronunciations (AI -> ஏஐ, IT -> ஐடி, CM -> முதல்வர்)
- * 8. Sentence & phrase chunking (max ~150 chars)
+ * Ensures 100% natural, fluent Tamil speech synthesis by converting
+ * numbers, currencies, percentages, acronyms, and abbreviations, while
+ * strictly removing punctuation that would cause voice engines to pronounce "புள்ளி" (pulli).
  */
 
 const ONES = ['', 'ஒன்று', 'இரண்டு', 'மூன்று', 'நான்கு', 'ஐந்து', 'ஆறு', 'ஏழு', 'எட்டு', 'ஒன்பது'];
@@ -35,9 +30,6 @@ const HUNDREDS_PREFIX = [
   '', 'நூற்று', 'இருநூற்று', 'முந்நூற்று', 'நானூற்று', 'ஐந்நூற்று', 'அறுநூற்று', 'எழுநூற்று', 'எண்நூற்று', 'தொள்ளாயிரத்து'
 ];
 
-/**
- * Convert numbers 0 - 99 to Tamil words
- */
 function convertUnder100(n) {
   if (n === 0) return '';
   if (n < 10) return ONES[n];
@@ -48,9 +40,6 @@ function convertUnder100(n) {
   return `${TENS_PREFIX[tens]} ${ONES[rem]}`;
 }
 
-/**
- * Convert numbers 0 - 999 to Tamil words
- */
 function convertUnder1000(n) {
   if (n === 0) return '';
   if (n < 100) return convertUnder100(n);
@@ -61,8 +50,10 @@ function convertUnder1000(n) {
 }
 
 /**
- * Convert any integer (0 to 99,99,99,999) to natural Tamil words
- * e.g., 45000 -> "நாற்பத்து ஐந்து ஆயிரம்", 2026 -> "இரண்டு ஆயிரத்து இருபத்து ஆறு"
+ * Converts any integer (0 to 99,99,99,999) into fluent Tamil phonetic words
+ * Handling tens, hundreds, thousands, lakhs, and crores.
+ * @param {number|string} num
+ * @returns {string}
  */
 export function numberToTamilWords(num) {
   if (num === null || num === undefined || num === '') return '';
@@ -139,10 +130,11 @@ export function decimalToTamilWords(str) {
 
 export const ACRONYMS = {
   'AI': 'ஏஐ',
-  'IT': 'ஐடி',
-  'CM': 'முதல்வர்',
-  'PM': 'பிரதமர்',
+  'ISRO': 'இஸ்ரோ',
   'IPL': 'ஐபிஎல்',
+  'CM': 'சிஎம்',
+  'PM': 'பிஎம்',
+  'IT': 'ஐடி',
   'BJP': 'பாஜக',
   'DMK': 'திமுக',
   'ADMK': 'அதிமுக',
@@ -151,7 +143,6 @@ export const ACRONYMS = {
   'CCTV': 'சிசிடிவி',
   'GPS': 'ஜிபிஎஸ்',
   'NASA': 'நாசா',
-  'ISRO': 'இஸ்ரோ',
   'RBI': 'ஆர்பிஐ',
   'SBI': 'எஸ்பிஐ',
   'OTP': 'ஓடிபி',
@@ -165,6 +156,8 @@ export const ABBREVIATIONS = [
   { pattern: /கி\.மீ\.?/g, replacement: 'கிலோமீட்டர் ' },
   { pattern: /செ\.மீ\.?/g, replacement: 'சென்டிமீட்டர் ' },
   { pattern: /மி\.மீ\.?/g, replacement: 'மில்லிமீட்டர் ' },
+  { pattern: /பி\.ஜே\.பி\.?/g, replacement: 'பாஜக ' },
+  { pattern: /டி\.வி\.?/g, replacement: 'டிவி ' },
   { pattern: /எ\.கா\.?/g, replacement: 'எடுத்துக்காட்டாக ' },
   { pattern: /மு\.ப\.?/g, replacement: 'முற்பகல் ' },
   { pattern: /பி\.ப\.?/g, replacement: 'பிற்பகல் ' },
@@ -177,19 +170,35 @@ export const ABBREVIATIONS = [
 ];
 
 /**
- * Normalizes Tamil news text for crystal-clear TTS pronunciation:
- * - Replaces dots/punctuations that would otherwise be vocalized ("pulli", "dot", "roo pulli")
- * - Expands numbers, currencies, percentages, initials, and acronyms
- * - Converts ellipses and colons to natural breath-pause commas
+ * Normalizes raw Tamil news text for crystal-clear TTS pronunciation:
+ * - Strips HTML tags, markdown, and URLs
+ * - Normalizes currencies (ரூ./₹/Rs.) into {words} ரூபாய்
+ * - Normalizes percentages (50% -> ஐம்பது சதவீதம்)
+ * - Normalizes common abbreviations (கி.மீ. -> கிலோமீட்டர், செ.மீ. -> சென்டிமீட்டர், பி.ஜே.பி. -> பாஜக, டி.வி. -> டிவி)
+ * - CRITICAL: Strips dots from Tamil initials (e.g., மு.க.ஸ்டாலின் -> மு க ஸ்டாலின், கே.செந்தில் -> கே செந்தில்) to prevent voice engines from vocalizing "புள்ளி"
+ * - Replaces ellipses ... and colons/semicolons with commas for natural breathing pauses
+ * - Phonetically expands English acronyms (AI -> ஏஐ, ISRO -> இஸ்ரோ, IPL -> ஐபிஎல், CM -> சிஎம், PM -> பிஎம்)
+ * 
+ * @param {string} rawText
+ * @returns {string}
  */
-export function normalizeTamilSpeech(text) {
-  if (!text) return '';
-  let str = String(text);
+export function normalizeTamilForSpeech(rawText) {
+  if (!rawText) return '';
+  let str = String(rawText);
 
-  // 1. Strip HTML tags if any
+  // 1. Strip URLs
+  str = str.replace(/https?:\/\/[^\s]+/gi, ' ');
+
+  // 2. Strip Markdown syntax
+  str = str
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // [text](url) -> text
+    .replace(/^#+\s+/gm, '') // # Headings
+    .replace(/(\*\*|__)(.*?)\1/g, '$2') // **bold**
+    .replace(/(\*|_)(.*?)\1/g, '$2') // *italic*
+    .replace(/`([^`]+)`/g, '$1'); // `code`
+
+  // 3. Strip HTML tags & decode common entities
   str = str.replace(/<[^>]+>/g, ' ');
-
-  // 2. Decode common HTML entities
   str = str
     .replace(/&nbsp;/g, ' ')
     .replace(/&amp;/g, ' மற்றும் ')
@@ -198,23 +207,23 @@ export function normalizeTamilSpeech(text) {
     .replace(/&lt;/g, ' ')
     .replace(/&gt;/g, ' ');
 
-  // 3. Ellipses and colons -> commas for natural breath pauses
+  // 4. Ellipses and colons/semicolons -> commas for natural breathing pauses
   str = str.replace(/\.{3,}/g, ' , ');
   str = str.replace(/…/g, ' , ');
-  str = str.replace(/:/g, ' , ');
+  str = str.replace(/[:;]/g, ' , ');
 
-  // 4. Common Acronyms (case-insensitive word boundary)
-  for (const [key, val] of Object.entries(ACRONYMS)) {
-    const reg = new RegExp(`\\b${key}\\b`, 'gi');
-    str = str.replace(reg, val);
-  }
-
-  // 5. Abbreviations
+  // 5. Common abbreviations (before dot stripping so abbreviations with dots match)
   for (const { pattern, replacement } of ABBREVIATIONS) {
     str = str.replace(pattern, replacement);
   }
 
-  // 6. Currencies: "ரூ. 45,000", "ரூ.45,000", "₹45,000", "Rs. 45000"
+  // 6. Phonetically expand English acronyms
+  for (const [key, val] of Object.entries(ACRONYMS)) {
+    const reg = new RegExp(`\\b${key}\\b`, 'g');
+    str = str.replace(reg, val);
+  }
+
+  // 7. Currencies: "ரூ. 45,000", "ரூ.45,000", "₹45,000", "Rs. 45000"
   str = str.replace(/(?:ரூ\.?|₹|Rs\.?)\s*([\d,]+(?:\.\d+)?)/gi, (_, numStr) => {
     const cleanNum = numStr.replace(/,/g, '');
     const words = cleanNum.includes('.') ? decimalToTamilWords(cleanNum) : numberToTamilWords(cleanNum);
@@ -225,21 +234,21 @@ export function normalizeTamilSpeech(text) {
   str = str.replace(/ரூ\./g, 'ரூபாய் ');
   str = str.replace(/ரூ\b/g, 'ரூபாய் ');
 
-  // 7. Percentages: 50% -> ஐம்பது சதவீதம், 4.5% -> நான்கு புள்ளி ஐந்து சதவீதம்
+  // 8. Percentages: 50% -> ஐம்பது சதவீதம், 4.5% -> நான்கு புள்ளி ஐந்து சதவீதம்
   str = str.replace(/([\d,]+(?:\.\d+)?)\s*%/g, (_, numStr) => {
     const cleanNum = numStr.replace(/,/g, '');
     const words = cleanNum.includes('.') ? decimalToTamilWords(cleanNum) : numberToTamilWords(cleanNum);
     return `${words} சதவீதம் `;
   });
 
-  // 8. Initials with dots: (?:[\u0B80-\u0BFA][\u0BBE-\u0BCD]?){1,3}\.
-  // Replaces trailing dots from initials (மு.க.ஸ்டாலின் -> மு க ஸ்டாலின்)
+  // 9. CRITICAL: Strip dots from Tamil initials (e.g. மு.க.ஸ்டாலின் -> மு க ஸ்டாலின், கே.செந்தில் -> கே செந்தில்)
+  // Prevents voice engines from reading "புள்ளி" (pulli)
   str = str.replace(/((?:[\u0B80-\u0BFA][\u0BBE-\u0BCD]?){1,3})\./g, '$1 ');
 
   // English initials with dots: e.g. "M.K." -> "M K "
   str = str.replace(/\b([A-Za-z])\./g, '$1 ');
 
-  // 9. Standalone numbers with commas or digits (0 to 99,99,99,999)
+  // 10. Standalone numbers with commas or digits (0 to 99,99,99,999)
   str = str.replace(/\b[\d,]+(?:\.\d+)?\b/g, (match) => {
     const cleanNum = match.replace(/,/g, '');
     if (!/^\d+(\.\d+)?$/.test(cleanNum)) return match;
@@ -251,32 +260,30 @@ export function normalizeTamilSpeech(text) {
     return numberToTamilWords(val);
   });
 
-  // 10. Clean up symbols that cause literal punctuation reading or halts
+  // 11. Clean up symbols that cause literal punctuation reading or halts
   str = str.replace(/["'“”‘’]/g, '');
   str = str.replace(/[()\[\]{}]/g, ' , ');
-  str = str.replace(/;/g, ' , ');
   str = str.replace(/[-–—/\\|]/g, ' ');
 
-  // 11. Normalize commas and excessive whitespace
+  // 12. Normalize commas and excessive whitespace
   str = str.replace(/,\s*,+/g, ',');
   str = str.replace(/\s+/g, ' ').trim();
 
   return str;
 }
 
+// Full backwards-compatible alias
+export const normalizeTamilSpeech = normalizeTamilForSpeech;
+
 /**
  * Splits normalized Tamil text into chunks of max ~150 chars,
  * respecting sentence boundaries, commas, and word boundaries.
- * 
- * Prevents Chrome's 15-second speech buffer timeout and conforms
- * to Google TTS query length limits.
  */
 export function chunkTamilText(text, maxChars = 150) {
   if (!text) return [];
-  const normalized = normalizeTamilSpeech(text);
+  const normalized = normalizeTamilForSpeech(text);
   if (!normalized) return [];
 
-  // Split into raw sentences using terminal punctuation
   const rawSentences = normalized.split(/(?<=[.!?])\s+/);
   const chunks = [];
   let currentChunk = '';
@@ -293,7 +300,6 @@ export function chunkTamilText(text, maxChars = 150) {
         currentChunk = sentence;
       }
     } else {
-      // Long sentence: split on commas/clauses
       if (currentChunk) {
         chunks.push(currentChunk);
         currentChunk = '';
@@ -308,7 +314,6 @@ export function chunkTamilText(text, maxChars = 150) {
             currentChunk = clause;
           }
         } else {
-          // Clause still too long: split on word boundaries
           if (currentChunk) {
             chunks.push(currentChunk);
             currentChunk = '';
@@ -334,6 +339,7 @@ export function chunkTamilText(text, maxChars = 150) {
 export default {
   numberToTamilWords,
   decimalToTamilWords,
+  normalizeTamilForSpeech,
   normalizeTamilSpeech,
   chunkTamilText,
   ACRONYMS,

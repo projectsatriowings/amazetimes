@@ -670,6 +670,13 @@ export const api = {
 
   // Social Media Hub & Channels
   getSocialMediaSettings: () => request('/social-media'),
+  getSocialMedia: () => request('/social-media'),
+  getSocialVideos: () => request('/social-media/videos'),
+  syncYouTubeVideos: () => request('/social-media/youtube/sync'),
+  curateYouTubeVideo: (data) => request('/social-media/youtube/curate', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  }),
   updateSocialMediaSettings: (settings) => request('/social-media', {
     method: 'POST',
     body: JSON.stringify(settings)
@@ -678,5 +685,6 @@ export const api = {
   // Media & Image URL Helper
   getMediaUrl: (url) => getMediaUrl(url)
 };
+
 
 export default api;

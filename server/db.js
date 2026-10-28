@@ -16,6 +16,19 @@ export const pool = new Pool({
 
 // Prevent idle connection drops from crashing the Node.js server
 pool.on('error', (err) => {
+  const msg = (err?.message || '').toLowerCase();
+  const isHarmlessDrop =
+    msg.includes('connection reset') ||
+    msg.includes('econnreset') ||
+    msg.includes('terminated unexpectedly') ||
+    msg.includes('closed') ||
+    msg.includes('timeout') ||
+    msg.includes('client has encountered a connection error');
+
+  if (isHarmlessDrop) {
+    // Harmless serverless PgBouncer pooler recycling notice - ignore quietly
+    return;
+  }
   console.error('⚠️ [Neon DB Pool] Unexpected error on idle PostgreSQL client:', err?.message || err);
 });
 
@@ -29,6 +42,7 @@ export const query = async (text, params) => {
       errorMsg.includes('timeout') ||
       errorMsg.includes('terminated') ||
       errorMsg.includes('connection reset') ||
+      errorMsg.includes('econnreset') ||
       errorMsg.includes('closed') ||
       errorMsg.includes('client has encountered a connection error');
 
@@ -59,4 +73,15 @@ export const ensureHttpsUrl = (url) => {
   return clean;
 };
 
-export default { pool, query, ensureHttpsUrl };
+// Clean shutdown handler for process termination
+export const closeDb = async () => {
+  try {
+    await pool.end();
+    console.log('🔌 [Neon DB Pool] Connection pool closed cleanly.');
+  } catch (err) {
+    console.warn('⚠️ [Neon DB Pool] Notice on closing pool:', err?.message || err);
+  }
+};
+
+export default { pool, query, ensureHttpsUrl, closeDb };
+

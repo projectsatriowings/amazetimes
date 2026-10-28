@@ -28,7 +28,7 @@ import goldRoutes from './routes/gold.js';
 import { fetchAndSyncMarketRates } from './services/marketRateService.js';
 
 import fs from 'fs';
-import { query } from './db.js';
+import { query, closeDb } from './db.js';
 
 dotenv.config();
 
@@ -36,7 +36,29 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const HOST = '0.0.0.0';
+const PORT = parseInt(process.env.PORT || '5000', 10);
+let server = null;
+
+const gracefulShutdown = async (signal) => {
+  console.log(`Received ${signal}. Shutting down Amaze Times cleanly...`);
+  try {
+    await closeDb();
+  } catch (err) {
+    console.warn('Error during closeDb:', err);
+  }
+  if (server) {
+    server.close(() => {
+      console.log('HTTP server closed.');
+      process.exit(0);
+    });
+  } else {
+    process.exit(0);
+  }
+};
+
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 
 // High capacity middleware: 100MB capacity for large e-papers and media
 app.use(cors());
@@ -316,8 +338,8 @@ app.use((req, res, next) => {
 
 // Initialize database schema and start server on standard port 5000 bound to 0.0.0.0
 initDb().then(() => {
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🌐 Amaze Times Express API Server running on http://0.0.0.0:${PORT}`);
+  server = app.listen(PORT, HOST, () => {
+    console.log(`🌐 Amaze Times Express API Server running on http://${HOST}:${PORT}`);
     console.log(`📡 Connected to Neon PostgreSQL pooler (auto-reconnect enabled)`);
     console.log(`📁 Uploads available at http://localhost:${PORT}/uploads`);
 
@@ -336,9 +358,10 @@ initDb().then(() => {
   });
 }).catch(err => {
   console.error('❌ Failed to initialize database on startup:', err);
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🌐 Amaze Times Express API Server running on http://0.0.0.0:${PORT} (fallback mode)`);
+  server = app.listen(PORT, HOST, () => {
+    console.log(`🌐 Amaze Times Express API Server running on http://${HOST}:${PORT} (fallback mode)`);
   });
 });
+
 
 export default app;
