@@ -23,7 +23,8 @@ import {
   Heart,
   Calendar,
   Clock,
-  Layers
+  Layers,
+  RefreshCw
 } from 'lucide-react';
 import { api, extractYouTubeId } from '../services/api';
 
@@ -32,6 +33,64 @@ const WhatsappIcon = ({ className = 'w-5 h-5' }) => (
     <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.885-9.885 9.885m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
   </svg>
 );
+
+const fallbackOfficialVideos = [
+  {
+    id: 'xXP1dHNqyis',
+    videoId: 'xXP1dHNqyis',
+    url: 'https://www.youtube.com/watch?v=xXP1dHNqyis',
+    title: 'அரசுப் பேருந்து விபத்து: உயர்நீதிமன்ற வளாகம் அருகில் பரபரப்பு!🚌💥⚖️',
+    timeAgo: '1 நாட்களுக்கு முன்',
+    publishedAt: '2026-10-27T08:41:05+00:00',
+    thumbnailUrl: 'https://img.youtube.com/vi/xXP1dHNqyis/hqdefault.jpg',
+    description: 'சென்னை உயர்நீதிமன்ற வளாகம் அருகே அரசுப் பேருந்து மோதி ஏற்பட்ட விபத்து குறித்த அமேஸ் டைம்ஸ் நேரடி கள அறிக்கை.',
+    views: '12K+ பார்வைகள்'
+  },
+  {
+    id: '0O1ackubjkg',
+    videoId: '0O1ackubjkg',
+    url: 'https://www.youtube.com/watch?v=0O1ackubjkg',
+    title: 'புதிய இணைப்பு சாலை திட்டம்: ஓஎம்ஆர் மற்றும் இசிஆர் பயண நேரம் குறையும்! 🛣️🚗⏱️',
+    timeAgo: '1 நாட்களுக்கு முன்',
+    publishedAt: '2026-10-27T08:39:11+00:00',
+    thumbnailUrl: 'https://img.youtube.com/vi/0O1ackubjkg/hqdefault.jpg',
+    description: 'சென்னையின் முக்கிய பகுதிகளான ஓஎம்ஆர் மற்றும் இசிஆர் சாலைகளுக்கு இடையே புதிய இணைப்பு சாலை அமைக்க தமிழக அரசு திட்டமிட்டுள்ளது.',
+    views: '18K+ பார்வைகள்'
+  },
+  {
+    id: '27_mEAXSP1o',
+    videoId: '27_mEAXSP1o',
+    url: 'https://www.youtube.com/watch?v=27_mEAXSP1o',
+    title: 'ஆவின் பொருட்களின் விலை உயர்வு! 🥛📈💰',
+    timeAgo: '1 நாட்களுக்கு முன்',
+    publishedAt: '2026-10-27T08:35:58+00:00',
+    thumbnailUrl: 'https://img.youtube.com/vi/27_mEAXSP1o/hqdefault.jpg',
+    description: 'அதிகரித்து வரும் உற்பத்திச் செலவைக் கருத்தில் கொண்டே ஆவின் பொருட்களின் விலையில் இந்த குறைந்த அளவிலான திருத்தம் மேற்கொள்ளப்பட்டுள்ளது.',
+    views: '15K+ பார்வைகள்'
+  },
+  {
+    id: 'pCD_pGC2pUo',
+    videoId: 'pCD_pGC2pUo',
+    url: 'https://www.youtube.com/watch?v=pCD_pGC2pUo',
+    title: 'தேனி சிறை கைதிகள் தப்பியோட்ட விவகாரம்: 9 காவலர்கள் சஸ்பென்ட்! 🚨⛓️❌',
+    timeAgo: '1 நாட்களுக்கு முன்',
+    publishedAt: '2026-10-27T08:33:53+00:00',
+    thumbnailUrl: 'https://img.youtube.com/vi/pCD_pGC2pUo/hqdefault.jpg',
+    description: 'தேனி மாவட்ட சிறையில் கைதிகள் தப்பியோடிய அதிர்ச்சிகரமான சம்பவத்தைத் தொடர்ந்து, பாதுகாப்புப் பணியில் ஈடுபட்டிருந்த 9 சிறைக் காவலர்கள் பணியிடை நீக்கம் செய்யப்பட்டுள்ளனர்.',
+    views: '22K+ பார்வைகள்'
+  },
+  {
+    id: 'EDpoWZ21ubg',
+    videoId: 'EDpoWZ21ubg',
+    url: 'https://www.youtube.com/watch?v=EDpoWZ21ubg',
+    title: 'மாய்மான சிறுவன் சடலமாக மீட்பு!🚨👦🕊️',
+    timeAgo: '1 நாட்களுக்கு முன்',
+    publishedAt: '2026-10-26T09:30:48+00:00',
+    thumbnailUrl: 'https://img.youtube.com/vi/EDpoWZ21ubg/hqdefault.jpg',
+    description: 'மதுரை மாவட்டம் மேலூர் அருகே வீட்டின் அருகே விளையாடிக்கொண்டிருந்த 7 வயது சிறுவன் திடீரென மாயமான நிலையில், பாழடைந்த ஒரு ஓட்டு வீட்டில் சடலமாக கண்டெடுக்கப்பட்ட சம்பவம்.',
+    views: '30K+ பார்வைகள்'
+  }
+];
 
 export default function SocialMediaPage({ onNavigate, onToast }) {
   const [socialData, setSocialData] = useState({
@@ -45,14 +104,15 @@ export default function SocialMediaPage({ onNavigate, onToast }) {
     facebookHandle: 'amazetimesnews',
     whatsappUrl: 'https://whatsapp.com/channel/amazetimes',
     whatsappTitle: 'Amaze Times News',
-    featuredVideos: [],
+    featuredVideos: fallbackOfficialVideos,
     featuredReels: [],
     whatsappAnnouncements: []
   });
 
   const [loading, setLoading] = useState(true);
+  const [isSyncing, setIsSyncing] = useState(false);
   const [activeFilterTab, setActiveFilterTab] = useState('all'); // 'all' | 'youtube' | 'instagram' | 'facebook' | 'whatsapp'
-  const [activeVideoPlayer, setActiveVideoPlayer] = useState(null);
+  const [activeVideoPlayer, setActiveVideoPlayer] = useState(fallbackOfficialVideos[0]);
   const [copiedHandle, setCopiedHandle] = useState(null);
 
   // Fallback publication posts for rich Instagram & Facebook stream without broken iframes
@@ -152,9 +212,13 @@ export default function SocialMediaPage({ onNavigate, onToast }) {
           videos = videosRes.value.videos;
         }
 
+        let mergedVideos = videos;
         if (settingsRes.status === 'fulfilled' && settingsRes.value?.success && settingsRes.value?.data) {
           const d = settingsRes.value.data;
-          const mergedVideos = videos.length > 0 ? videos : (Array.isArray(d.featuredVideos) ? d.featuredVideos : []);
+          if (mergedVideos.length === 0 && Array.isArray(d.featuredVideos) && d.featuredVideos.length > 0) {
+            mergedVideos = d.featuredVideos;
+          }
+
           setSocialData({
             youtubeUrl: d.youtubeUrl || 'https://www.youtube.com/channel/UCMd-mF-u0dPO4L9Nlfftp-g',
             youtubeHandle: d.youtubeHandle || '@AmazeTimes',
@@ -166,17 +230,17 @@ export default function SocialMediaPage({ onNavigate, onToast }) {
             facebookHandle: d.facebookHandle || 'amazetimesnews',
             whatsappUrl: d.whatsappUrl || 'https://whatsapp.com/channel/amazetimes',
             whatsappTitle: 'Amaze Times News',
-            featuredVideos: mergedVideos,
+            featuredVideos: mergedVideos.length > 0 ? mergedVideos : fallbackOfficialVideos,
             featuredReels: Array.isArray(d.featuredReels) && d.featuredReels.length > 0 ? d.featuredReels : [],
             whatsappAnnouncements: Array.isArray(d.whatsappAnnouncements) && d.whatsappAnnouncements.length > 0 ? d.whatsappAnnouncements : []
           });
+        } else if (mergedVideos.length > 0) {
+          setSocialData(prev => ({ ...prev, featuredVideos: mergedVideos }));
+        }
 
-          if (mergedVideos.length > 0) {
-            setActiveVideoPlayer(mergedVideos[0]);
-          }
-        } else if (videos.length > 0) {
-          setSocialData(prev => ({ ...prev, featuredVideos: videos }));
-          setActiveVideoPlayer(videos[0]);
+        const effectiveVideos = mergedVideos.length > 0 ? mergedVideos : fallbackOfficialVideos;
+        if (effectiveVideos.length > 0) {
+          setActiveVideoPlayer(effectiveVideos[0]);
         }
       } catch (err) {
         console.warn('Social media fetch warning:', err);
@@ -188,6 +252,31 @@ export default function SocialMediaPage({ onNavigate, onToast }) {
     fetchSocialData();
     return () => { isMounted = false; };
   }, []);
+
+  const handleManualSync = async () => {
+    setIsSyncing(true);
+    try {
+      const res = await api.syncYouTubeVideos();
+      if (res?.success && Array.isArray(res?.videos) && res.videos.length > 0) {
+        setSocialData(prev => ({ ...prev, featuredVideos: res.videos }));
+        setActiveVideoPlayer(res.videos[0]);
+        if (onToast) onToast(`✅ ${res.videos.length} நேரலை யூடியூப் வீடியோக்கள் புதுப்பிக்கப்பட்டன!`);
+      } else {
+        const vRes = await api.getSocialVideos();
+        if (vRes?.success && Array.isArray(vRes?.videos) && vRes.videos.length > 0) {
+          setSocialData(prev => ({ ...prev, featuredVideos: vRes.videos }));
+          setActiveVideoPlayer(vRes.videos[0]);
+          if (onToast) onToast(`✅ யூடியூப் வீடியோக்கள் புதுப்பிக்கப்பட்டன!`);
+        } else {
+          if (onToast) onToast('யூடியூப் சேனல் வீடியோக்கள் ஏற்கனவே புதுப்பிக்கப்பட்டுள்ளன.');
+        }
+      }
+    } catch (err) {
+      if (onToast) onToast('சின்க் செய்வதில் பிழை');
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   const handleCopy = (text, handleKey) => {
     navigator.clipboard.writeText(text);
@@ -485,15 +574,26 @@ export default function SocialMediaPage({ onNavigate, onToast }) {
                   AUTO-SYNCED
                 </span>
               </div>
-              <a
-                href={socialData.youtubeUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="text-xs font-bold text-red-600 dark:text-red-400 hover:underline flex items-center gap-1"
-              >
-                <span>முழு சேனல் காண</span>
-                <ExternalLink className="w-3.5 h-3.5" />
-              </a>
+              <div className="flex items-center gap-2.5">
+                <button
+                  onClick={handleManualSync}
+                  disabled={isSyncing}
+                  className="px-3 py-1.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-black text-xs flex items-center gap-1.5 transition shadow-sm cursor-pointer disabled:opacity-50"
+                  title="யூடியூப் சேனல் வீடியோக்களை உடனுக்குடன் சின்க் செய்க"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
+                  <span>{isSyncing ? 'சின்க் ஆகிறது...' : 'வீடியோக்களைப் புதுப்பி'}</span>
+                </button>
+                <a
+                  href={socialData.youtubeUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-xs font-bold text-red-600 dark:text-red-400 hover:underline flex items-center gap-1"
+                >
+                  <span className="hidden sm:inline">முழு சேனல் காண</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              </div>
             </div>
 
             {/* Featured Main Video Player */}
