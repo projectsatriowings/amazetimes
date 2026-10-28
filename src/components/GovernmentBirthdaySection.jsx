@@ -38,7 +38,7 @@ export default function GovernmentBirthdaySection({ onToast }) {
 
   const handleShareOfficial = (official, e) => {
     e.stopPropagation();
-    const shareText = `🎂 *${official.name} அவர்களுக்கு இனிய பிறந்தநாள் நல்வாழ்த்துகள்!* 💐\n\n"${official.greeting_text || 'மக்கள் பணியில் தொடர வாழ்த்துகள்!'}"\n\n📰 *அமேஸ் டைம்ஸ் - தமிழ் செய்திகள் நாளிதழ்*\n👉 வாழ்த்துக் கார்டு: ${window.location.origin}\n📺 யூடியூப்: https://www.youtube.com/@AmazeTimes\n📸 இன்ஸ்டாகிராம்: https://www.instagram.com/amazetimes\n💬 வாட்ஸ்அப் சேனல்: https://whatsapp.com/channel/amazetimes`;
+    const shareText = `🎂 *${official.name} அவர்களுக்கு இனிய பிறந்தநாள் நல்வாழ்த்துகள்!* 💐\n\n"${official.greeting_text || 'மக்கள் பணியில் தொடர வாழ்த்துகள்!'}"\n\n📰 *அமேஸ் டைம்ஸ் - தமிழ் செய்திகள் நாளிதழ்*\n👉 வாழ்த்துக் கார்டு: ${window.location.origin}\n📺 யூடியூப்: https://www.youtube.com/channel/UCMd-mF-u0dPO4L9Nlfftp-g\n📸 இன்ஸ்டாகிராம்: https://www.instagram.com/amazetimes/?hl=en\n📘 பேஸ்புக்: https://www.facebook.com/amazetimes\n💬 வாட்ஸ்அப் சேனல்: https://whatsapp.com/channel/amazetimes`;
     const encoded = encodeURIComponent(shareText);
     window.open(`https://api.whatsapp.com/send?text=${encoded}`, '_blank');
   };

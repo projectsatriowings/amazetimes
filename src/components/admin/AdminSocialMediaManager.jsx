@@ -22,10 +22,10 @@ export const AdminSocialMediaManager = ({ showToast }) => {
 
   // Form State
   const [channels, setChannels] = useState({
-    youtubeUrl: 'https://www.youtube.com/@AmazeTimes',
+    youtubeUrl: 'https://www.youtube.com/channel/UCMd-mF-u0dPO4L9Nlfftp-g',
     youtubeHandle: '@AmazeTimes',
     youtubeSubscribers: '250K',
-    instagramUrl: 'https://www.instagram.com/amazetimes',
+    instagramUrl: 'https://www.instagram.com/amazetimes/?hl=en',
     instagramHandle: '@amazetimes_official',
     instagramFollowers: '180K',
     facebookUrl: 'https://www.facebook.com/amazetimes',

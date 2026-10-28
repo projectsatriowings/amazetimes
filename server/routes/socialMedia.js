@@ -89,7 +89,7 @@ export async function resolveYouTubeChannelId(channelUrlOrHandle) {
   }
 
   // Fallback to configured default channel ID from environment if available
-  return process.env.YOUTUBE_CHANNEL_ID || 'UCaM-X8_wXhNlV1W0Z8-u86w';
+  return process.env.YOUTUBE_CHANNEL_ID || 'UCMd-mF-u0dPO4L9Nlfftp-g';
 }
 
 /**
@@ -347,10 +347,10 @@ router.get('/', async (req, res) => {
       success: true,
       data: {
         id: data.id,
-        youtubeUrl: data.youtube_url || 'https://www.youtube.com/@AmazeTimes',
+        youtubeUrl: data.youtube_url || 'https://www.youtube.com/channel/UCMd-mF-u0dPO4L9Nlfftp-g',
         youtubeHandle: data.youtube_handle || '@AmazeTimes',
         youtubeSubscribers: data.youtube_subscribers || '250K',
-        instagramUrl: data.instagram_url || 'https://www.instagram.com/amazetimes',
+        instagramUrl: data.instagram_url || 'https://www.instagram.com/amazetimes/?hl=en',
         instagramHandle: data.instagram_handle || '@amazetimes_official',
         instagramFollowers: data.instagram_followers || '180K',
         facebookUrl: data.facebook_url || 'https://www.facebook.com/amazetimes',

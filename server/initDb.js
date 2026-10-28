@@ -163,10 +163,10 @@ export async function initDb() {
     await query(`
       CREATE TABLE IF NOT EXISTS social_media_settings (
         id SERIAL PRIMARY KEY,
-        youtube_url TEXT DEFAULT 'https://www.youtube.com/@AmazeTimes',
+        youtube_url TEXT DEFAULT 'https://www.youtube.com/channel/UCMd-mF-u0dPO4L9Nlfftp-g',
         youtube_handle VARCHAR(100) DEFAULT '@AmazeTimes',
         youtube_subscribers VARCHAR(100) DEFAULT '250K',
-        instagram_url TEXT DEFAULT 'https://www.instagram.com/amazetimes',
+        instagram_url TEXT DEFAULT 'https://www.instagram.com/amazetimes/?hl=en',
         instagram_handle VARCHAR(100) DEFAULT '@amazetimes_official',
         instagram_followers VARCHAR(100) DEFAULT '180K',
         facebook_url TEXT DEFAULT 'https://www.facebook.com/amazetimes',
@@ -191,9 +191,12 @@ export async function initDb() {
     await query(`ALTER TABLE social_media_settings ADD COLUMN IF NOT EXISTS telegram_subscribers VARCHAR(100) DEFAULT '60K';`);
     await query(`ALTER TABLE social_media_settings ADD COLUMN IF NOT EXISTS whatsapp_announcements JSONB DEFAULT '[]';`);
     await query(`
-      INSERT INTO social_media_settings (id)
-      VALUES (1)
-      ON CONFLICT (id) DO NOTHING;
+      INSERT INTO social_media_settings (id, youtube_url, instagram_url, facebook_url)
+      VALUES (1, 'https://www.youtube.com/channel/UCMd-mF-u0dPO4L9Nlfftp-g', 'https://www.instagram.com/amazetimes/?hl=en', 'https://www.facebook.com/amazetimes')
+      ON CONFLICT (id) DO UPDATE SET
+        youtube_url = EXCLUDED.youtube_url,
+        instagram_url = EXCLUDED.instagram_url,
+        facebook_url = EXCLUDED.facebook_url;
     `);
 
     // 9. MAGAZINES

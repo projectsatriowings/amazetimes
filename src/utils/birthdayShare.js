@@ -50,7 +50,7 @@ export function formatBirthdayShareText(item, cardUrl) {
   const quote = item?.greeting_text || item?.greetingText || item?.quote || 'Wishing you a very Happy Birthday filled with good health, joy, and grand success!';
   const link = cardUrl || (typeof window !== 'undefined' ? window.location.origin : 'https://amazetimes.in');
 
-  return `🎂 *Warm Birthday Wishes to ${name}${designation}!* 💐\n\n"${quote}"\n\n📰 *Amaze Times - Daily Media & News Portal*\n👉 View Birthday Poster: ${link}\n\n📲 *Follow Amaze Times Official Channels:*\n📺 YouTube: https://www.youtube.com/@AmazeTimes\n📸 Instagram: https://www.instagram.com/amazetimes\n📘 Facebook: https://www.facebook.com/amazetimes\n💬 WhatsApp Channel: https://whatsapp.com/channel/amazetimes`;
+  return `🎂 *Warm Birthday Wishes to ${name}${designation}!* 💐\n\n"${quote}"\n\n📰 *Amaze Times - Daily Media & News Portal*\n👉 View Birthday Poster: ${link}\n\n📲 *Follow Amaze Times Official Channels:*\n📺 YouTube: https://www.youtube.com/channel/UCMd-mF-u0dPO4L9Nlfftp-g\n📸 Instagram: https://www.instagram.com/amazetimes/?hl=en\n📘 Facebook: https://www.facebook.com/amazetimes\n💬 WhatsApp Channel: https://whatsapp.com/channel/amazetimes`;
 }
 
 /**

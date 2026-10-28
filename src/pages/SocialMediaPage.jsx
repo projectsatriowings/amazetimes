@@ -22,10 +22,10 @@ import { api, getVisitorId } from '../services/api';
 
 export default function SocialMediaPage({ onNavigate, onToast }) {
   const [socialData, setSocialData] = useState({
-    youtubeUrl: 'https://www.youtube.com/@AmazeTimes',
+    youtubeUrl: 'https://www.youtube.com/channel/UCMd-mF-u0dPO4L9Nlfftp-g',
     youtubeHandle: '@AmazeTimes',
     youtubeSubscribers: '250K',
-    instagramUrl: 'https://www.instagram.com/amazetimes',
+    instagramUrl: 'https://www.instagram.com/amazetimes/?hl=en',
     instagramHandle: '@amazetimes_official',
     instagramFollowers: '180K',
     facebookUrl: 'https://www.facebook.com/amazetimes',
@@ -57,33 +57,24 @@ export default function SocialMediaPage({ onNavigate, onToast }) {
         category: 'விளையாட்டு'
       }
     ],
-    featuredVideos: [
-      {
-        id: '1',
-        title: 'இன்றைய தலைப்புச் செய்திகள் | 24x7 நேரலை செய்தி বুলেটின்',
-        videoId: 'dQw4w9WgXcQ',
-        url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-        views: '125K',
-        publishedAt: 'இன்று'
-      }
-    ],
+    featuredVideos: [],
     featuredReels: [
       {
         id: '1',
         title: 'மெட்ரோ ரயில் இரண்டாம் கட்டப் பணிகள் விறுவிறுப்பு!',
-        url: 'https://www.instagram.com/amazetimes',
+        url: 'https://www.instagram.com/amazetimes/?hl=en',
         views: '45K'
       },
       {
         id: '2',
         title: 'தளபதி 69 படப்பிடிப்பு தளத்திலிருந்து நேரடித் தகவல்கள்!',
-        url: 'https://www.instagram.com/amazetimes',
+        url: 'https://www.instagram.com/amazetimes/?hl=en',
         views: '92K'
       },
       {
         id: '3',
         title: 'சென்னை சூப்பர் கிங்ஸ் தீவிர பயிற்சி முகாம்!',
-        url: 'https://www.instagram.com/amazetimes',
+        url: 'https://www.instagram.com/amazetimes/?hl=en',
         views: '68K'
       }
     ]

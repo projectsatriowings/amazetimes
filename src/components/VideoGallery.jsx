@@ -170,7 +170,7 @@ export default function VideoGallery({ onOpenVideoPlayer }) {
 
             <div className="pt-2 text-center">
               <a
-                href={socialData?.youtubeUrl || 'https://www.youtube.com/@AmazeTimes'}
+                href={socialData?.youtubeUrl || 'https://www.youtube.com/channel/UCMd-mF-u0dPO4L9Nlfftp-g'}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-bold shadow-lg shadow-red-950 transition cursor-pointer"
@@ -194,7 +194,7 @@ export default function VideoGallery({ onOpenVideoPlayer }) {
                 {instaReels.map((reel, idx) => (
                   <a
                     key={reel.id || idx}
-                    href={reel.url || socialData?.instagramUrl || 'https://www.instagram.com/amazetimes'}
+                    href={reel.url || socialData?.instagramUrl || 'https://www.instagram.com/amazetimes/?hl=en'}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="bg-[#0f1a33] rounded-2xl overflow-hidden border border-gray-800 hover:border-pink-500/50 transition group flex flex-col justify-between"
@@ -234,7 +234,7 @@ export default function VideoGallery({ onOpenVideoPlayer }) {
 
             <div className="pt-2 text-center">
               <a
-                href={socialData?.instagramUrl || 'https://www.instagram.com/amazetimes'}
+                href={socialData?.instagramUrl || 'https://www.instagram.com/amazetimes/?hl=en'}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white text-xs font-bold shadow-lg transition cursor-pointer"
