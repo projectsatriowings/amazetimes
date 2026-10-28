@@ -116,6 +116,9 @@ router.get('/', optionalAuth, async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
+    if (!/^\d+$/.test(String(id).trim())) {
+      return res.status(404).json({ success: false, message: 'செய்தி கிடைக்கவில்லை (Article not found)' });
+    }
 
     // Increment view count asynchronously
     query('UPDATE articles SET view_count = view_count + 1 WHERE id = $1', [id]).catch(() => {});

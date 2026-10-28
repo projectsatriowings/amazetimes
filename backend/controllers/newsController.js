@@ -62,6 +62,9 @@ export const getAllNews = async (req, res) => {
 export const makeNewsFirst = async (req, res) => {
   try {
     const { id } = req.params;
+    if (!/^\d+$/.test(String(id).trim())) {
+      return res.status(404).json({ success: false, message: 'செய்தி கிடைக்கவில்லை' });
+    }
     const result = await query(`
       UPDATE news
       SET display_order = (SELECT COALESCE(MAX(display_order), 0) + 1 FROM news),
@@ -86,6 +89,10 @@ export const makeNewsFirst = async (req, res) => {
 export const recordNewsView = async (req, res) => {
   try {
     const { id } = req.params;
+    if (!/^\d+$/.test(String(id).trim())) {
+      await query(`UPDATE site_analytics SET total_views = total_views + 1, updated_at = CURRENT_TIMESTAMP WHERE id = 1;`).catch(() => {});
+      return res.json({ success: true, viewsCount: 1 });
+    }
     const updateRes = await query(`
       UPDATE news
       SET views_count = COALESCE(views_count, 0) + 1
@@ -107,6 +114,9 @@ export const recordNewsView = async (req, res) => {
 export const toggleNewsLike = async (req, res) => {
   try {
     const { id } = req.params;
+    if (!/^\d+$/.test(String(id).trim())) {
+      return res.json({ success: true, likesCount: 1 });
+    }
     const updateRes = await query(`
       UPDATE news
       SET likes_count = COALESCE(likes_count, 0) + 1

@@ -825,16 +825,18 @@ export const AppProvider = ({ children }) => {
     } catch (_) {}
 
     // Atomic permanent increment in PostgreSQL
-    try {
-      const res = await api.recordNewsView(targetId);
-      if (res && res.success && typeof res.viewsCount === 'number') {
-        setArticleViews(prev => ({
-          ...prev,
-          [strId]: res.viewsCount
-        }));
+    if (targetId && /^\d+$/.test(String(targetId).trim())) {
+      try {
+        const res = await api.recordNewsView(targetId);
+        if (res && res.success && typeof res.viewsCount === 'number') {
+          setArticleViews(prev => ({
+            ...prev,
+            [strId]: res.viewsCount
+          }));
+        }
+      } catch (err) {
+        console.warn('Background view sync to PostgreSQL failed:', err);
       }
-    } catch (err) {
-      console.warn('Background view sync to PostgreSQL failed:', err);
     }
   };
 

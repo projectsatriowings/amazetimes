@@ -290,6 +290,9 @@ router.get('/', optionalAuth, async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
+    if (!/^\d+$/.test(String(id).trim())) {
+      return res.status(404).json({ success: false, message: 'செய்தி கிடைக்கவில்லை' });
+    }
     const result = await query(`SELECT * FROM news WHERE id = $1;`, [id]);
 
     if (result.rows.length === 0) {
@@ -308,6 +311,22 @@ router.get('/:id', async (req, res) => {
 router.post('/:id/view', async (req, res) => {
   try {
     const { id } = req.params;
+
+    // Handle non-numeric / client-side mock / district articles gracefully (e.g. 'dist-3')
+    if (!/^\d+$/.test(String(id).trim())) {
+      await query(`
+        UPDATE site_analytics
+        SET total_views = total_views + 1, updated_at = CURRENT_TIMESTAMP
+        WHERE id = 1;
+      `).catch(() => {});
+
+      return res.json({
+        success: true,
+        viewsCount: 1,
+        views_count: 1,
+        message: 'பார்வை எண்ணிக்கை வெற்றிகரமாக பதிவு செய்யப்பட்டது'
+      });
+    }
 
     // Increment news views_count
     const updateNewsRes = await query(`
@@ -351,6 +370,14 @@ router.post('/:id/view', async (req, res) => {
 router.post('/:id/like', async (req, res) => {
   try {
     const { id } = req.params;
+    if (!/^\d+$/.test(String(id).trim())) {
+      return res.json({
+        success: true,
+        liked: true,
+        likesCount: 1,
+        likes_count: 1
+      });
+    }
     const userIdentifier = req.body.userIdentifier || req.headers['x-visitor-id'] || req.ip || 'anonymous';
     const clientIp = req.ip || req.headers['x-forwarded-for'] || '';
 
@@ -408,6 +435,9 @@ router.post('/:id/like', async (req, res) => {
 router.post('/:id/make-first', authenticate, requireReporterOrAdmin, async (req, res) => {
   try {
     const { id } = req.params;
+    if (!/^\d+$/.test(String(id).trim())) {
+      return res.status(404).json({ success: false, message: 'செய்தி கிடைக்கவில்லை' });
+    }
 
     const result = await query(`
       UPDATE news
@@ -532,6 +562,9 @@ router.post('/', authenticate, requireReporterOrAdmin, async (req, res) => {
 router.put('/:id', authenticate, requireReporterOrAdmin, async (req, res) => {
   try {
     const { id } = req.params;
+    if (!/^\d+$/.test(String(id).trim())) {
+      return res.status(404).json({ success: false, message: 'செய்தி கிடைக்கவில்லை' });
+    }
     const {
       title,
       subtitle,
@@ -642,6 +675,9 @@ router.put('/:id', authenticate, requireReporterOrAdmin, async (req, res) => {
 router.patch('/:id/status', authenticate, requireReporterOrAdmin, async (req, res) => {
   try {
     const { id } = req.params;
+    if (!/^\d+$/.test(String(id).trim())) {
+      return res.status(404).json({ success: false, message: 'செய்தி கிடைக்கவில்லை' });
+    }
     const { status } = req.body;
 
     if (!status) {
@@ -677,6 +713,9 @@ router.patch('/:id/status', authenticate, requireReporterOrAdmin, async (req, re
 router.delete('/:id', authenticate, requireReporterOrAdmin, async (req, res) => {
   try {
     const { id } = req.params;
+    if (!/^\d+$/.test(String(id).trim())) {
+      return res.status(404).json({ success: false, message: 'செய்தி கிடைக்கவில்லை' });
+    }
     const result = await query(`DELETE FROM news WHERE id = $1 RETURNING id;`, [id]);
 
     if (result.rows.length === 0) {

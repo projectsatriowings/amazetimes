@@ -144,9 +144,17 @@ router.post('/heartbeat', async (req, res) => {
     }
 
     // 3. Fetch genuine stats
-    const statsRes = await query('SELECT total_views, total_visitors FROM site_analytics WHERE id = 1;');
-    const totalViews = parseInt(statsRes.rows[0]?.total_views || 0, 10);
-    const totalVisitors = parseInt(statsRes.rows[0]?.total_visitors || knownVisitorHashes.size || 0, 10);
+    let totalViews = 0;
+    let totalVisitors = knownVisitorHashes.size || 0;
+
+    try {
+      const statsRes = await query('SELECT total_views, total_visitors FROM site_analytics WHERE id = 1;');
+      totalViews = parseInt(statsRes.rows[0]?.total_views || 0, 10);
+      totalVisitors = parseInt(statsRes.rows[0]?.total_visitors || knownVisitorHashes.size || 0, 10);
+    } catch (statsErr) {
+      console.warn('[Analytics Heartbeat] DB stats notice:', statsErr?.message || statsErr);
+    }
+
     const liveCount = Math.max(1, activeVisitors.size);
 
     res.json({

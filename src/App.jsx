@@ -668,7 +668,7 @@ export default function App() {
     addToReadingHistory(target);
 
     // Atomically increment views in Neon PostgreSQL
-    if (target && target.id) {
+    if (target && target.id && /^\d+$/.test(String(target.id).trim())) {
       try {
         const res = await api.recordNewsView(target.id);
         if (res && res.success && typeof res.viewsCount === 'number') {
