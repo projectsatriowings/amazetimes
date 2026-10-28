@@ -5,57 +5,80 @@ dotenv.config();
 
 const { Pool } = pg;
 
+// Sanitize connection string to enforce libpq compatibility and prevent SSL warnings
+const sanitizeDatabaseUrl = (rawUrl) => {
+  if (!rawUrl || typeof rawUrl !== 'string') return rawUrl;
+  let url = rawUrl.trim();
+  // Neon serverless pooler URL fix for pg-connection-string
+  if (url.includes('sslmode=require') && !url.includes('uselibpqcompat')) {
+    url = url.replace('sslmode=require', 'sslmode=require&uselibpqcompat=true');
+  }
+  return url;
+};
+
+const dbUrl = sanitizeDatabaseUrl(process.env.DATABASE_URL);
+
 // Neon PostgreSQL connection pool with serverless pooler resilience
 export const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.DATABASE_URL?.includes('localhost') ? false : { rejectUnauthorized: false },
-  max: 20,
-  idleTimeoutMillis: 60000,
-  connectionTimeoutMillis: 30000,
+  connectionString: dbUrl,
+  ssl: dbUrl?.includes('localhost') ? false : { rejectUnauthorized: false },
+  max: 10, // Optimal pool size for serverless PgBouncer pooler
+  idleTimeoutMillis: 10000, // 10s idle timeout: prunes idle clients BEFORE Neon pooler drops them (prevents ECONNRESET)
+  connectionTimeoutMillis: 10000, // 10s connection timeout for cold-start serverless compute
+  keepAlive: true,
+  keepAliveInitialDelayMillis: 10000,
 });
 
 // Prevent idle connection drops from crashing the Node.js server
 pool.on('error', (err) => {
-  const msg = (err?.message || '').toLowerCase();
+  const errorString = ((err?.message || '') + ' ' + (err?.code || '') + ' ' + String(err || '')).toLowerCase();
   const isHarmlessDrop =
-    msg.includes('connection reset') ||
-    msg.includes('econnreset') ||
-    msg.includes('terminated unexpectedly') ||
-    msg.includes('closed') ||
-    msg.includes('timeout') ||
-    msg.includes('client has encountered a connection error');
+    errorString.includes('connection reset') ||
+    errorString.includes('econnreset') ||
+    errorString.includes('terminated unexpectedly') ||
+    errorString.includes('connection terminated') ||
+    errorString.includes('closed') ||
+    errorString.includes('timeout') ||
+    errorString.includes('broken pipe') ||
+    errorString.includes('epipe') ||
+    errorString.includes('client has encountered a connection error');
 
   if (isHarmlessDrop) {
-    // Harmless serverless PgBouncer pooler recycling notice - ignore quietly
+    // Harmless serverless PgBouncer pooler recycling notice - pg automatically discards dead client from pool
     return;
   }
-  console.error('⚠️ [Neon DB Pool] Unexpected error on idle PostgreSQL client:', err?.message || err);
+  console.error('⚠️ [Neon DB Pool] Unexpected error on PostgreSQL client:', err?.message || err);
 });
 
-// Wrapped query function with automatic one-time retry on pooler drops/timeouts
-export const query = async (text, params) => {
-  try {
-    return await pool.query(text, params);
-  } catch (err) {
-    const errorMsg = (err?.message || '').toLowerCase();
-    const isConnectionError =
-      errorMsg.includes('timeout') ||
-      errorMsg.includes('terminated') ||
-      errorMsg.includes('connection reset') ||
-      errorMsg.includes('econnreset') ||
-      errorMsg.includes('closed') ||
-      errorMsg.includes('client has encountered a connection error');
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-    if (isConnectionError) {
-      console.warn('🔄 [Neon DB Retry] Pooler connection interrupted. Retrying query once...', errorMsg);
-      try {
-        return await pool.query(text, params);
-      } catch (retryErr) {
-        console.error('❌ [Neon DB Retry Failed]:', retryErr?.message || retryErr);
-        throw retryErr;
+// Wrapped query function with exponential backoff retry on serverless pooler drops/timeouts
+export const query = async (text, params, maxRetries = 2) => {
+  let attempt = 0;
+  while (attempt <= maxRetries) {
+    try {
+      return await pool.query(text, params);
+    } catch (err) {
+      attempt++;
+      const errorString = ((err?.message || '') + ' ' + (err?.code || '') + ' ' + String(err || '')).toLowerCase();
+      const isConnectionError =
+        errorString.includes('timeout') ||
+        errorString.includes('terminated') ||
+        errorString.includes('connection reset') ||
+        errorString.includes('econnreset') ||
+        errorString.includes('closed') ||
+        errorString.includes('broken pipe') ||
+        errorString.includes('epipe') ||
+        errorString.includes('client has encountered a connection error');
+
+      if (isConnectionError && attempt <= maxRetries) {
+        const delayMs = attempt * 350; // 350ms on first retry, 700ms on second retry
+        console.warn(`🔄 [Neon DB Retry] Connection dropped (${err?.code || err?.message}). Backing off ${delayMs}ms before retry ${attempt}/${maxRetries}...`);
+        await sleep(delayMs);
+        continue;
       }
+      throw err;
     }
-    throw err;
   }
 };
 
