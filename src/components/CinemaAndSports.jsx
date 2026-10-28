@@ -19,7 +19,6 @@ import {
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { api } from '../services/api';
-import CinemaSportsSpotlightBar from './CinemaSportsSpotlightBar';
 
 export default function CinemaAndSports({ onOpenArticle }) {
   const { 
@@ -216,20 +215,7 @@ export default function CinemaAndSports({ onOpenArticle }) {
 
   return (
     <section id="cinema-and-sports" className="space-y-6 scroll-mt-20">
-      
-      {/* 1. TOP DUAL SPOTLIGHT RIBBON */}
-      <CinemaSportsSpotlightBar
-        onOpenSearch={(query) => {
-          const el = document.getElementById('cinema-and-sports');
-          if (el) el.scrollIntoView({ behavior: 'smooth' });
-        }}
-        onSelectCategory={(cat) => {
-          if (cat === 'cinema') window.location.href = '/category/cinema';
-          if (cat === 'sports') window.location.href = '/category/sports';
-        }}
-      />
-
-      {/* 2. DUAL COLUMN POWER GRID */}
+      {/* DUAL COLUMN POWER GRID */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
         
         {/* ========================================================= */}

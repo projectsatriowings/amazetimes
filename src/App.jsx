@@ -885,13 +885,15 @@ export default function App() {
       />
 
       {/* Dina Thanthi-style High Visibility Cinema & Sports Spotlight Bar */}
-      <CinemaSportsSpotlightBar
-        onOpenSearch={(query) => {
-          setSearchQuery(query);
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        }}
-        onSelectCategory={handleSelectCategory}
-      />
+      {currentPath === '/' && activeCategory === 'all' && (
+        <CinemaSportsSpotlightBar
+          onOpenSearch={(query) => {
+            setSearchQuery(query);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          onSelectCategory={handleSelectCategory}
+        />
+      )}
 
       {/* Main Container */}
       <main className="max-w-[1400px] mx-auto px-2.5 sm:px-4 py-3 sm:py-6 flex-1 w-full max-w-full min-w-0 overflow-x-hidden space-y-8 sm:space-y-12 pb-20 sm:pb-8">

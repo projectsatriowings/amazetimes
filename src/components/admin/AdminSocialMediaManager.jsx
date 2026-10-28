@@ -51,9 +51,7 @@ export const AdminSocialMediaManager = ({ showToast }) => {
   const [reels, setReels] = useState([]);
   const [announcements, setAnnouncements] = useState([]);
 
-  // Video Add Form State
   const [newVideo, setNewVideo] = useState({ title: '', url: '', category: 'செய்திகள்' });
-  const [newReel, setNewReel] = useState({ platform: 'instagram', headline: '', url: '', duration: '00:58', coverImage: '' });
   const [newAnnouncement, setNewAnnouncement] = useState({ title: '', desc: '', time: 'இப்போது', badge: 'பிரேக்கிங்' });
 
   useEffect(() => {
@@ -163,39 +161,6 @@ export const AdminSocialMediaManager = ({ showToast }) => {
     if (showToast) showToast('வீடியோ நீக்கப்பட்டது');
   };
 
-  const handleAddReel = () => {
-    if (!newReel.headline.trim() || !newReel.url.trim()) {
-      if (showToast) showToast('தலைப்பு மற்றும் வீடியோ/ரீல் URL தேவை');
-      return;
-    }
-
-    const isFb = newReel.platform === 'facebook';
-    const item = {
-      id: `social-vid-${Date.now()}`,
-      platform: newReel.platform || 'instagram',
-      type: isFb ? 'video' : 'reel',
-      author: isFb ? 'Amaze Times Official' : 'Amaze Times',
-      handle: isFb ? 'amazetimesnews' : '@amazetimes_official',
-      title: newReel.headline.trim(),
-      caption: newReel.headline.trim(),
-      time: 'சமீபத்தியது',
-      duration: newReel.duration.trim() || (isFb ? '03:00' : '00:58'),
-      image: newReel.coverImage.trim() || (isFb ? 'https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?auto=format&fit=crop&q=80&w=800' : 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&q=80&w=800'),
-      views: '50K+',
-      likes: '4.5K',
-      url: newReel.url.trim(),
-      videoUrl: newReel.url.trim()
-    };
-
-    setReels([item, ...reels]);
-    setNewReel({ platform: 'instagram', headline: '', url: '', duration: '00:58', coverImage: '' });
-    if (showToast) showToast('ரீல்ஸ் / வீடியோ சேர்க்கப்பட்டது');
-  };
-
-  const handleRemoveReel = (index) => {
-    setReels(reels.filter((_, idx) => idx !== index));
-  };
-
   const handleAddAnnouncement = () => {
     if (!newAnnouncement.title.trim()) {
       if (showToast) showToast('வாட்ஸ்அப் செய்தி தலைப்பு அவசியம்');
@@ -292,15 +257,15 @@ export const AdminSocialMediaManager = ({ showToast }) => {
         </button>
 
         <button
-          onClick={() => setActiveTab('reels')}
+          onClick={() => setActiveTab('whatsapp')}
           className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
-            activeTab === 'reels'
+            activeTab === 'whatsapp'
               ? 'bg-gradient-to-r from-red-600 to-rose-600 text-white font-black shadow-md'
               : 'text-slate-400 hover:text-white'
           }`}
         >
-          <Sparkles className="w-3.5 h-3.5" />
-          <span>ரீல்ஸ் & வாட்ஸ்அப் அறிவிப்புகள்</span>
+          <WhatsappIcon className="w-3.5 h-3.5" />
+          <span>வாட்ஸ்அப் அறிவிப்புகள் ({announcements.length})</span>
         </button>
       </div>
 
@@ -531,9 +496,9 @@ export const AdminSocialMediaManager = ({ showToast }) => {
         </div>
       )}
 
-      {/* 3. REELS & WHATSAPP TAB */}
-      {activeTab === 'reels' && (
-        <div className="bg-[#0f172a] p-6 rounded-3xl border border-slate-800 shadow-xl space-y-8">
+      {/* 3. WHATSAPP BROADCASTS TAB */}
+      {activeTab === 'whatsapp' && (
+        <div className="bg-[#0f172a] p-6 rounded-3xl border border-slate-800 shadow-xl space-y-6">
           
           {/* WhatsApp Announcements */}
           <div className="space-y-4">
@@ -594,120 +559,6 @@ export const AdminSocialMediaManager = ({ showToast }) => {
               ))}
             </div>
           </div>
-
-          {/* Featured Reels & Videos */}
-          <div className="space-y-4 pt-4 border-t border-slate-800">
-            <h3 className="text-sm font-black text-pink-400 uppercase tracking-wider flex items-center gap-2">
-              <Instagram className="w-4 h-4 text-pink-500" />
-              <span>இன்ஸ்டாகிராம் ரீல்ஸ் & பேஸ்புக் வீடியோக்கள் (Instagram Reels & Facebook Videos)</span>
-            </h3>
-
-            <div className="p-5 bg-slate-900 rounded-2xl border border-slate-800 space-y-3 text-xs font-bold text-slate-300">
-              <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
-                <div className="md:col-span-3">
-                  <label className="text-[11px] text-slate-400 block mb-1 font-bold">தளம் (Platform):*</label>
-                  <select
-                    value={newReel.platform}
-                    onChange={(e) => setNewReel({ ...newReel, platform: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-pink-500"
-                  >
-                    <option value="instagram">📸 Instagram (ரீல்ஸ்)</option>
-                    <option value="facebook">📘 Facebook (வீடியோ)</option>
-                  </select>
-                </div>
-
-                <div className="md:col-span-6">
-                  <label className="text-[11px] text-slate-400 block mb-1 font-bold">வீடியோ / ரீல் தலைப்பு:*</label>
-                  <input
-                    type="text"
-                    value={newReel.headline}
-                    onChange={(e) => setNewReel({ ...newReel, headline: e.target.value })}
-                    placeholder="எ.கா: மெட்ரோ ரயில் நேரடிக் கள ஆய்வு வீடியோ"
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-pink-500"
-                  />
-                </div>
-
-                <div className="md:col-span-3">
-                  <label className="text-[11px] text-slate-400 block mb-1 font-bold">வீடியோ கால அளவு (Duration):</label>
-                  <input
-                    type="text"
-                    value={newReel.duration}
-                    onChange={(e) => setNewReel({ ...newReel, duration: e.target.value })}
-                    placeholder="00:58 அல்லது 03:15"
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white font-mono focus:outline-none focus:border-pink-500"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
-                <div className="md:col-span-6">
-                  <label className="text-[11px] text-slate-400 block mb-1 font-bold">வீடியோ / ரீல் URL:*</label>
-                  <input
-                    type="text"
-                    value={newReel.url}
-                    onChange={(e) => setNewReel({ ...newReel, url: e.target.value })}
-                    placeholder="https://www.instagram.com/reel/... அல்லது https://www.facebook.com/..."
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white font-mono focus:outline-none focus:border-pink-500"
-                  />
-                </div>
-
-                <div className="md:col-span-4">
-                  <label className="text-[11px] text-slate-400 block mb-1 font-bold">கவர் பட URL (Thumbnail):</label>
-                  <input
-                    type="text"
-                    value={newReel.coverImage}
-                    onChange={(e) => setNewReel({ ...newReel, coverImage: e.target.value })}
-                    placeholder="https://..."
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white font-mono focus:outline-none focus:border-pink-500"
-                  />
-                </div>
-
-                <div className="md:col-span-2">
-                  <button
-                    onClick={handleAddReel}
-                    className="w-full py-2.5 bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-95 text-white font-bold rounded-xl flex items-center justify-center gap-1.5 cursor-pointer shadow-md"
-                  >
-                    <Plus className="w-4 h-4" />
-                    <span>வீடியோ சேர்</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* List of active Reels & Videos */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {reels.map((r, idx) => {
-                const isFb = r.platform === 'facebook';
-                return (
-                  <div key={idx} className="p-3 bg-slate-900 rounded-2xl border border-slate-800 flex items-center justify-between text-xs gap-3">
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-white shrink-0 ${
-                        isFb ? 'bg-blue-600' : 'bg-gradient-to-tr from-amber-500 via-pink-600 to-purple-600'
-                      }`}>
-                        {isFb ? <Facebook className="w-3.5 h-3.5" /> : <Instagram className="w-3.5 h-3.5" />}
-                      </div>
-                      <div className="min-w-0">
-                        <span className="font-bold text-white truncate block max-w-[180px]">
-                          {r.title || r.headline}
-                        </span>
-                        <span className="text-[10px] text-slate-400 font-mono">
-                          {r.duration || '01:00'} • {isFb ? 'Facebook Video' : 'Instagram Reel'}
-                        </span>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => handleRemoveReel(idx)}
-                      className="p-1.5 text-rose-400 hover:bg-rose-500/10 rounded-lg cursor-pointer transition shrink-0"
-                      title="நீக்கு"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
         </div>
       )}
     </div>
