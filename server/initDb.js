@@ -1,9 +1,19 @@
 import { pool, query, ensureHttpsUrl } from './db.js';
 
-export async function initDb() {
-  console.log('⚡ Initializing Neon PostgreSQL Schema & Tables for Amaze Times...');
+export async function initDb(force = false) {
+  console.log('⚡ Verifying Neon PostgreSQL Schema & Connectivity...');
 
   try {
+    if (!force) {
+      const checkRes = await query("SELECT to_regclass('public.news') as exists;");
+      if (checkRes?.rows?.[0]?.exists === 'news') {
+        console.log('✅ Neon PostgreSQL tables verified (schema ready).');
+        return;
+      }
+    }
+
+    console.log('⚡ Initializing Neon PostgreSQL Schema & Tables for Amaze Times...');
+
     // 1. EXTENSIONS
     await query(`CREATE EXTENSION IF NOT EXISTS "uuid-ossp";`);
 

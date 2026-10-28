@@ -60,6 +60,15 @@ const gracefulShutdown = async (signal) => {
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 
+// Prevent unhandled rejections and socket aborts from crashing Node into PM2 restart loops
+process.on('unhandledRejection', (reason) => {
+  console.warn('⚠️ [Process] Unhandled Rejection intercepted:', reason?.message || reason);
+});
+
+process.on('uncaughtException', (err) => {
+  console.error('❌ [Process] Uncaught Exception intercepted:', err?.message || err);
+});
+
 // High capacity middleware: 100MB capacity for large e-papers and media
 app.use(cors());
 
@@ -336,12 +345,24 @@ app.use((req, res, next) => {
   return res.send('<!DOCTYPE html><html lang="ta"><head><title>404 - பக்கம் கிடைக்கவில்லை | Amaze Times</title></head><body><h1>404 Not Found</h1></body></html>');
 });
 
+const attachServerErrorHandler = (srv) => {
+  if (!srv) return;
+  srv.on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+      console.error(`❌ [Server] Port ${PORT} is already in use. Please check running PM2 processes or free port ${PORT}.`);
+    } else {
+      console.error('❌ [Server] HTTP server error:', err?.message || err);
+    }
+  });
+};
+
 // Initialize database schema and start server on standard port 5000 bound to 0.0.0.0
 initDb().then(() => {
   server = app.listen(PORT, HOST, () => {
     console.log(`🌐 Amaze Times Express API Server running on http://${HOST}:${PORT}`);
     console.log(`📡 Connected to Neon PostgreSQL pooler (auto-reconnect enabled)`);
     console.log(`📁 Uploads available at http://localhost:${PORT}/uploads`);
+    attachServerErrorHandler(server);
 
     // 1. Initial market rate auto-sync on server boot
     fetchAndSyncMarketRates().catch(err => {
@@ -360,6 +381,7 @@ initDb().then(() => {
   console.error('❌ Failed to initialize database on startup:', err);
   server = app.listen(PORT, HOST, () => {
     console.log(`🌐 Amaze Times Express API Server running on http://${HOST}:${PORT} (fallback mode)`);
+    attachServerErrorHandler(server);
   });
 });
 

@@ -5,13 +5,18 @@ dotenv.config();
 
 const { Pool } = pg;
 
-// Sanitize connection string to enforce libpq compatibility and prevent SSL warnings
+// Sanitize connection string to enforce libpq compatibility and eliminate SSL warnings
 const sanitizeDatabaseUrl = (rawUrl) => {
   if (!rawUrl || typeof rawUrl !== 'string') return rawUrl;
   let url = rawUrl.trim();
-  // Neon serverless pooler URL fix for pg-connection-string
-  if (url.includes('sslmode=require') && !url.includes('uselibpqcompat')) {
-    url = url.replace('sslmode=require', 'sslmode=require&uselibpqcompat=true');
+  if (url.includes('localhost') || url.includes('127.0.0.1')) return url;
+
+  // Neon serverless URL fix for pg / pg-connection-string libpq warning
+  // Converting to sslmode=verify-full eliminates all security warnings across pg v8 and v9
+  if (url.includes('sslmode=require') || url.includes('sslmode=prefer') || url.includes('sslmode=verify-ca')) {
+    url = url.replace(/sslmode=(require|prefer|verify-ca)/, 'sslmode=verify-full');
+  } else if (!url.includes('sslmode=')) {
+    url += (url.includes('?') ? '&' : '?') + 'sslmode=verify-full';
   }
   return url;
 };
@@ -24,9 +29,10 @@ export const pool = new Pool({
   ssl: dbUrl?.includes('localhost') ? false : { rejectUnauthorized: false },
   max: 10, // Optimal pool size for serverless PgBouncer pooler
   idleTimeoutMillis: 10000, // 10s idle timeout: prunes idle clients BEFORE Neon pooler drops them (prevents ECONNRESET)
-  connectionTimeoutMillis: 10000, // 10s connection timeout for cold-start serverless compute
+  connectionTimeoutMillis: 25000, // 25s connection timeout allows cold-start serverless compute wake up
   keepAlive: true,
   keepAliveInitialDelayMillis: 10000,
+  allowExitOnIdle: true,
 });
 
 // Prevent idle connection drops from crashing the Node.js server
@@ -41,6 +47,9 @@ pool.on('error', (err) => {
     errorString.includes('timeout') ||
     errorString.includes('broken pipe') ||
     errorString.includes('epipe') ||
+    errorString.includes('57p01') ||
+    errorString.includes('57p02') ||
+    errorString.includes('57p03') ||
     errorString.includes('client has encountered a connection error');
 
   if (isHarmlessDrop) {
@@ -53,7 +62,7 @@ pool.on('error', (err) => {
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // Wrapped query function with exponential backoff retry on serverless pooler drops/timeouts
-export const query = async (text, params, maxRetries = 2) => {
+export const query = async (text, params, maxRetries = 3) => {
   let attempt = 0;
   while (attempt <= maxRetries) {
     try {
@@ -69,11 +78,15 @@ export const query = async (text, params, maxRetries = 2) => {
         errorString.includes('closed') ||
         errorString.includes('broken pipe') ||
         errorString.includes('epipe') ||
+        errorString.includes('57p01') ||
+        errorString.includes('57p02') ||
+        errorString.includes('57p03') ||
         errorString.includes('client has encountered a connection error');
 
       if (isConnectionError && attempt <= maxRetries) {
-        const delayMs = attempt * 350; // 350ms on first retry, 700ms on second retry
-        console.warn(`🔄 [Neon DB Retry] Connection dropped (${err?.code || err?.message}). Backing off ${delayMs}ms before retry ${attempt}/${maxRetries}...`);
+        // Neon compute cold-starts require 1-3 seconds to wake up from suspension
+        const delayMs = attempt * 1000;
+        console.warn(`🔄 [Neon DB Retry] Database waking or pooler reconnecting (${err?.code || err?.message}). Backing off ${delayMs}ms before retry ${attempt}/${maxRetries}...`);
         await sleep(delayMs);
         continue;
       }
@@ -107,4 +120,3 @@ export const closeDb = async () => {
 };
 
 export default { pool, query, ensureHttpsUrl, closeDb };
-
