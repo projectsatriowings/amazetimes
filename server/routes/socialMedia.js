@@ -191,7 +191,7 @@ router.get('/youtube/sync', async (req, res) => {
   try {
     const settingsRes = await query(`SELECT youtube_url, youtube_handle FROM social_media_settings WHERE id = 1;`);
     const settings = settingsRes.rows[0] || {};
-    const channelId = await resolveYouTubeChannelId(settings.youtube_handle || settings.youtube_url || '@AmazeTimes');
+    const channelId = await resolveYouTubeChannelId(settings.youtube_url || settings.youtube_handle || '@AmazeTimes');
 
     if (!channelId) {
       return res.status(400).json({ success: false, message: 'YouTube சேனல் அடையாளம் காண முடியவில்லை' });
@@ -205,7 +205,7 @@ router.get('/youtube/sync', async (req, res) => {
 
       await query(`
         UPDATE social_media_settings
-        SET featured_videos = $1::jsonb
+        SET featured_videos = CAST($1 AS jsonb)
         WHERE id = 1;
       `, [JSON.stringify(videos)]);
     }
@@ -236,14 +236,14 @@ router.get('/videos', async (req, res) => {
     let videos = Array.isArray(row?.featured_videos) ? row.featured_videos : [];
 
     if (videos.length === 0 || (now - lastSyncTime >= SYNC_TTL)) {
-      const channelId = await resolveYouTubeChannelId(row?.youtube_handle || row?.youtube_url || '@AmazeTimes');
+      const channelId = await resolveYouTubeChannelId(row?.youtube_url || row?.youtube_handle || '@AmazeTimes');
       if (channelId) {
         const fresh = await fetchYouTubeChannelVideos(channelId);
         if (fresh.length > 0) {
           videos = fresh;
           cachedVideos = fresh;
           lastSyncTime = now;
-          await query(`UPDATE social_media_settings SET featured_videos = $1::jsonb WHERE id = 1;`, [JSON.stringify(fresh)]).catch(() => {});
+          await query(`UPDATE social_media_settings SET featured_videos = CAST($1 AS jsonb) WHERE id = 1;`, [JSON.stringify(fresh)]).catch(() => {});
         }
       }
     } else {
@@ -311,7 +311,7 @@ router.post('/youtube/curate', authenticate, requireReporterOrAdmin, async (req,
 
     await query(`
       UPDATE social_media_settings
-      SET featured_videos = $1::jsonb
+      SET featured_videos = CAST($1 AS jsonb)
       WHERE id = 1;
     `, [JSON.stringify(currentVideos)]);
 
@@ -327,8 +327,8 @@ router.post('/youtube/curate', authenticate, requireReporterOrAdmin, async (req,
   }
 });
 
-// GET /api/social-media - Fetch social channels and featured media
-router.get('/', async (req, res) => {
+// GET /api/social-media or /api/social-media/settings - Fetch social channels and featured media
+const getSocialMediaSettings = async (req, res) => {
   try {
     const result = await query(`SELECT * FROM social_media_settings WHERE id = 1;`);
     let data = result.rows[0];
@@ -371,7 +371,7 @@ router.get('/', async (req, res) => {
     console.error('Error fetching social media settings:', err);
     res.status(500).json({ success: false, message: err.message });
   }
-});
+};
 
 // Update handler function for PUT & POST
 const updateSocialMediaSettings = async (req, res) => {
@@ -470,9 +470,9 @@ const updateSocialMediaSettings = async (req, res) => {
           telegram_url = $13,
           telegram_handle = $14,
           telegram_subscribers = $15,
-          whatsapp_announcements = $16::jsonb,
-          featured_videos = $17::jsonb,
-          featured_reels = $18::jsonb
+          whatsapp_announcements = CAST($16 AS jsonb),
+          featured_videos = CAST($17 AS jsonb),
+          featured_reels = CAST($18 AS jsonb)
       WHERE id = 1;
     `, [
       ytUrl,
@@ -508,7 +508,11 @@ const updateSocialMediaSettings = async (req, res) => {
   }
 };
 
+router.get('/', getSocialMediaSettings);
+router.get('/settings', getSocialMediaSettings);
 router.put('/', authenticate, requireReporterOrAdmin, updateSocialMediaSettings);
 router.post('/', authenticate, requireReporterOrAdmin, updateSocialMediaSettings);
+router.put('/settings', authenticate, requireReporterOrAdmin, updateSocialMediaSettings);
+router.post('/settings', authenticate, requireReporterOrAdmin, updateSocialMediaSettings);
 
 export default router;

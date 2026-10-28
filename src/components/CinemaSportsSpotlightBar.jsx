@@ -5,11 +5,11 @@ import { api } from '../services/api';
 export default function CinemaSportsSpotlightBar({ onOpenSearch, onSelectCategory }) {
   const [cinemaTags, setCinemaTags] = useState([
     { label: '#தளபதி69', query: 'தளபதி 69' },
-    { label: '#கூலி', query: 'கூலி' },
-    { label: '#Jailer2', query: 'Jailer 2' },
     { label: '#விடாமுயற்சி', query: 'விடாமுயற்சி' },
-    { label: '#அமரன்', query: 'அமரன்' },
-    { label: '#OTTரிலீஸ்', query: 'OTT' }
+    { label: '#Jailer2', query: 'Jailer 2' },
+    { label: '#திரைவிமர்சனம்', query: 'திரைவிமர்சனம்' },
+    { label: '#பாக்ஸ்ஆபீஸ்', query: 'பாக்ஸ் ஆபீஸ்' },
+    { label: '#OTTவெளியீடு', query: 'OTT' }
   ]);
 
   const [sportsTags, setSportsTags] = useState([

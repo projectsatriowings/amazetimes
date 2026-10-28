@@ -43,7 +43,8 @@ import { AdminVideoManager } from '../components/admin/AdminVideoManager';
 import { AdminHomePageBuilder } from '../components/admin/AdminHomePageBuilder';
 import { AdminSpecialDaysManager } from '../components/admin/AdminSpecialDaysManager';
 import { AdminSocialMediaManager } from '../components/admin/AdminSocialMediaManager';
-import { AdminCinemaSportsManager } from '../components/admin/AdminCinemaSportsManager';
+import { AdminCinemaManager } from '../components/admin/AdminCinemaManager';
+import { AdminSportsManager } from '../components/admin/AdminSportsManager';
 import { AdminErrorBoundary } from '../components/admin/AdminErrorBoundary';
 import { AdminTickerLiveWireManager } from '../components/admin/AdminTickerLiveWireManager';
 import { AdminPollsManager } from '../components/admin/AdminPollsManager';
@@ -1861,7 +1862,7 @@ export const AdminDashboard = () => {
           {activeTab === 'cinema-manager' && (
             <AdminErrorBoundary sectionName="சினிமா மேலாளர் (Cinema)" onResetTab={() => setActiveTab('dashboard')}>
               <div className="max-w-6xl w-full">
-                <AdminCinemaSportsManager showToast={showToast} defaultTab="cinema" />
+                <AdminCinemaManager showToast={showToast} />
               </div>
             </AdminErrorBoundary>
           )}
@@ -1870,7 +1871,7 @@ export const AdminDashboard = () => {
           {activeTab === 'sports-manager' && (
             <AdminErrorBoundary sectionName="விளையாட்டு மேலாளர் (Sports)" onResetTab={() => setActiveTab('dashboard')}>
               <div className="max-w-6xl w-full">
-                <AdminCinemaSportsManager showToast={showToast} defaultTab="sports" />
+                <AdminSportsManager showToast={showToast} />
               </div>
             </AdminErrorBoundary>
           )}
