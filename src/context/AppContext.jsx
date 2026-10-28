@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
-import { api, API_BASE_URL } from '../services/api';
+import { api } from '../services/api';
 import { defaultHoroscopeData } from '../data/horoscopeData';
 import {
   defaultPanchangamData,
@@ -393,7 +393,8 @@ export const AppProvider = ({ children }) => {
 
     const connectSSE = () => {
       try {
-        const sseUrl = `${API_BASE_URL}/news/live-stream`;
+        const baseUrl = api.baseUrl || (import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:5000/api' : '/api'));
+        const sseUrl = `${baseUrl}/news/live-stream`;
         eventSource = new EventSource(sseUrl);
 
         eventSource.addEventListener('connected', (e) => {

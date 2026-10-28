@@ -683,8 +683,8 @@ export const api = {
   }),
 
   // Media & Image URL Helper
-  getMediaUrl: (url) => getMediaUrl(url)
+  getMediaUrl: (url) => getMediaUrl(url),
+  baseUrl: API_BASE_URL
 };
-
 
 export default api;

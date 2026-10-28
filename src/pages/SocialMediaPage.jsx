@@ -24,9 +24,11 @@ import {
   Calendar,
   Clock,
   Layers,
-  RefreshCw
+  RefreshCw,
+  Video
 } from 'lucide-react';
 import { api, extractYouTubeId } from '../services/api';
+import SocialMediaVideoModal from '../components/modals/SocialMediaVideoModal';
 
 const WhatsappIcon = ({ className = 'w-5 h-5' }) => (
   <svg className={className} viewBox="0 0 24 24" fill="currentColor">
@@ -113,61 +115,106 @@ export default function SocialMediaPage({ onNavigate, onToast }) {
   const [isSyncing, setIsSyncing] = useState(false);
   const [activeFilterTab, setActiveFilterTab] = useState('all'); // 'all' | 'youtube' | 'instagram' | 'facebook' | 'whatsapp'
   const [activeVideoPlayer, setActiveVideoPlayer] = useState(fallbackOfficialVideos[0]);
+  const [selectedSocialVideo, setSelectedSocialVideo] = useState(null);
   const [copiedHandle, setCopiedHandle] = useState(null);
 
-  // Fallback publication posts for rich Instagram & Facebook stream without broken iframes
+  // Curated Instagram Reels & Facebook News Videos
   const customSocialPosts = [
     {
-      id: 'ig-1',
+      id: 'ig-reel-1',
       platform: 'instagram',
+      type: 'reel',
       author: 'Amaze Times',
       handle: '@amazetimes_official',
       time: '1 மணி நேரத்திற்கு முன்',
-      title: 'மெட்ரோ ரயில் இரண்டாம் கட்டப் பணிகள்: அமேஸ் டைம்ஸ் நேரடிக் கள ஆய்வு!',
-      caption: 'சென்னையின் முக்கிய போக்குவரத்து நெரிசலைக் குறைக்கும் மெட்ரோ ரயில் 2-ம் கட்ட சுரங்கப் பாதை பணிகள் விறுவிறுப்பாக நடைபெற்று வருகின்றன. #ChennaiMetro #AmazeTimes #TamilNaduNews',
+      duration: '00:58',
+      title: 'சென்னை மெட்ரோ ரயில் இரண்டாம் கட்டப் பணிகள்: அமேஸ் டைம்ஸ் நேரடிக் கள ஆய்வு வீடியோ! 🚇🎥',
+      caption: 'சென்னையின் முக்கிய போக்குவரத்து நெரிசலைக் குறைக்கும் மெட்ரோ ரயில் 2-ம் கட்ட சுரங்கப் பாதை பணிகள் விறுவிறுப்பாக நடைபெற்று வருகின்றன. #ChennaiMetro #AmazeTimes #TamilNaduNews #ReelsTamil #MetroUpdate',
       image: 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&q=80&w=800',
-      views: '45.2K',
-      likes: '3.8K',
-      url: 'https://www.instagram.com/amazetimes/?hl=en'
+      views: '145.2K',
+      likes: '18.4K',
+      url: 'https://www.instagram.com/amazetimes/?hl=en',
+      videoUrl: 'https://www.instagram.com/amazetimes/?hl=en'
     },
     {
-      id: 'fb-1',
+      id: 'fb-vid-1',
       platform: 'facebook',
+      type: 'video',
       author: 'Amaze Times Official',
       handle: 'amazetimesnews',
       time: '2 மணி நேரத்திற்கு முன்',
-      title: 'பட்ஜெட் 2026: பொதுமக்கள் மற்றும் சிறுதொழில் முனைவோரின் முக்கிய எதிர்பார்ப்புகள் என்ன?',
-      caption: 'தமிழகத்தின் வளர்ச்சித் திட்டங்களுக்கான நிதி ஒதுக்கீடு மற்றும் புதிய தொழில் முதலீடுகள் குறித்த விரிவான கலந்துரையாடல். #AmazeTimesDebate #Budget2026 #TamilNadu',
+      duration: '03:45',
+      title: 'தமிழக பட்ஜெட் 2026: சாமானிய மக்களின் எதிர்பார்ப்புகளும் நேரடி விவாதமும்! 📊💼',
+      caption: 'தமிழகத்தின் வளர்ச்சித் திட்டங்களுக்கான நிதி ஒதுக்கீடு மற்றும் புதிய தொழில் முதலீடுகள் குறித்த விரிவான கலந்துரையாடல். #AmazeTimesDebate #Budget2026 #TamilNadu #FBNews',
       image: 'https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?auto=format&fit=crop&q=80&w=800',
-      views: '68.5K',
-      likes: '5.2K',
-      url: 'https://www.facebook.com/amazetimes'
+      views: '86.5K',
+      likes: '7.2K',
+      url: 'https://www.facebook.com/amazetimes',
+      videoUrl: 'https://www.facebook.com/amazetimes'
     },
     {
-      id: 'ig-2',
+      id: 'ig-reel-2',
       platform: 'instagram',
+      type: 'reel',
       author: 'Amaze Times',
       handle: '@amazetimes_official',
       time: '4 மணி நேரத்திற்கு முன்',
-      title: 'தளபதி 69 மற்றும் கூலி: கோலிவுட்டின் பாக்ஸ் ஆபீஸ் எதிர்பார்ப்பு அனல் பறக்கிறது!',
-      caption: 'இந்த ஆண்டின் பிரம்மாண்ட வெளியீடுகளாக எதிர்பார்க்கப்படும் முன்னணி நட்சத்திரங்களின் திரைப்பட அப்டேட்டுகள். #Thalapathy69 #Coolie #CinemaBuzz #AmazeTimes',
+      duration: '01:15',
+      title: 'தளபதி 69 மற்றும் கூலி: கோலிவுட்டின் பாக்ஸ் ஆபீஸ் எதிர்பார்ப்பு அனல் பறக்கிறது! 🎬🔥',
+      caption: 'இந்த ஆண்டின் பிரம்மாண்ட வெளியீடுகளாக எதிர்பார்க்கப்படும் முன்னணி நட்சத்திரங்களின் திரைப்பட வீடியோ தொகுப்பு. #Thalapathy69 #Coolie #CinemaBuzz #AmazeTimes #Kollywood',
       image: 'https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?auto=format&fit=crop&q=80&w=800',
-      views: '92.4K',
-      likes: '12.1K',
-      url: 'https://www.instagram.com/amazetimes/?hl=en'
+      views: '210.8K',
+      likes: '34.6K',
+      url: 'https://www.instagram.com/amazetimes/?hl=en',
+      videoUrl: 'https://www.instagram.com/amazetimes/?hl=en'
     },
     {
-      id: 'fb-2',
+      id: 'fb-vid-2',
       platform: 'facebook',
+      type: 'video',
       author: 'Amaze Times Official',
       handle: 'amazetimesnews',
-      time: '6 மணி நேரத்திற்கு முன்',
-      title: 'ஐபிஎல் 2026: சிஎஸ்கே அணியின் புதிய வெற்றி வியூகம் - தோனி சிறப்பு பேட்டி!',
-      caption: 'சேப்பாக்கம் மைதானத்தில் சென்னை சூப்பர் கிங்ஸ் அணியின் தீவிர பயிற்சி முகாம். #CSK #MSDhoni #IPL2026 #AmazeTimesSports',
+      time: '5 மணி நேரத்திற்கு முன்',
+      duration: '02:30',
+      title: 'ஐபிஎல் 2026: சிஎஸ்கே அணியின் புதிய அதிரடி வியூகம் - தோனி சிறப்பு பேட்டி வீடியோ! 🏏⚡',
+      caption: 'சேப்பாக்கம் மைதானத்தில் சென்னை சூப்பர் கிங்ஸ் அணியின் தீவிர பயிற்சி முகாம் மற்றும் வியூகம். #CSK #MSDhoni #IPL2026 #AmazeTimesSports #WhistlePodu',
       image: 'https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?auto=format&fit=crop&q=80&w=800',
-      views: '74.1K',
-      likes: '6.9K',
-      url: 'https://www.facebook.com/amazetimes'
+      views: '158.4K',
+      likes: '14.9K',
+      url: 'https://www.facebook.com/amazetimes',
+      videoUrl: 'https://www.facebook.com/amazetimes'
+    },
+    {
+      id: 'ig-reel-3',
+      platform: 'instagram',
+      type: 'reel',
+      author: 'Amaze Times',
+      handle: '@amazetimes_official',
+      time: '6 மணி நேரத்திற்கு முன்',
+      duration: '00:45',
+      title: 'ஆவின் பொருட்களின் புதிய விலை நிலவரம்: பால் உற்பத்தியாளர்களின் நேரடி கருத்து! 🥛💰',
+      caption: 'பால் உற்பத்தியாளர்களின் வாழ்வாதாரத்தை மேம்படுத்தும் நோக்கில் அரசு எடுத்துள்ள நடவடிக்கை குறித்த வீடியோ. #Aavin #DairyFarmers #TamilNaduNews #AmazeTimes',
+      image: 'https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&q=80&w=800',
+      views: '78.2K',
+      likes: '8.1K',
+      url: 'https://www.instagram.com/amazetimes/?hl=en',
+      videoUrl: 'https://www.instagram.com/amazetimes/?hl=en'
+    },
+    {
+      id: 'fb-vid-3',
+      platform: 'facebook',
+      type: 'video',
+      author: 'Amaze Times Official',
+      handle: 'amazetimesnews',
+      time: '8 மணி நேரத்திற்கு முன்',
+      duration: '04:15',
+      title: 'தேனி மாவட்ட சிறை கைதிகள் தப்பியோட்ட விவகாரம்: 9 காவலர்கள் சஸ்பென்ட் பின்னணி! 🚨⚖️',
+      caption: 'கடந்த 31 ஆண்டுகளில் இல்லாத பாதுகாப்பு வீழ்ச்சியாகக் கருதப்படும் இச்சம்பவத்தின் உண்மைப் பின்னணி வீடியோ ஆய்வு. #TheniPrison #CrimeNews #AmazeTimes #TamilNaduPolice',
+      image: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&q=80&w=800',
+      views: '112.5K',
+      likes: '9.8K',
+      url: 'https://www.facebook.com/amazetimes',
+      videoUrl: 'https://www.facebook.com/amazetimes'
     }
   ];
 
@@ -746,95 +793,179 @@ export default function SocialMediaPage({ onNavigate, onToast }) {
           </section>
         )}
 
-        {/* 6. INSTAGRAM & FACEBOOK SLEEK CUSTOM STREAM CARDS (Zero Broken Iframes) */}
+        {/* 6. INSTAGRAM & FACEBOOK REELS & VIDEOS SECTION */}
         {(activeFilterTab === 'all' || activeFilterTab === 'instagram' || activeFilterTab === 'facebook') && (
           <section className="space-y-4">
-            <div className="flex items-center justify-between border-b border-pink-500/40 pb-2">
+            <div className="flex items-center justify-between border-b border-pink-500/40 pb-2 flex-wrap gap-2">
               <div className="flex items-center gap-2">
                 <Sparkles className="w-5 h-5 text-pink-600" />
                 <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-white">
-                  இன்ஸ்டாகிராம் & பேஸ்புக் சிறப்புப் பதிவுகள் (Curated Social Media Stream)
+                  இன்ஸ்டாகிராம் ரீல்ஸ் & பேஸ்புக் வீடியோக்கள் (Instagram Reels & Facebook Videos)
                 </h2>
-                <span className="bg-pink-500/10 text-pink-600 dark:text-pink-400 text-[10px] font-black px-2 py-0.5 rounded-full border border-pink-500/20">
-                  VERIFIED FEED
+                <span className="bg-gradient-to-r from-pink-600 to-purple-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-sm">
+                  REELS & VIDEOS
                 </span>
               </div>
+              <span className="text-xs text-slate-500 dark:text-slate-400">
+                வீடியோவை இயக்க கார்டை கிளிக் செய்யவும்
+              </span>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-              {customSocialPosts
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {(socialData.featuredReels && socialData.featuredReels.length > 0 ? socialData.featuredReels : customSocialPosts)
                 .filter(p => activeFilterTab === 'all' || activeFilterTab === p.platform)
-                .map((post) => (
-                  <div
-                    key={post.id}
-                    className="bg-white dark:bg-[#0c1427] rounded-3xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between group"
-                  >
-                    <div>
-                      {/* Post Header */}
-                      <div className="p-3.5 border-b border-slate-100 dark:border-slate-800/80 flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white ${
-                            post.platform === 'instagram' ? 'bg-gradient-to-tr from-amber-500 via-pink-600 to-purple-600' : 'bg-blue-600'
-                          }`}>
-                            {post.platform === 'instagram' ? <Instagram className="w-4 h-4" /> : <Facebook className="w-4 h-4" />}
+                .map((post) => {
+                  const isInstagram = post.platform === 'instagram';
+                  const isFacebook = post.platform === 'facebook';
+
+                  return (
+                    <div
+                      key={post.id}
+                      className="bg-white dark:bg-[#0c1427] rounded-3xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-2xl transition-all duration-300 flex flex-col justify-between group"
+                    >
+                      <div>
+                        {/* Post Header */}
+                        <div className="p-3.5 border-b border-slate-100 dark:border-slate-800/80 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/30">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <div
+                              className={`w-8 h-8 rounded-full flex items-center justify-center text-white shrink-0 shadow-md ${
+                                isInstagram
+                                  ? 'bg-gradient-to-tr from-amber-500 via-pink-600 to-purple-600'
+                                  : 'bg-blue-600'
+                              }`}
+                            >
+                              {isInstagram ? <Instagram className="w-4 h-4" /> : <Facebook className="w-4 h-4" />}
+                            </div>
+                            <div className="min-w-0">
+                              <span className="text-xs font-black text-slate-900 dark:text-white block leading-tight truncate">
+                                {post.author || (isInstagram ? 'Amaze Times' : 'Amaze Times Official')}
+                              </span>
+                              <span className="text-[10px] text-slate-400 font-mono">
+                                {post.handle || (isInstagram ? '@amazetimes_official' : 'amazetimesnews')}
+                              </span>
+                            </div>
                           </div>
-                          <div>
-                            <span className="text-xs font-black text-slate-900 dark:text-white block leading-tight">{post.author}</span>
-                            <span className="text-[10px] text-slate-400 font-mono">{post.handle}</span>
+
+                          {/* Platform & Duration Badge */}
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <span
+                              className={`text-[10px] font-black px-2 py-0.5 rounded-full text-white shadow-sm flex items-center gap-1 ${
+                                isInstagram
+                                  ? 'bg-gradient-to-r from-pink-600 to-purple-600'
+                                  : 'bg-blue-600'
+                              }`}
+                            >
+                              {isInstagram ? 'Reels' : 'Video'}
+                            </span>
                           </div>
                         </div>
-                        <span className="text-[10px] text-slate-400">{post.time}</span>
-                      </div>
 
-                      {/* Post Image */}
-                      <div className="relative aspect-square w-full overflow-hidden bg-slate-900">
-                        <img
-                          src={post.image}
-                          alt={post.title}
-                          loading="lazy"
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                        />
-                        <div className="absolute bottom-2 left-2 bg-black/70 backdrop-blur-md px-2 py-0.5 rounded text-[10px] text-white flex items-center gap-2">
-                          <span className="flex items-center gap-1"><Heart className="w-3 h-3 fill-rose-500 text-rose-500" /> {post.likes}</span>
-                          <span>•</span>
-                          <span className="flex items-center gap-1"><Eye className="w-3 h-3" /> {post.views}</span>
+                        {/* Video Thumbnail with Interactive Play Button */}
+                        <div
+                          onClick={() => setSelectedSocialVideo(post)}
+                          className={`relative w-full overflow-hidden bg-slate-950 cursor-pointer group/thumb ${
+                            isInstagram ? 'aspect-[9/13]' : 'aspect-video'
+                          }`}
+                        >
+                          <img
+                            src={post.image}
+                            alt={post.title}
+                            loading="lazy"
+                            className="w-full h-full object-cover group-hover/thumb:scale-105 transition-transform duration-500"
+                          />
+
+                          {/* Dark Vignette Overlay */}
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-black/30 group-hover/thumb:via-black/10 transition-colors flex items-center justify-center">
+                            {/* Big Animated Play Button */}
+                            <div
+                              className={`w-14 h-14 rounded-full flex items-center justify-center text-white shadow-2xl transition-all duration-300 group-hover/thumb:scale-115 ${
+                                isInstagram
+                                  ? 'bg-gradient-to-tr from-amber-500 via-pink-600 to-purple-600 shadow-pink-600/50'
+                                  : 'bg-blue-600 shadow-blue-600/50'
+                              }`}
+                            >
+                              <Play className="w-6 h-6 fill-white ml-0.5" />
+                            </div>
+                          </div>
+
+                          {/* Top-Right Duration Pill */}
+                          <span className="absolute top-2.5 right-2.5 bg-black/80 backdrop-blur-md text-amber-400 font-mono text-[10px] font-black px-2 py-0.5 rounded-md border border-white/10 shadow">
+                            {post.duration || (isInstagram ? '00:58' : '02:30')}
+                          </span>
+
+                          {/* Bottom Stats Pills */}
+                          <div className="absolute bottom-2.5 left-2.5 right-2.5 flex items-center justify-between text-[11px] text-white">
+                            <div className="flex items-center gap-2 bg-black/70 backdrop-blur-md px-2.5 py-1 rounded-lg border border-white/10">
+                              <span className="flex items-center gap-1 font-bold">
+                                <Heart className="w-3 h-3 text-rose-500 fill-rose-500" />
+                                {post.likes}
+                              </span>
+                              <span>•</span>
+                              <span className="flex items-center gap-1 font-bold">
+                                <Eye className="w-3 h-3 text-amber-400" />
+                                {post.views}
+                              </span>
+                            </div>
+                            <span className="text-[10px] text-slate-300 bg-black/60 px-2 py-0.5 rounded">
+                              {post.time}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Post Caption */}
+                        <div className="p-4 space-y-2">
+                          <h4
+                            onClick={() => setSelectedSocialVideo(post)}
+                            className="text-xs sm:text-sm font-black text-slate-900 dark:text-white leading-snug line-clamp-2 hover:text-pink-600 dark:hover:text-amber-400 transition-colors cursor-pointer"
+                          >
+                            {post.title}
+                          </h4>
+                          <p className="text-xs text-slate-600 dark:text-slate-300 line-clamp-2 leading-relaxed">
+                            {post.caption}
+                          </p>
                         </div>
                       </div>
 
-                      {/* Post Caption */}
-                      <div className="p-4 space-y-2">
-                        <h4 className="text-xs sm:text-sm font-black text-slate-900 dark:text-white leading-snug line-clamp-2">
-                          {post.title}
-                        </h4>
-                        <p className="text-xs text-slate-600 dark:text-slate-300 line-clamp-2 leading-relaxed">
-                          {post.caption}
-                        </p>
+                      {/* Action Buttons: Play in Modal + Open Platform */}
+                      <div className="p-3.5 pt-0 space-y-2">
+                        <button
+                          onClick={() => setSelectedSocialVideo(post)}
+                          className={`w-full py-2.5 px-4 rounded-xl text-xs font-black flex items-center justify-center gap-2 transition text-white shadow-md cursor-pointer hover:opacity-95 ${
+                            isInstagram
+                              ? 'bg-gradient-to-r from-purple-600 to-pink-600 shadow-pink-600/30'
+                              : 'bg-blue-600 hover:bg-blue-700 shadow-blue-600/30'
+                          }`}
+                        >
+                          <Play className="w-3.5 h-3.5 fill-white" />
+                          <span>{isInstagram ? 'ரீல்ஸ் வீடியோ இயக்கு (Play Reel)' : 'வீடியோவை இயக்கு (Play Video)'}</span>
+                        </button>
+
+                        <a
+                          href={post.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="w-full py-1.5 px-3 rounded-lg text-[11px] font-bold flex items-center justify-center gap-1 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition"
+                        >
+                          <span>{isInstagram ? 'Instagram-ல் திறக்க' : 'Facebook-ல் திறக்க'}</span>
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
                       </div>
                     </div>
-
-                    {/* View Original Action */}
-                    <div className="p-3.5 pt-0">
-                      <a
-                        href={post.url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className={`w-full py-2 px-3 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 transition text-white ${
-                          post.platform === 'instagram'
-                            ? 'bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-95'
-                            : 'bg-blue-600 hover:bg-blue-700'
-                        }`}
-                      >
-                        <span>நேரடியாகப் பார்க்க (View Post)</span>
-                        <ExternalLink className="w-3 h-3" />
-                      </a>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
             </div>
           </section>
         )}
+
+        {/* Dedicated Social Video Player Modal */}
+        <SocialMediaVideoModal
+          isOpen={Boolean(selectedSocialVideo)}
+          onClose={() => setSelectedSocialVideo(null)}
+          video={selectedSocialVideo}
+        />
 
       </div>
     </div>
   );
 }
+
