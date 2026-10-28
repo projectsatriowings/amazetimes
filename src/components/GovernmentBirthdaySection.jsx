@@ -1,186 +1,155 @@
-import React, { useState, useEffect } from 'react';
-import { Sparkles, Heart, Share2, Award, Calendar, ChevronRight, MessageCircle } from 'lucide-react';
-import { api } from '../services/api';
-import BirthdayWishModal from './BirthdayWishModal';
+import React, { useState } from 'react';
+import { useApp } from '../context/AppContext';
+import { defaultBirthdayWishes, checkIsTodayBirthday } from '../data/birthdayData';
+import { Award, Heart, Sparkles, Calendar, ChevronRight, Building2, Cake, PartyPopper } from 'lucide-react';
 
-export default function GovernmentBirthdaySection({ onToast }) {
-  const [officials, setOfficials] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedOfficial, setSelectedOfficial] = useState(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+export const GovernmentBirthdaySection = () => {
+  const { birthdayWishes, incrementOfficialWishCount, openBirthdayModal, showToast } = useApp();
+  const [activeTab, setActiveTab] = useState('today');
+  const [wishedIds, setWishedIds] = useState([]);
 
-  useEffect(() => {
-    let isMounted = true;
-    const fetchOfficials = async () => {
-      try {
-        const res = await api.getBirthdayOfficials();
-        if (isMounted && res && res.success && Array.isArray(res.officials)) {
-          setOfficials(res.officials);
-        }
-      } catch (err) {
-        console.warn('Birthday officials load fallback:', err);
-      } finally {
-        if (isMounted) setLoading(false);
-      }
-    };
-    fetchOfficials();
-    return () => { isMounted = false; };
-  }, []);
+  const list = birthdayWishes && birthdayWishes.length > 0 ? birthdayWishes : defaultBirthdayWishes;
+  const activeOfficials = list.filter((item) => item.isActive !== false);
+  const todayOfficials = activeOfficials.filter((item) => checkIsTodayBirthday(item));
+  const displayedList = activeTab === 'today' ? todayOfficials : activeOfficials;
 
-  const handleQuickWish = async (id, e) => {
+  const handleSendWish = (id, e) => {
     e.stopPropagation();
-    try {
-      setOfficials(prev => prev.map(o => o.id === id ? { ...o, wishes_count: (o.wishes_count || 150) + 1 } : o));
-      await api.wishBirthdayOfficial(id);
-      if (onToast) onToast('உங்கள் மனமார்ந்த வாழ்த்து பதிவு செய்யப்பட்டது! 🎉');
-    } catch (_) {}
+    if (wishedIds.includes(id)) {
+      showToast('நீங்கள் ஏற்கனவே உங்கள் வாழ்த்துகளைத் தெரிவித்துவிட்டீர்கள்!');
+      return;
+    }
+    setWishedIds((prev) => [...prev, id]);
+    incrementOfficialWishCount(id);
   };
-
-  const handleShareOfficial = (official, e) => {
-    e.stopPropagation();
-    const shareText = `🎂 *${official.name} அவர்களுக்கு இனிய பிறந்தநாள் நல்வாழ்த்துகள்!* 💐\n\n"${official.greeting_text || 'மக்கள் பணியில் தொடர வாழ்த்துகள்!'}"\n\n📰 *அமேஸ் டைம்ஸ் - தமிழ் செய்திகள் நாளிதழ்*\n👉 வாழ்த்துக் கார்டு: ${window.location.origin}\n📺 யூடியூப்: https://www.youtube.com/channel/UCMd-mF-u0dPO4L9Nlfftp-g\n📸 இன்ஸ்டாகிராம்: https://www.instagram.com/amazetimes/?hl=en\n📘 பேஸ்புக்: https://www.facebook.com/amazetimes\n💬 வாட்ஸ்அப் சேனல்: https://whatsapp.com/channel/amazetimes`;
-    const encoded = encodeURIComponent(shareText);
-    window.open(`https://api.whatsapp.com/send?text=${encoded}`, '_blank');
-  };
-
-  if (!officials || officials.length === 0) return null;
 
   return (
-    <section className="w-full bg-white dark:bg-[#0c1427] rounded-3xl p-5 sm:p-7 border border-slate-200 dark:border-slate-800 shadow-sm font-tamil space-y-5">
-      
-      {/* Section Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-3">
-        <div className="flex items-center gap-2.5">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-500 text-white flex items-center justify-center shadow-md">
-            <Sparkles className="w-5 h-5 text-white" />
+    <section className="bg-gradient-to-r from-[#060c21] via-[#0a1945] to-[#0d1e4c] rounded-3xl p-5 sm:p-8 border-2 border-amber-500/40 shadow-2xl space-y-6 relative overflow-hidden">
+      <div className="absolute top-0 right-0 w-96 h-96 bg-amber-500/10 blur-3xl pointer-events-none rounded-full"></div>
+      <div className="absolute bottom-0 left-0 w-96 h-96 bg-rose-500/10 blur-3xl pointer-events-none rounded-full"></div>
+
+      <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-amber-500/30 pb-5">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2 text-xs font-black text-amber-400 uppercase tracking-widest">
+            <Award className="w-4 h-4 text-amber-400" /> தலைவர்கள் & அரசு அதிகாரிகள் வாழ்த்து அரங்கம்
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white">
-                தமிழக தலைவர்கள் & பிரமுகர்கள் பிறந்தநாள் வாழ்த்து அரங்கம்
-              </h2>
-              <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-500/30">
-                சிறப்பு வாழ்த்துகள் 💐
-              </span>
+          <h2 className="text-xl sm:text-3xl font-black text-white font-tamil flex items-center gap-2.5">
+            <span>பிறந்தநாள் நல்வாழ்த்துகள்</span>
+            <div className="flex items-center gap-1.5 text-amber-400">
+              <Cake className="w-7 h-7 text-amber-400" />
+              <PartyPopper className="w-6 h-6 text-amber-400" />
             </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              மக்கள் தலைவர்கள் மற்றும் சாதனையாளர்களுக்கு அமேஸ் டைம்ஸ் வாசகர்களின் நெஞ்சார்ந்த வாழ்த்துகள்
-            </p>
-          </div>
+          </h2>
         </div>
 
-        <span className="text-xs font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/60 px-3 py-1.5 rounded-xl border border-amber-500/30 self-start sm:self-auto">
-          வாசகர்கள் வாழ்த்து மையம்
-        </span>
-      </div>
-
-      {/* Officials Celebration Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-        {officials.map(official => (
-          <div
-            key={official.id}
-            className="bg-gradient-to-br from-amber-500/5 via-orange-500/5 to-transparent rounded-3xl p-5 border border-amber-500/20 shadow-xs hover:shadow-lg transition-all flex flex-col justify-between group relative overflow-hidden"
+        {/* Tabs */}
+        <div className="flex items-center bg-black/40 p-1.5 rounded-2xl border border-amber-500/30 self-start md:self-auto">
+          <button
+            onClick={() => setActiveTab('today')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
+              activeTab === 'today'
+                ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-black shadow-lg'
+                : 'text-slate-300 hover:text-white'
+            }`}
           >
-            {/* Ambient Corner Sparkle */}
-            <div className="absolute -top-6 -right-6 w-20 h-20 bg-amber-400/10 rounded-full blur-xl pointer-events-none"></div>
-
-            <div className="space-y-4">
-              
-              {/* Photo & Badge Row */}
-              <div className="flex items-start gap-4">
-                <div className="relative flex-shrink-0">
-                  <img
-                    src={official.photo_url || official.photoUrl}
-                    alt={official.name}
-                    width="80"
-                    height="96"
-                    loading="lazy"
-                    decoding="async"
-                    className="w-20 h-24 rounded-2xl object-cover border-2 border-amber-500 shadow-md group-hover:scale-105 transition-transform"
-                  />
-                  <span className="absolute -bottom-1 -right-1 bg-amber-500 text-slate-950 text-xs px-1.5 py-0.5 rounded-full font-black shadow">
-                    🎂
-                  </span>
-                </div>
-
-                <div className="space-y-1 flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400 font-bold">
-                    <Calendar className="w-3.5 h-3.5" />
-                    <span>{official.date_display || official.dateDisplay}</span>
-                  </div>
-                  <h3 className="text-base font-black text-slate-900 dark:text-white leading-tight">
-                    {official.name}
-                  </h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2">
-                    {official.designation}
-                  </p>
-                </div>
-              </div>
-
-              {/* Greeting Quote */}
-              <div className="bg-white/80 dark:bg-[#0c1427]/80 p-3 rounded-2xl border border-slate-200/80 dark:border-slate-800 text-xs text-slate-700 dark:text-slate-300 italic leading-relaxed">
-                "{official.greeting_text || official.greetingText || 'மக்கள் சேவையில் மென்மேலும் சிறக்க மனமார்ந்த வாழ்த்துகள்!'}"
-              </div>
-
-            </div>
-
-            {/* Actions Bar */}
-            <div className="pt-4 mt-3 border-t border-slate-200/80 dark:border-slate-800 flex items-center justify-between gap-2">
-              
-              {/* Wish Button */}
-              <button
-                onClick={(e) => handleQuickWish(official.id, e)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-50 dark:bg-red-950/60 text-red-600 dark:text-red-400 font-black text-xs hover:bg-red-100 transition-colors border border-red-500/30 cursor-pointer"
-                title="வாழ்த்துகள் தெரிவிக்க"
-              >
-                <Heart className="w-3.5 h-3.5 fill-red-600" />
-                <span>{official.wishes_count || 150} வாழ்த்துகள்</span>
-              </button>
-
-              <div className="flex items-center gap-1.5">
-                {/* Custom Wish Modal Trigger */}
-                <button
-                  onClick={() => {
-                    setSelectedOfficial(official);
-                    setIsModalOpen(true);
-                  }}
-                  className="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs transition-all shadow-xs cursor-pointer"
-                >
-                  வாழ்த்துக் கடிதம்
-                </button>
-
-                {/* Direct WhatsApp Share */}
-                <button
-                  onClick={(e) => handleShareOfficial(official, e)}
-                  className="p-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white transition-all shadow-xs cursor-pointer"
-                  title="வாட்ஸ்அப்பில் பகிர்க"
-                >
-                  <MessageCircle className="w-4 h-4" />
-                </button>
-              </div>
-
-            </div>
-
-          </div>
-        ))}
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>இன்று பிறந்தநாள் ({todayOfficials.length})</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('all')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
+              activeTab === 'all'
+                ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-black shadow-lg'
+                : 'text-slate-300 hover:text-white'
+            }`}
+          >
+            <span>அனைத்து தலைவர்கள் ({activeOfficials.length})</span>
+          </button>
+        </div>
       </div>
 
-      {/* Birthday Wish Modal */}
-      {selectedOfficial && (
-        <BirthdayWishModal
-          official={selectedOfficial}
-          isOpen={isModalOpen}
-          onClose={() => {
-            setIsModalOpen(false);
-            setSelectedOfficial(null);
-          }}
-          onWishAdded={(id) => {
-            setOfficials(prev => prev.map(o => o.id === id ? { ...o, wishes_count: (o.wishes_count || 150) + 1 } : o));
-          }}
-          onToast={onToast}
-        />
-      )}
+      {displayedList.length === 0 ? (
+        <div className="relative z-10 text-center py-10 bg-black/30 rounded-2xl border border-slate-800 text-slate-400 space-y-2">
+          <Cake className="w-10 h-10 text-amber-500/50 mx-auto" />
+          <p className="text-sm font-medium">இன்று பிறந்தநாள் பதிவுகள் ஏதுமில்லை. அனைத்துப் பதிவுகளைக் காண மேலே உள்ள பொத்தானைக் கிளிக் செய்யவும்.</p>
+        </div>
+      ) : (
+        <div className="relative z-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {displayedList.map((item) => {
+            const isToday = checkIsTodayBirthday(item);
+            const isWished = wishedIds.includes(item.id);
 
+            return (
+              <div
+                key={item.id}
+                onClick={() => openBirthdayModal(item)}
+                className="bg-[#04091a]/90 hover:bg-[#060e28] rounded-2xl p-4 border border-amber-500/30 hover:border-amber-400 transition-all duration-300 shadow-xl hover:shadow-amber-500/10 cursor-pointer flex flex-col justify-between group space-y-4"
+              >
+                <div className="flex items-start gap-3.5">
+                  <div className="relative shrink-0">
+                    <img
+                      src={item.posterImage || item.photo}
+                      alt={item.name}
+                      className="w-16 h-20 rounded-xl object-cover border-2 border-amber-400 shadow-md group-hover:scale-105 transition duration-300"
+                    />
+                    {isToday && (
+                      <span className="absolute -top-1.5 -right-1.5 bg-rose-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full animate-pulse border border-slate-950">
+                        இன்று!
+                      </span>
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1 space-y-1">
+                    <h3 className="text-sm sm:text-base font-black text-white font-tamil group-hover:text-amber-300 transition truncate">
+                      {item.name}
+                    </h3>
+                    {item.englishName && item.englishName !== item.name && (
+                      <p className="text-xs text-slate-300 font-sans truncate -mt-0.5">
+                        {item.englishName}
+                      </p>
+                    )}
+                    <p className="text-xs font-bold text-amber-400 truncate">{item.designation}</p>
+                    {item.department && (
+                      <p className="text-[11px] text-slate-400 flex items-center gap-1 truncate">
+                        <Building2 className="w-3 h-3 text-slate-500 shrink-0" /> {item.department}
+                      </p>
+                    )}
+                    <p className="text-[11px] text-amber-300/80 flex items-center gap-1 font-mono">
+                      <Calendar className="w-3 h-3 text-amber-400 shrink-0" /> {item.dobDisplay}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between gap-2">
+                  <button
+                    type="button"
+                    onClick={(e) => handleSendWish(item.id, e)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition cursor-pointer ${
+                      isWished
+                        ? 'bg-emerald-600/30 text-emerald-300 border border-emerald-500/50'
+                        : 'bg-rose-600 hover:bg-rose-700 text-white'
+                    }`}
+                  >
+                    <Heart className={`w-3.5 h-3.5 ${isWished ? 'fill-emerald-400 text-emerald-400' : 'fill-white text-white'}`} />
+                    <span>{isWished ? 'வாழ்த்தப்பட்டது' : 'வாழ்த்துக்கள்'}</span>
+                    <span className="text-[10px] bg-black/40 px-1.5 py-0.2 rounded-full font-mono">{item.wishesCount || 0}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => openBirthdayModal(item)}
+                    className="text-xs font-bold text-amber-400 hover:text-amber-300 flex items-center gap-1 group-hover:translate-x-1 transition cursor-pointer"
+                  >
+                    <span>முழு அட்டை</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </section>
   );
-}
+};
+
+export default GovernmentBirthdaySection;

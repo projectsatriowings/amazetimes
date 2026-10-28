@@ -1,21 +1,13 @@
-/**
- * Birthday Poster File Share Utility
- * Brand: Amaze Times
- */
+// Comprehensive Birthday Card Sharing Utility - Amaze Times
+// Attaches Image File + English Caption + Direct Website Link
 
-/**
- * Converts image URLs or base64 data to native File objects
- * @param {string} url
- * @param {string} filename
- * @returns {Promise<File|null>}
- */
-export async function urlToFile(url, filename = 'amaze-times-birthday-poster.jpg') {
-  if (!url) return null;
+export async function urlToFile(url, filename = 'amazetimes-birthday-poster.jpg') {
   try {
-    // 1. Base64 Data URI handling
+    if (!url) return null;
     if (url.startsWith('data:')) {
       const arr = url.split(',');
-      const mime = arr[0].match(/:(.*?);/)?.[1] || 'image/jpeg';
+      const mimeMatch = arr[0].match(/:(.*?);/);
+      const mime = mimeMatch ? mimeMatch[1] : 'image/jpeg';
       const bstr = atob(arr[1]);
       let n = bstr.length;
       const u8arr = new Uint8Array(n);
@@ -24,94 +16,114 @@ export async function urlToFile(url, filename = 'amaze-times-birthday-poster.jpg
       }
       return new File([u8arr], filename, { type: mime });
     }
-
-    // 2. HTTP / Local URL handling
     const res = await fetch(url, { mode: 'cors', credentials: 'omit' });
-    if (!res.ok) throw new Error('Fetch failed');
     const blob = await res.blob();
-    const type = blob.type || 'image/jpeg';
-    return new File([blob], filename, { type });
-  } catch (err) {
-    console.warn('[BirthdayShare] urlToFile conversion notice:', err.message);
+    const mime = blob.type || 'image/jpeg';
+    return new File([blob], filename, { type: mime });
+  } catch (e) {
+    console.warn('urlToFile error:', e);
     return null;
   }
 }
 
-/**
- * Generates well-formatted greeting in English with name, designation, wish quote,
- * card URL, and official Amaze Times social links.
- * @param {object} item
- * @param {string} cardUrl
- * @returns {string}
- */
 export function formatBirthdayShareText(item, cardUrl) {
-  const name = item?.name || 'Respected Dignitary';
-  const designation = item?.designation ? ` (${item.designation})` : '';
-  const quote = item?.greeting_text || item?.greetingText || item?.quote || 'Wishing you a very Happy Birthday filled with good health, joy, and grand success!';
-  const link = cardUrl || (typeof window !== 'undefined' ? window.location.origin : 'https://amazetimes.in');
+  const englishName = item.englishName || item.name;
+  const whoHeIs = item.englishDesignation || item.designation || 'Dignitary';
+  const englishWish =
+    item.englishWishMessage ||
+    `Warmest Birthday Greetings to ${englishName}, ${whoHeIs}! Wishing you good health, happiness, peace, and continued success.`;
 
-  return `🎂 *Warm Birthday Wishes to ${name}${designation}!* 💐\n\n"${quote}"\n\n📰 *Amaze Times - Daily Media & News Portal*\n👉 View Birthday Poster: ${link}\n\n📲 *Follow Amaze Times Official Channels:*\n📺 YouTube: https://www.youtube.com/channel/UCMd-mF-u0dPO4L9Nlfftp-g\n📸 Instagram: https://www.instagram.com/amazetimes/?hl=en\n📘 Facebook: https://www.facebook.com/amazetimes\n💬 WhatsApp Channel: https://whatsapp.com/channel/amazetimes`;
+  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://amazetimes.in';
+  const targetUrl = cardUrl || `${origin}/?birthday=${item.id}`;
+
+  const instagramUrl = item.socialInstagramUrl || 'https://www.instagram.com/amazetimes/?hl=en';
+  const facebookUrl = item.socialFacebookUrl || 'https://www.facebook.com/amazetimes';
+  const youtubeUrl = item.socialYoutubeUrl || 'https://www.youtube.com/channel/UCMd-mF-u0dPO4L9Nlfftp-g';
+  const whatsappUrl = item.socialWhatsappUrl || 'https://whatsapp.com/channel/amazetimes';
+
+  let text = `🎂 *HAPPY BIRTHDAY WISHES!* 🎂\n\n🌟 *${englishName}*\n📌 *${whoHeIs}*\n\n"${englishWish}"\n\n👉 *View Birthday Card on Amaze Times:*\n${targetUrl}`;
+
+  const socialLinks = [];
+  if (instagramUrl) socialLinks.push(`📸 *Instagram Post / Reel:*\n${instagramUrl}`);
+  if (facebookUrl) socialLinks.push(`👥 *Facebook Post:*\n${facebookUrl}`);
+  if (youtubeUrl) socialLinks.push(`📺 *YouTube Video:*\n${youtubeUrl}`);
+  if (whatsappUrl) socialLinks.push(`💬 *WhatsApp Channel:*\n${whatsappUrl}`);
+
+  if (socialLinks.length > 0) {
+    text += `\n\n✨ *Watch & Share on Social Media:*\n` + socialLinks.join('\n\n');
+  }
+
+  return text;
 }
 
-/**
- * Shares birthday item with poster attachment and English caption
- * @param {object} params
- * @param {object} params.item
- * @param {string} [params.cardUrl]
- * @param {function} [params.showToast]
- */
 export async function shareBirthdayItem({ item, cardUrl, showToast }) {
-  if (!item) return;
+  if (!item) return { success: false };
 
-  const caption = formatBirthdayShareText(item, cardUrl);
-  const imageUrl = item.photo_url || item.photoUrl || item.image || item.mainImage || '';
+  const englishName = item.englishName || item.name;
+  const posterImg = item.posterImage || item.photo;
+  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://amazetimes.in';
+  const targetUrl = cardUrl || `${origin}/?birthday=${item.id}`;
+  const shareText = formatBirthdayShareText(item, targetUrl);
+  const filename = `${(englishName || 'birthday').toLowerCase().replace(/[^a-z0-9]/g, '-')}-amazetimes-poster.jpg`;
 
-  // Attempt to convert poster image to native File object
-  let file = null;
-  if (imageUrl) {
-    const filename = `${(item.name || 'birthday').toLowerCase().replace(/\s+/g, '-')}-poster.jpg`;
-    file = await urlToFile(imageUrl, filename);
-  }
-
-  // Fallback 1: Web Share API with attached File
-  if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
+  // 1. Try Native Web Share API with File Attachment
+  if (typeof navigator !== 'undefined' && navigator.share && posterImg) {
     try {
-      await navigator.share({
-        title: `Birthday Wishes - ${item.name}`,
-        text: caption,
-        files: [file]
-      });
-      if (showToast) showToast('வாழ்த்து அட்டை வெற்றிகரமாக பகிரப்பட்டது! 🎉');
-      return;
+      const file = await urlToFile(posterImg, filename);
+      if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: `Birthday Wish - ${englishName}`,
+          text: shareText
+        });
+        if (showToast) showToast('வாழ்த்து அட்டை வெற்றிகரமாக பகிரப்பட்டது! 🎉');
+        return { success: true, method: 'files' };
+      }
     } catch (err) {
-      if (err.name === 'AbortError') return; // User cancelled
-      console.warn('File share failed, falling back to text share:', err.message);
+      if (err.name === 'AbortError') return { success: false, cancelled: true };
+      console.warn('Native file share failed, falling back to text share:', err);
     }
   }
 
-  // Fallback 2: Web Share API text-only (DO NOT pass separate url parameter to prevent WhatsApp from dropping text caption!)
-  if (navigator.share) {
+  // 2. Try Native Web Share API without files (Do NOT pass separate url parameter!)
+  if (typeof navigator !== 'undefined' && navigator.share) {
     try {
       await navigator.share({
-        title: `Birthday Wishes - ${item.name}`,
-        text: caption
+        title: `Birthday Wish - ${englishName}`,
+        text: shareText
       });
       if (showToast) showToast('வாழ்த்து அட்டை பகிரப்பட்டது! 🎉');
-      return;
+      return { success: true, method: 'text' };
     } catch (err) {
-      if (err.name === 'AbortError') return; // User cancelled
-      console.warn('Navigator share text failed:', err.message);
+      if (err.name === 'AbortError') return { success: false, cancelled: true };
+      console.warn('Native text share skipped, falling back to WhatsApp Web:', err);
     }
   }
 
-  // Fallback 3: Direct WhatsApp Web / API URL
-  const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(caption)}`;
+  // 3. Fallback: Direct WhatsApp Web / App Link
+  const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`;
   window.open(waUrl, '_blank', 'noopener,noreferrer');
-  if (showToast) showToast('WhatsApp வழியாக பகிர்கிறது...');
+  if (showToast) showToast('WhatsApp-ல் வாழ்த்துப் செய்தி திறக்கப்படுகிறது...');
+  return { success: true, method: 'whatsapp-web' };
+}
+
+export function downloadPosterImage(imageUrl, filename = 'amazetimes-birthday-poster.jpg') {
+  try {
+    if (!imageUrl) return;
+    const a = document.createElement('a');
+    a.href = imageUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  } catch (e) {
+    console.warn('download error:', e);
+  }
 }
 
 export default {
   urlToFile,
   formatBirthdayShareText,
-  shareBirthdayItem
+  shareBirthdayItem,
+  downloadPosterImage
 };

@@ -29,6 +29,7 @@ import CinemaSportsSpotlightBar from './components/CinemaSportsSpotlightBar';
 import DistrictNewsHub from './components/DistrictNewsHub';
 import GovernmentBirthdaySection from './components/GovernmentBirthdaySection';
 import HomepageBirthdayPopup from './components/HomepageBirthdayPopup';
+import { BirthdayWishModal } from './components/modals/BirthdayWishModal';
 import VideoGallery from './components/VideoGallery';
 import SearchModal from './components/SearchModal';
 import RasiPalanModal from './components/RasiPalanModal';
@@ -1371,6 +1372,9 @@ export default function App() {
 
       {/* Homepage VIP Birthday Alert Popup (Session Based) */}
       <HomepageBirthdayPopup onToast={addToast} />
+
+      {/* High-Impact Dignitary Birthday Wish Modal */}
+      <BirthdayWishModal />
 
       {/* 2. Interactive Modals & Popups from Master Inventory */}
       <SearchModal

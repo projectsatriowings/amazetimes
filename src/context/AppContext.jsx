@@ -125,7 +125,16 @@ export const AppProvider = ({ children }) => {
     loadMagazinesFromDB();
   }, []);
 
-  const [birthdayWishes, setBirthdayWishes] = useState(defaultBirthdayWishes);
+  const [birthdayWishes, setBirthdayWishes] = useState(() => {
+    try {
+      const saved = localStorage.getItem('amazetimes_birthday');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {}
+    return defaultBirthdayWishes;
+  });
   const [quotesData, setQuotesData] = useState(defaultQuotesData);
   const [competitionsData, setCompetitionsData] = useState(defaultCompetitionsData);
   const [examsData, setExamsData] = useState(defaultExamsData);
@@ -264,7 +273,12 @@ export const AppProvider = ({ children }) => {
         if (allContent.wisdom && Array.isArray(allContent.wisdom) && allContent.wisdom.length > 0) setSpiritualWisdom(allContent.wisdom);
         if (allContent.christian && typeof allContent.christian === 'object' && Object.keys(allContent.christian).length > 0) setChristianData(allContent.christian);
         if (allContent.islamic && typeof allContent.islamic === 'object' && Object.keys(allContent.islamic).length > 0) setIslamicData(allContent.islamic);
-        if (allContent.birthday && Array.isArray(allContent.birthday) && allContent.birthday.length > 0) setBirthdayWishes(allContent.birthday);
+        if (allContent.birthday && Array.isArray(allContent.birthday) && allContent.birthday.length > 0) {
+          setBirthdayWishes(allContent.birthday);
+          try {
+            localStorage.setItem('amazetimes_birthday', JSON.stringify(allContent.birthday));
+          } catch (_) {}
+        }
         if (allContent.quotes && Array.isArray(allContent.quotes) && allContent.quotes.length > 0) setQuotesData(allContent.quotes);
         if (allContent.competitions && Array.isArray(allContent.competitions) && allContent.competitions.length > 0) setCompetitionsData(allContent.competitions);
         if (allContent.exams && Array.isArray(allContent.exams) && allContent.exams.length > 0) {
@@ -850,6 +864,22 @@ export const AppProvider = ({ children }) => {
     setActiveModal('birthdayDetail');
   };
 
+  // Listen for ?birthday=<id> in URL to automatically open modal
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const bdayId = urlParams.get('birthday');
+      if (bdayId) {
+        const list = birthdayWishes && birthdayWishes.length > 0 ? birthdayWishes : defaultBirthdayWishes;
+        const found = list.find((b) => String(b.id) === String(bdayId));
+        if (found) {
+          openBirthdayModal(found);
+        }
+      }
+    } catch (_) {}
+  }, [birthdayWishes]);
+
   const openSearchModal = (query = '') => {
     if (query !== undefined) {
       setSearchQuery(query);
@@ -1098,28 +1128,37 @@ export const AppProvider = ({ children }) => {
     };
     setBirthdayWishes((prev) => {
       const next = [newItem, ...prev];
+      try {
+        localStorage.setItem('amazetimes_birthday', JSON.stringify(next));
+      } catch (_) {}
       saveSiteContent('birthday', next);
       return next;
     });
-    showToast('புதிய அரசு அதிகாரி பிறந்தநாள் வாழ்த்துப் பதிவு சேர்க்கப்பட்டது!');
+    showToast('புதிய பிறந்தநாள் வாழ்த்துப் பதிவு சேர்க்கப்பட்டது!');
   };
 
   const updateBirthdayOfficial = (id, updatedFields) => {
     setBirthdayWishes((prev) => {
       const next = prev.map((item) => (item.id === id ? { ...item, ...updatedFields } : item));
+      try {
+        localStorage.setItem('amazetimes_birthday', JSON.stringify(next));
+      } catch (_) {}
       saveSiteContent('birthday', next);
       return next;
     });
-    showToast('அதிகாரி விவரங்கள் புதுப்பிக்கப்பட்டன!');
+    showToast('விவரங்கள் புதுப்பிக்கப்பட்டன!');
   };
 
   const deleteBirthdayOfficial = (id) => {
     setBirthdayWishes((prev) => {
       const next = prev.filter((item) => item.id !== id);
+      try {
+        localStorage.setItem('amazetimes_birthday', JSON.stringify(next));
+      } catch (_) {}
       saveSiteContent('birthday', next);
       return next;
     });
-    showToast('அதிகாரி பதிவு நீக்கப்பட்டது');
+    showToast('பதிவு நீக்கப்பட்டது');
   };
 
   const incrementOfficialWishCount = (id) => {
@@ -1134,10 +1173,13 @@ export const AppProvider = ({ children }) => {
         }
         return item;
       });
+      try {
+        localStorage.setItem('amazetimes_birthday', JSON.stringify(next));
+      } catch (_) {}
       saveSiteContent('birthday', next);
       return next;
     });
-    showToast('🎉 உங்கள் மனமார்ந்த பிறந்தநாள் வாழ்த்துகள் பதிவு செய்யப்பட்டது!');
+    showToast('🎉 உங்கள் மனமார்ந்த வாழ்த்துகள் பதிவு செய்யப்பட்டது!');
   };
 
   const updateHoroscopeItem = (timeframe, rasiId, updatedFields) => {
