@@ -7,6 +7,7 @@
  */
 
 let globalNewsCache = null;
+const categoryNewsCache = new Map();
 let newsVersion = Date.now();
 const sseClients = new Set();
 
@@ -19,11 +20,38 @@ export const getCachedNews = () => {
 };
 
 /**
- * Populate in-memory news cache
+ * Populate in-memory default news cache
  * @param {object} data
  */
 export const setCachedNews = (data) => {
   globalNewsCache = data;
+};
+
+/**
+ * Retrieve cached category news feed
+ * @param {string} categoryKey
+ * @returns {object|null}
+ */
+export const getCategoryCachedNews = (categoryKey) => {
+  if (!categoryKey) return null;
+  const entry = categoryNewsCache.get(categoryKey);
+  if (!entry) return null;
+  // 5-minute memory cache per category
+  if (Date.now() - entry.time > 5 * 60 * 1000) {
+    categoryNewsCache.delete(categoryKey);
+    return null;
+  }
+  return entry.data;
+};
+
+/**
+ * Populate in-memory category news cache
+ * @param {string} categoryKey
+ * @param {object} data
+ */
+export const setCategoryCachedNews = (categoryKey, data) => {
+  if (!categoryKey) return;
+  categoryNewsCache.set(categoryKey, { time: Date.now(), data });
 };
 
 /**
@@ -41,6 +69,7 @@ export const getNewsVersion = () => {
  */
 export const invalidateNewsCache = (action = 'update', article = null) => {
   globalNewsCache = null;
+  categoryNewsCache.clear();
   newsVersion = Date.now();
 
   const payload = JSON.stringify({
@@ -113,6 +142,8 @@ export const getSseClientsCount = () => {
 export default {
   getCachedNews,
   setCachedNews,
+  getCategoryCachedNews,
+  setCategoryCachedNews,
   getNewsVersion,
   invalidateNewsCache,
   registerSseClient,

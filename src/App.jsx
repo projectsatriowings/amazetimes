@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Home, Grid, Radio, FileText, Bookmark, User, Building2, MapPin, Film, Trophy, TrendingUp, Sparkles, Flag, Globe, PenTool, Rss, BookOpen } from 'lucide-react';
+import NewsSkeleton from './components/NewsSkeleton';
 import Header from './components/Header';
 import Ticker from './components/Ticker';
 import LiveWire from './components/LiveWire';
@@ -143,6 +144,22 @@ export const DOMAINS_CONFIG = {
   }
 };
 
+
+// Fast Stale-While-Revalidate bootstrap: Renders initial articles instantly in 0ms from session cache
+const getCachedInitialNews = () => {
+  if (typeof window === 'undefined') return { lead: null, articles: [] };
+  try {
+    const raw = sessionStorage.getItem('amaze_cached_articles');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && (parsed.lead || (Array.isArray(parsed.articles) && parsed.articles.length > 0))) {
+        return parsed;
+      }
+    }
+  } catch (_) {}
+  return { lead: null, articles: [] };
+};
+
 export default function App() {
   const [activeCategory, setActiveCategory] = useState('all');
   const [isDark, setIsDark] = useState(false);
@@ -266,9 +283,11 @@ export default function App() {
   const [dashboardInitialTab, setDashboardInitialTab] = useState('overview');
   const [dashboardTargetArticle, setDashboardTargetArticle] = useState(null);
 
-  // Dynamic PostgreSQL Backend Data State
-  const [backendArticles, setBackendArticles] = useState([]);
-  const [backendLeadArticle, setBackendLeadArticle] = useState(null);
+  // Dynamic PostgreSQL Backend Data State (0ms Stale-While-Revalidate Bootstrap)
+  const [initialNews] = useState(() => getCachedInitialNews());
+  const [backendArticles, setBackendArticles] = useState(initialNews.articles || []);
+  const [backendLeadArticle, setBackendLeadArticle] = useState(initialNews.lead || null);
+  const [isLoadingNews, setIsLoadingNews] = useState(!initialNews.lead && (!initialNews.articles || initialNews.articles.length === 0));
   const [backendTickers, setBackendTickers] = useState([]);
   const [backendLiveWire, setBackendLiveWire] = useState([]);
   const [backendShorts, setBackendShorts] = useState([]);
@@ -316,22 +335,28 @@ export default function App() {
     return () => clearInterval(heartbeatInterval);
   }, []);
 
-  // Fetch live content from Neon PostgreSQL (Unlimited News, Home Builder Layout, Zero Cache Delay)
+  // Fetch live content from Neon PostgreSQL (Optimized 50-item snappy payload + Client Cache)
   const fetchBackendContent = async (category = activeCategory, resetPage = true) => {
     try {
+      // Only show full skeleton if we have no articles yet
+      if (!backendLeadArticle && backendArticles.length === 0) {
+        setIsLoadingNews(true);
+      }
       const pageToFetch = resetPage ? 1 : currentPage;
       const params = {
         page: pageToFetch,
-        limit: 'all', // Unlimited news - displays every published article from PostgreSQL!
-        status: 'published',
-        _t: Date.now() // Cache-busting timestamp ensures instant updates
+        limit: 50,
+        status: 'published'
       };
       if (category !== 'all') {
         params.category = category;
       }
 
       const [artRes, tickerRes, lwRes, shortsRes, layoutRes] = await Promise.all([
-        api.getArticles(params),
+        api.getArticles(params).catch(err => {
+          console.warn('api.getArticles network warning:', err?.message || err);
+          return { success: false, error: err?.message || err };
+        }),
         api.getTickers().catch(() => ({ success: false })),
         api.getLiveWire().catch(() => ({ success: false })),
         api.getShorts().catch(() => ({ success: false })),
@@ -383,7 +408,14 @@ export default function App() {
         setBackendLeadArticle(lead);
         setBackendArticles(cards);
         setHasMoreArticles(false);
-      } else {
+
+        // Cache homepage articles in sessionStorage for 0ms instant display next time
+        if (category === 'all') {
+          try {
+            sessionStorage.setItem('amaze_cached_articles', JSON.stringify({ lead, articles: cards }));
+          } catch (_) {}
+        }
+      } else if (artRes?.success && articlesArr.length === 0) {
         setBackendLeadArticle(null);
         setBackendArticles([]);
         setHasMoreArticles(false);
@@ -402,6 +434,8 @@ export default function App() {
       }
     } catch (err) {
       console.warn('Backend fetch error:', err.message);
+    } finally {
+      setIsLoadingNews(false);
     }
   };
 
@@ -972,7 +1006,9 @@ export default function App() {
             )}
 
             {/* DOMAIN EMPTY STATE: Shown when category has no database articles yet */}
-            {(!leadData && displayCards.length === 0) ? (
+            {isLoadingNews && !leadData && displayCards.length === 0 ? (
+              <NewsSkeleton />
+            ) : (!leadData && displayCards.length === 0) ? (
               <div className="bg-white dark:bg-[#0f1b3d] rounded-3xl p-8 sm:p-14 text-center border border-slate-200 dark:border-slate-800 shadow-sm max-w-2xl mx-auto my-8 space-y-4">
                 <div className="w-16 h-16 mx-auto bg-amber-500/10 text-amber-500 rounded-2xl flex items-center justify-center">
                   <FileText className="w-8 h-8 text-amber-500" />

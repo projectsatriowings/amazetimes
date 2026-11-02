@@ -155,11 +155,15 @@ export function extractYouTubeId(url) {
 
 // High-performance In-Memory News Cache with instant invalidation on Admin mutations
 const newsCache = new Map();
+const marketCache = { data: null, time: 0, promise: null };
+const contentCache = new Map();
 const NEWS_CACHE_TTL_MS = 25000; // 25s TTL for blazing fast load times
 
 if (typeof window !== 'undefined') {
   window.addEventListener('amaze:content_updated', () => {
     newsCache.clear();
+    marketCache.data = null;
+    contentCache.clear();
   });
 }
 
@@ -426,7 +430,27 @@ export const api = {
   }),
 
   // Gold & Market Rates (GoodReturns Chennai)
-  getMarketRates: () => request('/market'),
+  getMarketRates: async () => {
+    const now = Date.now();
+    if (marketCache.data && now - marketCache.time < 45000) {
+      return marketCache.data;
+    }
+    if (marketCache.promise) {
+      return marketCache.promise;
+    }
+    marketCache.promise = request('/market')
+      .then(res => {
+        marketCache.data = res;
+        marketCache.time = Date.now();
+        marketCache.promise = null;
+        return res;
+      })
+      .catch(err => {
+        marketCache.promise = null;
+        throw err;
+      });
+    return marketCache.promise;
+  },
   getGoldRate: async function() {
     try {
       const res = await request('/market');
@@ -512,7 +536,27 @@ export const api = {
   getCurrentGoldRates: () => request('/gold/current'),
   saveGoldRates: (data) => request('/gold', { method: 'POST', body: JSON.stringify(data) }),
   syncGoldRates: () => request('/gold/sync', { method: 'POST' }),
-  getMarketRates: () => request('/market'),
+  getMarketRates: async () => {
+    const now = Date.now();
+    if (marketCache.data && now - marketCache.time < 45000) {
+      return marketCache.data;
+    }
+    if (marketCache.promise) {
+      return marketCache.promise;
+    }
+    marketCache.promise = request('/market')
+      .then(res => {
+        marketCache.data = res;
+        marketCache.time = Date.now();
+        marketCache.promise = null;
+        return res;
+      })
+      .catch(err => {
+        marketCache.promise = null;
+        throw err;
+      });
+    return marketCache.promise;
+  },
 
   // Social Media Hub & Settings (/api/social-media)
   getSocialMediaSettings: () => request('/social-media'),
@@ -655,7 +699,27 @@ export const api = {
   },
 
   // Market & Bullion Rates (api.gold-api.com & GoodReturns Chennai)
-  getMarketRates: () => request('/market'),
+  getMarketRates: async () => {
+    const now = Date.now();
+    if (marketCache.data && now - marketCache.time < 45000) {
+      return marketCache.data;
+    }
+    if (marketCache.promise) {
+      return marketCache.promise;
+    }
+    marketCache.promise = request('/market')
+      .then(res => {
+        marketCache.data = res;
+        marketCache.time = Date.now();
+        marketCache.promise = null;
+        return res;
+      })
+      .catch(err => {
+        marketCache.promise = null;
+        throw err;
+      });
+    return marketCache.promise;
+  },
   getCurrentGoldRates: () => request('/gold/current'),
   getGoldRates: () => request('/gold'),
   syncGoldRates: () => request('/gold/sync', { method: 'POST' }),

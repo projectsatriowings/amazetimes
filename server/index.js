@@ -1,3 +1,4 @@
+import compression from 'compression';
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
@@ -7,7 +8,7 @@ import dotenv from 'dotenv';
 import { initDb } from './initDb.js';
 import authRoutes from './routes/auth.js';
 import reporterRoutes from './routes/reporters.js';
-import newsRoutes from './routes/news.js';
+import newsRoutes, { warmNewsCache } from './routes/news.js';
 import homeBuilderRoutes from './routes/homeBuilder.js';
 import specialDaysRoutes from './routes/specialDays.js';
 import socialMediaRoutes from './routes/socialMedia.js';
@@ -70,6 +71,7 @@ process.on('uncaughtException', (err) => {
 });
 
 // High capacity middleware: 100MB capacity for large e-papers and media
+app.use(compression());
 app.use(cors());
 
 // Canonical URL & HTTPS 301 Permanent Redirection Middleware (SEO High Issue)
@@ -356,34 +358,42 @@ const attachServerErrorHandler = (srv) => {
   });
 };
 
-// Initialize database schema and start server on standard port 5000 bound to 0.0.0.0
-initDb().then(() => {
-  server = app.listen(PORT, HOST, () => {
-    console.log(`🌐 Amaze Times Express API Server running on http://${HOST}:${PORT}`);
-    console.log(`📡 Connected to Neon PostgreSQL pooler (auto-reconnect enabled)`);
-    console.log(`📁 Uploads available at http://localhost:${PORT}/uploads`);
-    attachServerErrorHandler(server);
+// Start HTTP server immediately on standard port 5000 bound to 0.0.0.0
+server = app.listen(PORT, HOST, () => {
+  console.log(`🌐 Amaze Times Express API Server running on http://${HOST}:${PORT}`);
+  console.log(`📁 Uploads available at http://localhost:${PORT}/uploads`);
+  attachServerErrorHandler(server);
 
-    // 1. Initial market rate auto-sync on server boot
+  // Background Database Verification & Cache Pre-warming
+  initDb().then(() => {
+    console.log(`📡 Connected to Neon PostgreSQL pooler (auto-reconnect enabled)`);
+
+    // 1. Pre-warm news cache for 0ms sub-millisecond response times
+    warmNewsCache().catch(err => {
+      console.warn('⚠️ [NewsCache] Notice on warming cache:', err?.message || err);
+    });
+
+    // 2. Initial market rate auto-sync on server boot
     fetchAndSyncMarketRates().catch(err => {
       console.warn('⚠️ [MarketRateService] Initial startup sync notice:', err.message);
     });
 
-    // 2. Schedule recurring market rate sync every 6 hours
+    // 3. Schedule recurring market rate sync every 6 hours
     const SIX_HOURS = 6 * 60 * 60 * 1000;
     setInterval(() => {
       fetchAndSyncMarketRates().catch(err => {
         console.warn('⚠️ [MarketRateService] Recurring 6-hr sync notice:', err.message);
       });
     }, SIX_HOURS);
-  });
-}).catch(err => {
-  console.error('❌ Failed to initialize database on startup:', err);
-  server = app.listen(PORT, HOST, () => {
-    console.log(`🌐 Amaze Times Express API Server running on http://${HOST}:${PORT} (fallback mode)`);
-    attachServerErrorHandler(server);
+
+    // 4. Neon DB compute keep-alive ping every 4 minutes (prevents serverless suspension & cold-start delays)
+    const FOUR_MINUTES = 4 * 60 * 1000;
+    setInterval(() => {
+      query('SELECT 1;').catch(() => {});
+    }, FOUR_MINUTES);
+  }).catch(err => {
+    console.error('❌ Failed to verify database on startup:', err);
   });
 });
-
 
 export default app;

@@ -47,6 +47,8 @@ pool.on('error', (err) => {
     errorString.includes('timeout') ||
     errorString.includes('broken pipe') ||
     errorString.includes('epipe') ||
+    errorString.includes('aggregateerror') ||
+    errorString.includes('econnrefused') ||
     errorString.includes('57p01') ||
     errorString.includes('57p02') ||
     errorString.includes('57p03') ||
@@ -78,6 +80,8 @@ export const query = async (text, params, maxRetries = 3) => {
         errorString.includes('closed') ||
         errorString.includes('broken pipe') ||
         errorString.includes('epipe') ||
+        errorString.includes('aggregateerror') ||
+        errorString.includes('econnrefused') ||
         errorString.includes('57p01') ||
         errorString.includes('57p02') ||
         errorString.includes('57p03') ||

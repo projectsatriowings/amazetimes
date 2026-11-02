@@ -4,6 +4,8 @@ import { authenticate, requireReporterOrAdmin, optionalAuth } from '../middlewar
 import {
   getCachedNews,
   setCachedNews,
+  getCategoryCachedNews,
+  setCategoryCachedNews,
   getNewsVersion,
   invalidateNewsCache,
   registerSseClient
@@ -115,6 +117,28 @@ router.get('/', optionalAuth, async (req, res) => {
       !author_id &&
       !author_name &&
       pageNum === 1;
+
+        const isCategoryQuery =
+      category &&
+      category !== 'all' &&
+      (!district || district === 'all') &&
+      (!status || status === 'published' || status === 'all') &&
+      (!search || !search.trim()) &&
+      !is_breaking &&
+      !is_lead_hero &&
+      !is_top_story &&
+      !author_id &&
+      !author_name &&
+      pageNum === 1;
+
+    if (isCategoryQuery && !isAdminOrReporter) {
+      const catNorm = String(category).trim().toLowerCase();
+      const catCached = getCategoryCachedNews(catNorm);
+      if (catCached) {
+        res.setHeader('X-Cache', 'HIT');
+        return res.json(catCached);
+      }
+    }
 
     if (isDefaultQuery && !isAdminOrReporter) {
       const cached = getCachedNews();
@@ -275,6 +299,10 @@ router.get('/', optionalAuth, async (req, res) => {
 
     if (isDefaultQuery && !isAdminOrReporter) {
       setCachedNews(responsePayload);
+      res.setHeader('X-Cache', 'MISS');
+    } else if (isCategoryQuery && !isAdminOrReporter) {
+      const catNorm = String(category).trim().toLowerCase();
+      setCategoryCachedNews(catNorm, responsePayload);
       res.setHeader('X-Cache', 'MISS');
     }
 
@@ -736,3 +764,35 @@ router.delete('/:id', authenticate, requireReporterOrAdmin, async (req, res) => 
 });
 
 export default router;
+
+
+// Server Boot Cache Warmer: Eliminates cold-start lag for the first visitor
+export async function warmNewsCache() {
+  try {
+    const countRes = await query(`SELECT COUNT(*) AS total FROM news WHERE status = 'published';`);
+    const totalCount = parseInt(countRes.rows[0]?.total || 0, 10);
+    const result = await query(`
+      SELECT * FROM news
+      WHERE status = 'published'
+      ORDER BY COALESCE(display_order, 0) DESC, created_at DESC
+      LIMIT 5000 OFFSET 0;
+    `);
+    const formattedNews = result.rows.map(formatNewsRow);
+    const responsePayload = {
+      success: true,
+      news: formattedNews,
+      data: formattedNews,
+      articles: formattedNews,
+      pagination: {
+        page: 1,
+        limit: 5000,
+        total: totalCount,
+        totalPages: Math.ceil(totalCount / 5000) || 1
+      }
+    };
+    setCachedNews(responsePayload);
+    console.log(`⚡ [NewsCache] News cache successfully warmed with ${formattedNews.length} articles.`);
+  } catch (err) {
+    console.warn('⚠️ [NewsCache] Notice on warming cache:', err?.message || err);
+  }
+}
