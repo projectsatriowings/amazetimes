@@ -19,7 +19,8 @@ async function seedAllSections() {
       { id: 'cinema', name_ta: 'சினிமா', name_en: 'Cinema', icon: 'movie', sort_order: 8 },
       { id: 'spiritual', name_ta: 'ஆன்மிகம்', name_en: 'Spiritual', icon: 'temple_hindu', sort_order: 9 },
       { id: 'editorial', name_ta: 'தலையங்கம்', name_en: 'Editorial', icon: 'edit_note', sort_order: 10 },
-      { id: 'tech', name_ta: 'தொழில்நுட்பம்', name_en: 'Technology', icon: 'memory', sort_order: 11 }
+      { id: 'tech', name_ta: 'தொழில்நுட்பம்', name_en: 'Technology', icon: 'memory', sort_order: 11 },
+      { id: 'magazine', name_ta: 'மாத இதழ்', name_en: 'Magazine', icon: 'menu_book', sort_order: 12 }
     ];
 
     for (const cat of categories) {
@@ -591,6 +592,49 @@ async function seedAllSections() {
         is_lead: false,
         cover_image_url: "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=1000&q=80",
         tags: ["தலையங்கம்", "நதிகள்", "விவசாயம்"]
+      },
+
+      // ----------------------------------------------------
+      // 10. MAGAZINE (மாத இதழ்)
+      // ----------------------------------------------------
+      {
+        title: "அமேஸ் டைம்ஸ் பிரத்யேக மாத இதழ்: தீபாவளி & புத்தாண்டு மெகா சிறப்பு மலர் மின்னிதழ் வெளியீடு!",
+        subtitle: "சிறப்புக் கட்டுரைகள், இலக்கியப் படைப்புகள் மற்றும் வண்ணமயமான மின்னிதழ் வடிவம்",
+        slug: "amaze-times-monthly-magazine-grand-edition-release",
+        content: "அமேஸ் டைம்ஸ் வாசகர்களுக்காக பிரத்யேகமாக வடிவமைக்கப்பட்ட மாதாந்திர மின்னிதழின் புதிய பதிப்பு வெளியாகியுள்ளது. தமிழ்நாட்டின் பண்பாடு, அறிவியல் வளர்ச்சி மற்றும் சாதனையாளர்களின் நேர்காணல்கள் அடங்கிய முழுமையான மின்னிதழைப் பதிவிறக்கம் செய்து வாசிக்கலாம்.",
+        excerpt: "அமேஸ் டைம்ஸின் புதிய மாதாந்திர மின்னிதழ் பதிப்பு வாசகர்களின் பார்வைக்கு வெளியாகியுள்ளது.",
+        category_id: "magazine",
+        author_id: adminId,
+        status: "published",
+        is_lead: true,
+        cover_image_url: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=1000&q=80",
+        tags: ["மாதஇதழ்", "மின்னிதழ்", "சிறப்புமலர்"]
+      },
+      {
+        title: "தொழில்முனைவோர் மற்றும் சாதனைப் பெண்கள்: இந்த மாத சிறப்பு அட்டைப்பட சிறப்புக் கட்டுரை!",
+        subtitle: "கிராமப்புறங்களில் இருந்து சர்வதேச தளம் வரை உயர்ந்த பெண்களின் வெற்றிப் பயணம்",
+        slug: "women-entrepreneurs-monthly-magazine-cover-story",
+        content: "சுயமுயற்சியால் தொழில் தொடங்கி பல்லாயிரக்கணக்கானோருக்கு வேலைவாய்ப்பு வழங்கி வரும் தமிழ்நாட்டின் முன்னணி பெண் தொழில்முனைவோரின் ஊக்கமளிக்கும் நேர்காணல்கள் மற்றும் சிறப்புக் கட்டுரைகளின் தொகுப்பு.",
+        excerpt: "சாதித்த பெண் தொழில்முனைவோர் குறித்த அமேஸ் டைம்ஸ் மாத இதழின் பிரத்யேக அட்டைப்பட சிறப்புக் கட்டுரை.",
+        category_id: "magazine",
+        author_id: reporterId,
+        status: "published",
+        is_lead: false,
+        cover_image_url: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=1000&q=80",
+        tags: ["மாதஇதழ்", "தொழில்முனைவோர்", "நேர்காணல்"]
+      },
+      {
+        title: "வரலாற்றுப் பொக்கிஷங்கள் மற்றும் பண்பாட்டுச் சுவடுகள்: மாத இதழ் இலக்கியப் பக்கம்!",
+        subtitle: "பண்டைத் தமிழர் கட்டடக்கலை மற்றும் சிற்பக் கலைகளின் அரிய ஆய்வுக் கட்டுரைகள்",
+        slug: "history-culture-ancient-tamil-monthly-magazine-literature",
+        content: "தமிழகத்தின் பழைமையான கோயில்கள், கல்வெட்டுகள் மற்றும் இலக்கிய நயங்கள் குறித்த ஆழமான ஆய்வுக் கட்டுரைகளின் வரிசை. இளம் தலைமுறைக்கு நம் பண்பாட்டுப் பெருமைகளை எடுத்துரைக்கும் அரிய தொகுப்பு.",
+        excerpt: "பண்டைத் தமிழர் வாழ்வியல் மற்றும் வரலாற்றுச் சுவடுகள் குறித்த மாத இதழ் சிறப்புக் கட்டுரை.",
+        category_id: "magazine",
+        author_id: reporterId,
+        status: "published",
+        is_lead: false,
+        cover_image_url: "https://images.unsplash.com/photo-1461360370896-922624d12aa1?auto=format&fit=crop&w=1000&q=80",
+        tags: ["மாதஇதழ்", "வரலாறு", "இலக்கியம்"]
       }
     ];
 

@@ -146,6 +146,52 @@ export const DOMAINS_CONFIG = {
   }
 };
 
+export const CATEGORY_ALIASES = {
+  all: ['all', 'அனைத்தும்', 'முகப்பு'],
+  tamilnadu: ['tamilnadu', 'தமிழ்நாடு', 'தமிழகம்'],
+  districts: ['districts', 'மாவட்டங்கள்', 'மாவட்டம்'],
+  cinema: ['cinema', 'சினிமா', 'திரைப்படம்', 'கோலிவுட்'],
+  sports: ['sports', 'விளையாட்டு', 'கிரிக்கெட்'],
+  business: ['business', 'வணிகம்', 'பொருளாதாரம்'],
+  india: ['india', 'இந்தியா', 'தேசியம்'],
+  world: ['world', 'உலகம்', 'சர்வதேசம்'],
+  spiritual: ['spiritual', 'ஆன்மிகம்', 'கோயில்', 'திருத்தலங்கள்'],
+  editorial: ['editorial', 'தலையங்கம்', 'தலையங்க'],
+  blogs: ['blogs', 'வலைப்பதிவுகள்', 'வலைப்பதிவு'],
+  magazine: ['magazine', 'மாத இதழ்', 'இதழ்', 'மாதஇதழ்']
+};
+
+export const matchesCategory = (article, targetCategory) => {
+  if (!article || !targetCategory || targetCategory === 'all') return true;
+  const target = String(targetCategory).toLowerCase().trim();
+  const catId = String(article.category_id || '').toLowerCase().trim();
+  const catName = String(article.category || article.cat || article.category_name || '').toLowerCase().trim();
+
+  // 1. Direct match
+  if (catId === target || catName === target) return true;
+
+  // 2. Canonical alias match
+  for (const [key, aliases] of Object.entries(CATEGORY_ALIASES)) {
+    const isTargetThisKey = key === target || aliases.some(a => a.toLowerCase() === target);
+    if (isTargetThisKey) {
+      if (catId === key) return true;
+      if (aliases.some(a => {
+        const al = a.toLowerCase();
+        return catId === al || catName === al || catName.includes(al) || al.includes(catName);
+      })) {
+        return true;
+      }
+      if (article.tags) {
+        const tagList = Array.isArray(article.tags) ? article.tags : String(article.tags).split(',').map(t => t.trim());
+        if (tagList.some(t => aliases.some(a => String(t).toLowerCase().includes(a.toLowerCase())))) {
+          return true;
+        }
+      }
+    }
+  }
+
+  return false;
+};
 
 // Fast Stale-While-Revalidate bootstrap: Renders initial articles instantly in 0ms from session cache
 const getCachedInitialNews = () => {
@@ -864,25 +910,14 @@ export default function App() {
   };
 
   // 100% Authentic Database News — Real Lead Hero & Display Cards directly from PostgreSQL
-  const isLeadMatchingCategory = activeCategory === 'all' || 
-    (backendLeadArticle && (
-      backendLeadArticle.category_id === activeCategory || 
-      backendLeadArticle.category === activeCategory ||
-      (activeCategory === 'cinema' && (backendLeadArticle.category?.includes('சினிமா') || backendLeadArticle.category_id === 'cinema')) ||
-      (activeCategory === 'sports' && (backendLeadArticle.category?.includes('விளையாட்டு') || backendLeadArticle.category_id === 'sports'))
-    ));
+  const isLeadMatchingCategory = activeCategory === 'all' || matchesCategory(backendLeadArticle, activeCategory);
   const leadData = isLeadMatchingCategory ? backendLeadArticle : null;
   const rawCards = [...backendArticles, ...extraCards];
 
   // Filter cards to match active category if not 'all'
   const categoryFilteredCards = activeCategory === 'all' 
     ? rawCards 
-    : rawCards.filter(c => {
-        const cat = (c.category || c.category_id || '').toLowerCase();
-        return cat === activeCategory.toLowerCase() || 
-          (activeCategory === 'cinema' && (cat.includes('சினிமா') || cat === 'cinema')) ||
-          (activeCategory === 'sports' && (cat.includes('விளையாட்டு') || cat === 'sports'));
-      });
+    : rawCards.filter(c => matchesCategory(c, activeCategory));
 
   // Deduplicate by id to prevent duplicated cards when combining primary news with paginated lists
   let displayCards = Array.from(new Map(categoryFilteredCards.map(a => [String(a.id || a._id), a])).values());
@@ -1050,6 +1085,7 @@ export default function App() {
         ) : (activeCategory === 'spiritual' || currentPath === '/spiritual' || currentPath === '/aanmeegam') ? (
           /* Dedicated Aanmegam Broadsheet View */
           <AanmegamView
+            articles={backendArticles}
             onOpenArticle={openArticleModal}
             onSpeak={speakTamilText}
             onBookmark={handleBookmark}
@@ -1182,6 +1218,16 @@ export default function App() {
                       <GoldMarketDashboard />
                     </section>
                   </>
+                )}
+
+                {activeCategory === 'magazine' && (
+                  <div className="space-y-6">
+                    <MagazineShowcase onOpenEPaper={() => setIsEPaperOpen(true)} onToast={addToast} />
+                    <MagazineHubSection
+                      onOpenEPaper={() => setIsEPaperOpen(true)}
+                      onToast={addToast}
+                    />
+                  </div>
                 )}
 
                 {/* 3. GENERAL HOMEPAGE SHOWCASES (Only rendered on 'all' / Main Frontpage) */}

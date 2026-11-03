@@ -3,7 +3,7 @@ import { Volume2, Calendar, Sparkles, Landmark, ArrowRight, BookOpen, HelpCircle
 import { api } from '../services/api';
 import { useApp } from '../context/AppContext';
 
-export default function AanmegamView({ onOpenArticle, onSpeak, onBookmark, savedBookmarks = [] }) {
+export default function AanmegamView({ articles = [], onOpenArticle, onSpeak, onBookmark, savedBookmarks = [] }) {
   const { panchangamData: contextPanchangam, templeFestivals: contextTemples } = useApp();
   // 12 Zodiac signs state
   const [signs, setSigns] = useState([]);
@@ -47,7 +47,7 @@ export default function AanmegamView({ onOpenArticle, onSpeak, onBookmark, saved
       } catch (err) {
         if (isMounted) setSigns(fallbackSigns);
       } finally {
-        if (isMounted) setIsLoading(false);
+        if (isMounted) setIsLoadingZodiac(false);
       }
     };
     fetchZodiac();
@@ -483,6 +483,59 @@ export default function AanmegamView({ onOpenArticle, onSpeak, onBookmark, saved
           ))}
         </div>
       </section>
+
+      {/* 4.5 SPIRITUAL NEWS & TEMPLE OCCASIONS */}
+      {articles && articles.length > 0 && (
+        <section className="space-y-6">
+          <div className="flex items-center justify-between border-b-2 border-amber-500 pb-3">
+            <h2 className="font-title font-extrabold text-xl text-slate-900 dark:text-amber-400 flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-amber-500" />
+              <span>ஆன்மிகச் சிறப்புச் செய்திகள் &amp; திருவிழாக்கள்</span>
+            </h2>
+            <span className="text-xs font-bold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/60 px-3 py-1 rounded-full border border-amber-300/40">
+              {articles.length} முக்கியச் செய்திகள்
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+            {articles.map((art) => (
+              <article
+                key={art.id || art._id}
+                onClick={() => onOpenArticle && onOpenArticle(art)}
+                className="bg-white dark:bg-[#0E1628] rounded-2xl overflow-hidden shadow-sm hover:shadow-xl border border-slate-200 dark:border-slate-800 transition-all duration-300 hover:-translate-y-1 cursor-pointer flex flex-col justify-between group"
+              >
+                <div>
+                  <div className="relative aspect-[16/10] overflow-hidden bg-slate-100 dark:bg-slate-800">
+                    <img
+                      src={art.cover_image_url || art.img || art.image || '/Amaze times.jpg'}
+                      alt={art.title}
+                      loading="lazy"
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                    <span className="absolute top-2.5 left-2.5 bg-amber-600 text-white text-[10px] font-black px-2.5 py-0.5 rounded-full shadow">
+                      {art.category || 'ஆன்மிகம்'}
+                    </span>
+                  </div>
+                  <div className="p-4 space-y-2">
+                    <h3 className="font-title font-extrabold text-sm text-slate-900 dark:text-white line-clamp-2 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors leading-snug">
+                      {art.title}
+                    </h3>
+                    <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-2 leading-relaxed">
+                      {art.desc || art.excerpt || art.subtitle}
+                    </p>
+                  </div>
+                </div>
+                <div className="p-4 pt-0 flex items-center justify-between text-[11px] text-slate-400 border-t border-slate-100 dark:border-slate-800/80 mt-2">
+                  <span>{art.time || 'இன்று'}</span>
+                  <span className="text-amber-600 dark:text-amber-400 font-bold flex items-center gap-1 group-hover:underline">
+                    வாசிக்க <ArrowRight className="w-3 h-3" />
+                  </span>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* 5. DAILY MANTRAS & SLOKAS (தினசரி பக்தி மலர் & மந்திரங்கள்) */}
       <section className="bg-gradient-to-r from-amber-500/10 via-rose-500/5 to-transparent border border-amber-300/50 dark:border-amber-900/40 rounded-3xl p-6 sm:p-8 space-y-6">
