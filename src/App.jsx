@@ -32,6 +32,7 @@ import GovernmentBirthdaySection from './components/GovernmentBirthdaySection';
 import HomepageBirthdayPopup from './components/HomepageBirthdayPopup';
 import { BirthdayWishModal } from './components/modals/BirthdayWishModal';
 import VideoGallery from './components/VideoGallery';
+import SocialMediaStrip from './components/SocialMediaStrip';
 import SearchModal from './components/SearchModal';
 import RasiPalanModal from './components/RasiPalanModal';
 import PWAInstallModal from './components/PWAInstallModal';
@@ -1157,8 +1158,12 @@ export default function App() {
               </div>
             </div>
 
-            {/* 10. VIDEO & SOCIAL MEDIA HUB (YouTube, Instagram Reels, Facebook) */}
-            <VideoGallery onOpenVideoPlayer={(vid) => setActiveVideoPlayer(vid)} />
+            
+                        {/* 10. SOCIAL MEDIA COMMUNITY STRIP */}
+            <SocialMediaStrip onNavigate={navigateTo} />
+
+            {/* 11. VIDEO & SOCIAL MEDIA HUB (YouTube, Instagram Reels, Facebook) */}
+            <VideoGallery onOpenVideoPlayer={(vid) => setActiveVideoPlayer(vid)} onNavigate={navigateTo} />
           </>
         )}
       </main>

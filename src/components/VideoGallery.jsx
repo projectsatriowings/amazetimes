@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Youtube, Instagram, Facebook, Play, Eye, Heart, Share2, ExternalLink, Sparkles, CheckCircle2, ShieldCheck } from 'lucide-react';
 import { api } from '../services/api';
 
-export default function VideoGallery({ onOpenVideoPlayer }) {
+export default function VideoGallery({ onOpenVideoPlayer, onNavigate }) {
   const [activeTab, setActiveTab] = useState('youtube');
   const [socialData, setSocialData] = useState(null);
   const [liveVideos, setLiveVideos] = useState([]);
@@ -69,42 +69,53 @@ export default function VideoGallery({ onOpenVideoPlayer }) {
             </div>
           </div>
 
-          {/* 3 Tabs */}
-          <div className="flex items-center gap-1.5 bg-[#070b18] p-1 rounded-2xl border border-gray-800">
-            <button
-              onClick={() => setActiveTab('youtube')}
-              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
-                activeTab === 'youtube'
-                  ? 'bg-red-600 text-white shadow-sm'
-                  : 'text-gray-400 hover:text-white'
-              }`}
-            >
-              <Youtube size={15} />
-              <span>YouTube வீடியோக்கள்</span>
-            </button>
+          {/* 3 Tabs & Route Button */}
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center gap-1 sm:gap-1.5 bg-[#070b18] p-1 rounded-2xl border border-gray-800">
+              <button
+                onClick={() => setActiveTab('youtube')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+                  activeTab === 'youtube'
+                    ? 'bg-red-600 text-white shadow-sm'
+                    : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                <Youtube size={15} />
+                <span>YouTube</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('reels')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+                  activeTab === 'reels'
+                    ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-sm'
+                    : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                <Instagram size={15} />
+                <span>Insta ரீல்ஸ்</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('facebook')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+                  activeTab === 'facebook'
+                    ? 'bg-blue-600 text-white shadow-sm'
+                    : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                <Facebook size={15} />
+                <span>Facebook</span>
+              </button>
+            </div>
 
             <button
-              onClick={() => setActiveTab('reels')}
-              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
-                activeTab === 'reels'
-                  ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-sm'
-                  : 'text-gray-400 hover:text-white'
-              }`}
+              onClick={() => onNavigate ? onNavigate('/social-media') : (window.location.href = '/social-media')}
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-2xl bg-gradient-to-r from-red-600 via-pink-600 to-purple-600 hover:opacity-90 text-white font-extrabold text-xs transition shadow-md hover:scale-105 active:scale-95 cursor-pointer shrink-0"
+              title="அதிகாரப்பூர்வ சமூக ஊடக மையம் காண்க"
             >
-              <Instagram size={15} />
-              <span>Insta ரீல்ஸ்</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('facebook')}
-              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
-                activeTab === 'facebook'
-                  ? 'bg-blue-600 text-white shadow-sm'
-                  : 'text-gray-400 hover:text-white'
-              }`}
-            >
-              <Facebook size={15} />
-              <span>Facebook பக்கம்</span>
+              <Share2 size={13} className="text-white" />
+              <span>முழு தளம் காண்க →</span>
             </button>
           </div>
         </div>

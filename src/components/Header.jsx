@@ -164,13 +164,13 @@ export default function Header({
     { id: 'cinema', label: 'சினிமா', icon: Film, badge: 'HOT 🔥', badgeColor: 'bg-gradient-to-r from-red-600 to-rose-600' },
     { id: 'sports', label: 'விளையாட்டு', icon: Trophy, badge: 'LIVE 🏏', badgeColor: 'bg-gradient-to-r from-emerald-500 to-green-600 animate-pulse' },
     { id: 'business', label: 'வணிகம்', icon: TrendingUp, badge: 'HOT', badgeColor: 'bg-amber-500 text-slate-950 font-black' },
+    { id: 'social', label: 'சமூக ஊடகம்', icon: Share2, badge: 'HOT 🚀', badgeColor: 'bg-gradient-to-r from-red-600 to-pink-600 font-bold' },
     { id: 'spiritual', label: 'ஆன்மிகம்', icon: Sparkles, badge: 'சிறப்பு', badgeColor: 'bg-amber-500' },
     { id: 'magazine', label: 'மாத இதழ்', icon: BookOpen, badge: 'புதியது', badgeColor: 'bg-emerald-600' },
     { id: 'blogs', label: 'வலைப்பதிவுகள்', icon: Rss },
     { id: 'india', label: 'தேசியம்', icon: Flag },
     { id: 'world', label: 'உலகம்', icon: Globe },
-    { id: 'editorial', label: 'தலையங்கம்', icon: PenTool },
-    { id: 'social', label: 'சமூக ஊடகங்கள்', icon: Share2, badge: 'HOT 🚀', badgeColor: 'bg-red-600' }
+    { id: 'editorial', label: 'தலையங்கம்', icon: PenTool }
   ];
 
   const trendingTags = [
@@ -629,7 +629,7 @@ export default function Header({
               {/* Social Media Hub Link Button */}
               <button
                 onClick={() => onNavigate ? onNavigate('/social-media') : (window.location.href = '/social-media')}
-                className="hidden xl:flex items-center gap-1.5 bg-gradient-to-r from-red-600 via-pink-600 to-purple-600 hover:opacity-95 text-white font-extrabold text-xs px-3 py-2 rounded-xl transition-all shadow-sm cursor-pointer hover:scale-105"
+                className="hidden sm:flex items-center gap-1.5 bg-gradient-to-r from-red-600 via-pink-600 to-purple-600 hover:opacity-95 text-white font-extrabold text-[11px] sm:text-xs px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl transition-all shadow-md cursor-pointer hover:scale-105 shrink-0"
                 title="அதிகாரப்பூர்வ சமூக ஊடக மையம்"
               >
                 <Share2 className="w-3.5 h-3.5 text-white shrink-0" />
