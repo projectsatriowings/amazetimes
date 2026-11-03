@@ -230,6 +230,11 @@ export default function App() {
       setActiveCategory('blogs');
     } else if (p === '/spiritual' || p === '/aanmeegam') {
       setActiveCategory('spiritual');
+    } else if (p.startsWith('/category/')) {
+      const cat = p.replace('/category/', '').trim();
+      if (cat) setActiveCategory(cat);
+    } else if (['/cinema', '/sports', '/tamilnadu', '/districts', '/business', '/india', '/world', '/magazine'].includes(p)) {
+      setActiveCategory(p.replace('/', ''));
     }
   }, [currentPath]);
 
@@ -443,7 +448,7 @@ export default function App() {
 
   // Re-fetch whenever activeCategory or currentPath changes to '/' (instant return from Admin)
   useEffect(() => {
-    if (currentPath === '/') {
+    if (currentPath === '/' || currentPath.startsWith('/category/') || ['/cinema', '/sports', '/tamilnadu', '/districts', '/business', '/india', '/world', '/magazine'].includes(currentPath)) {
       fetchBackendContent(activeCategory, true);
       setExtraCards([]);
       setCurrentPage(1);
@@ -811,10 +816,16 @@ export default function App() {
   let displayCards = Array.from(new Map(rawCards.map(a => [String(a.id || a._id), a])).values());
 
   if (searchQuery.trim()) {
-    const q = searchQuery.toLowerCase();
-    displayCards = displayCards.filter(
-      (c) => c.title?.toLowerCase().includes(q) || c.desc?.toLowerCase().includes(q)
-    );
+    const q = searchQuery.toLowerCase().replace('#', '').trim();
+    displayCards = displayCards.filter((c) => {
+      const titleMatch = c.title?.toLowerCase().includes(q);
+      const descMatch = (c.desc || c.excerpt || c.subtitle || '')?.toLowerCase().includes(q);
+      const contentMatch = (c.content || '')?.toLowerCase().includes(q);
+      const tagsMatch = Array.isArray(c.tags)
+        ? c.tags.some(t => String(t).toLowerCase().includes(q))
+        : String(c.tags || '').toLowerCase().includes(q);
+      return titleMatch || descMatch || contentMatch || tagsMatch;
+    });
   }
 
   const storiesToDisplay = backendShorts.length > 0 ? backendShorts : fallbackShorts;
@@ -925,7 +936,6 @@ export default function App() {
         <CinemaSportsSpotlightBar
           onOpenSearch={(query) => {
             setSearchQuery(query);
-            window.scrollTo({ top: 0, behavior: 'smooth' });
           }}
           onSelectCategory={handleSelectCategory}
         />
@@ -935,7 +945,15 @@ export default function App() {
       <main className="max-w-[1400px] mx-auto px-2.5 sm:px-4 py-3 sm:py-6 flex-1 w-full max-w-full min-w-0 overflow-x-hidden space-y-8 sm:space-y-12 pb-20 sm:pb-8">
         
         {/* Route Handlers: Social Media Hub, Editorial, Blogs, Aanmeegam, Known Routes & 404 Error Page */}
-        {(currentPath !== '/' && currentPath !== '/editorial' && currentPath !== '/blogs' && currentPath !== '/spiritual' && currentPath !== '/thalaiyangam' && currentPath !== '/valaipathivugal' && currentPath !== '/aanmeegam') ? (
+        {(currentPath !== '/' && 
+          !currentPath.startsWith('/category/') &&
+          !['/cinema', '/sports', '/tamilnadu', '/districts', '/business', '/india', '/world', '/magazine'].includes(currentPath) &&
+          currentPath !== '/editorial' && 
+          currentPath !== '/blogs' && 
+          currentPath !== '/spiritual' && 
+          currentPath !== '/thalaiyangam' && 
+          currentPath !== '/valaipathivugal' && 
+          currentPath !== '/aanmeegam') ? (
           currentPath === '/social-media' ? (
             <SocialMediaPage onNavigate={navigateTo} onToast={addToast} />
           ) : (
@@ -1016,14 +1034,27 @@ export default function App() {
                   <FileText className="w-8 h-8 text-amber-500" />
                 </div>
                 <h3 className="text-xl font-black text-slate-900 dark:text-white">
-                  {currentDomain?.title || 'செய்திகள்'}
+                  {searchQuery.trim() ? `"${searchQuery}" குறித்த செய்திகள்` : (currentDomain?.title || 'செய்திகள்')}
                 </h3>
                 <p className="text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto">
-                  இப்பிரிவில் கூடுதல் செய்திகள் விரைவில் சேர்க்கப்படும். நிர்வாகம் அல்லது நிருபர் மூலம் புதிய செய்திகள் உடனுக்குடன் பதிவேற்றப்படும்.
+                  {searchQuery.trim()
+                    ? `"${searchQuery}" என்ற சொல்லிற்குரிய குறிப்பிட்ட செய்திகள் தற்போது இல்லை. தேடலை நீக்கி பிற முதன்மைச் செய்திகளைப் பார்க்கலாம்.`
+                    : 'இப்பிரிவில் கூடுதல் செய்திகள் விரைவில் சேர்க்கப்படும். நிர்வாகம் அல்லது நிருபர் மூலம் புதிய செய்திகள் உடனுக்குடன் பதிவேற்றப்படும்.'}
                 </p>
-                <div className="pt-2">
+                <div className="pt-2 flex flex-wrap items-center justify-center gap-3">
+                  {searchQuery.trim() && (
+                    <button
+                      onClick={() => setSearchQuery('')}
+                      className="bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs px-5 py-2.5 rounded-xl shadow transition cursor-pointer"
+                    >
+                      தேடலை அழித்துப் பார்க்க
+                    </button>
+                  )}
                   <button
-                    onClick={() => handleSelectCategory('all')}
+                    onClick={() => {
+                      setSearchQuery('');
+                      handleSelectCategory('all');
+                    }}
                     className="bg-[#0e2a7a] hover:bg-[#0a1f5c] text-white font-bold text-xs px-6 py-2.5 rounded-xl shadow transition cursor-pointer"
                   >
                     அனைத்து முதன்மைச் செய்திகளைப் படிக்கவும்
@@ -1060,7 +1091,7 @@ export default function App() {
 
                 {(activeCategory === 'cinema' || activeCategory === 'sports') && (
                   <div id="cinema-and-sports">
-                    <CinemaAndSports onOpenArticle={openArticleModal} />
+                    <CinemaAndSports onOpenArticle={openArticleModal} onSelectCategory={handleSelectCategory} />
                   </div>
                 )}
 
@@ -1099,7 +1130,7 @@ export default function App() {
                     </section>
 
                     <div id="cinema-and-sports">
-                      <CinemaAndSports onOpenArticle={openArticleModal} />
+                      <CinemaAndSports onOpenArticle={openArticleModal} onSelectCategory={handleSelectCategory} />
                     </div>
 
                     <DistrictNewsHub

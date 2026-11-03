@@ -4,21 +4,25 @@ import { api } from '../services/api';
 
 export default function CinemaSportsSpotlightBar({ onOpenSearch, onSelectCategory }) {
   const [cinemaTags, setCinemaTags] = useState([
-    { label: '#தளபதி69', query: 'தளபதி 69' },
-    { label: '#விடாமுயற்சி', query: 'விடாமுயற்சி' },
-    { label: '#Jailer2', query: 'Jailer 2' },
-    { label: '#திரைவிமர்சனம்', query: 'திரைவிமர்சனம்' },
-    { label: '#பாக்ஸ்ஆபீஸ்', query: 'பாக்ஸ் ஆபீஸ்' },
-    { label: '#OTTவெளியீடு', query: 'OTT' }
+    { label: '#கூலி', query: 'கூலி', subTab: 'all' },
+    { label: '#GOAT', query: 'GOAT', subTab: 'all' },
+    { label: '#தளபதி69', query: 'தளபதி', subTab: 'all' },
+    { label: '#விடாமுயற்சி', query: 'விடாமுயற்சி', subTab: 'all' },
+    { label: '#அமரன்', query: 'அமரன்', subTab: 'boxoffice' },
+    { label: '#வேட்டையன்', query: 'வேட்டையன்', subTab: 'all' },
+    { label: '#திரைவிமர்சனம்', query: 'விமர்சனம்', subTab: 'reviews' },
+    { label: '#பாக்ஸ்_ஆபீஸ்', query: 'வசூல்', subTab: 'boxoffice' }
   ]);
 
   const [sportsTags, setSportsTags] = useState([
-    { label: '#IPL2026', query: 'IPL' },
-    { label: '#CSK', query: 'CSK' },
-    { label: '#தோனி', query: 'தோனி' },
-    { label: '#டி20உலகக்கோப்பை', query: 'டி20' },
-    { label: '#ரோஹித்', query: 'ரோஹித் சர்மா' },
-    { label: '#TNPL', query: 'TNPL' }
+    { label: '#IPL_2025', query: 'IPL', subTab: 'csk' },
+    { label: '#CSK', query: 'CSK', subTab: 'csk' },
+    { label: '#தோனி', query: 'தோனி', subTab: 'csk' },
+    { label: '#இந்தியா_கிரிக்கெட்', query: 'இந்தியா', subTab: 'international' },
+    { label: '#ரோஹித்_சர்மா', query: 'ரோஹித்', subTab: 'international' },
+    { label: '#விராட்_கோலி', query: 'விராட்', subTab: 'international' },
+    { label: '#டி20_உலகக்கோப்பை', query: 'டி20', subTab: 'international' },
+    { label: '#TNPL', query: 'TNPL', subTab: 'achievers' }
   ]);
 
   useEffect(() => {
@@ -41,13 +45,48 @@ export default function CinemaSportsSpotlightBar({ onOpenSearch, onSelectCategor
     return () => { isMounted = false; };
   }, []);
 
-  const handleTagClick = (query) => {
+  const handleCinemaTag = (t) => {
+    // 1. Dispatch custom filter event to CinemaAndSports component
+    window.dispatchEvent(new CustomEvent('amaze:spotlight_filter', {
+      detail: { type: 'cinema', subTab: t.subTab || 'all', query: t.query }
+    }));
+
+    // 2. Smoothly scroll into the cinema & sports hub
     const section = document.getElementById('cinema-and-sports');
     if (section) {
       section.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    } else if (onOpenSearch) {
-      onOpenSearch(query);
+    } else if (onSelectCategory) {
+      onSelectCategory('cinema');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
+  };
+
+  const handleSportsTag = (t) => {
+    // 1. Dispatch custom filter event to CinemaAndSports component
+    window.dispatchEvent(new CustomEvent('amaze:spotlight_filter', {
+      detail: { type: 'sports', subTab: t.subTab || 'all', query: t.query }
+    }));
+
+    // 2. Smoothly scroll into the cinema & sports hub
+    const section = document.getElementById('cinema-and-sports');
+    if (section) {
+      section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else if (onSelectCategory) {
+      onSelectCategory('sports');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const handleViewAllCinema = () => {
+    if (onSelectCategory) onSelectCategory('cinema');
+    if (onOpenSearch) onOpenSearch('');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleViewAllSports = () => {
+    if (onSelectCategory) onSelectCategory('sports');
+    if (onOpenSearch) onOpenSearch('');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   return (
@@ -70,7 +109,7 @@ export default function CinemaSportsSpotlightBar({ onOpenSearch, onSelectCategor
               <button
                 key={idx}
                 type="button"
-                onClick={() => handleTagClick(t.query)}
+                onClick={() => handleCinemaTag(t)}
                 className="bg-rose-950/60 hover:bg-rose-600 text-rose-200 hover:text-white px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all shrink-0 border border-rose-800/60 hover:border-rose-400 cursor-pointer shadow-2xs active:scale-95"
               >
                 {t.label}
@@ -80,7 +119,7 @@ export default function CinemaSportsSpotlightBar({ onOpenSearch, onSelectCategor
 
           <button
             type="button"
-            onClick={() => onSelectCategory && onSelectCategory('cinema')}
+            onClick={handleViewAllCinema}
             className="text-[11px] font-black text-rose-400 hover:text-rose-300 flex items-center gap-0.5 shrink-0 ml-1 underline decoration-rose-500/50 hover:no-underline cursor-pointer"
           >
             <span>மேலும் பார்க்க</span>
@@ -104,7 +143,7 @@ export default function CinemaSportsSpotlightBar({ onOpenSearch, onSelectCategor
               <button
                 key={idx}
                 type="button"
-                onClick={() => handleTagClick(t.query)}
+                onClick={() => handleSportsTag(t)}
                 className="bg-emerald-950/60 hover:bg-emerald-600 text-emerald-200 hover:text-white px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all shrink-0 border border-emerald-800/60 hover:border-emerald-400 cursor-pointer shadow-2xs active:scale-95"
               >
                 {t.label}
@@ -114,7 +153,7 @@ export default function CinemaSportsSpotlightBar({ onOpenSearch, onSelectCategor
 
           <button
             type="button"
-            onClick={() => onSelectCategory && onSelectCategory('sports')}
+            onClick={handleViewAllSports}
             className="text-[11px] font-black text-emerald-400 hover:text-emerald-300 flex items-center gap-0.5 shrink-0 ml-1 underline decoration-emerald-500/50 hover:no-underline cursor-pointer"
           >
             <span>அட்டவணை / ஸ்கோர்</span>

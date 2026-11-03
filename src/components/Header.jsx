@@ -174,14 +174,51 @@ export default function Header({
   ];
 
   const trendingTags = [
-    '#தமிழக_செய்திகள்',
-    '#தங்கம்_விலை_நிலவரம்',
-    '#சென்னை_மெட்ரோ',
-    '#ஐபிஎல்_2026',
-    '#தொழில்_முதலீடு',
-    '#ஆன்மிக_சிறப்பு',
-    '#மாவட்ட_செய்திகள்'
+    { label: '#தமிழக_செய்திகள்', category: 'tamilnadu', description: 'தமிழ்நாடு முக்கியச் செய்திகள்' },
+    { label: '#தங்கம்_விலை_நிலவரம்', action: 'gold', description: 'இன்றைய நேரலை தங்கம் & வெள்ளி விலை நிலவரம்' },
+    { label: '#சென்னை_மெட்ரோ', category: 'tamilnadu', query: 'மெட்ரோ', description: 'சென்னை மெட்ரோ ரயில் திட்டப் பணிகள்' },
+    { label: '#ஐபிஎல்_2025', category: 'sports', query: 'IPL', description: 'ஐபிஎல் & சிஎஸ்கே கிரிக்கெட் களச் செய்திகள்' },
+    { label: '#சினிமா_டிரெண்டிங்', category: 'cinema', description: 'கூலி, தளபதி 69, கோலிவுட் திரைப்படங்கள்' },
+    { label: '#தொழில்_முதலீடு', category: 'business', description: 'தமிழக தொழில் முதலீடுகள் & வர்த்தகம்' },
+    { label: '#ஆன்மிக_சிறப்பு', category: 'spiritual', description: 'திருக்கோயில் விழாக்கள் & திருமுறை சிறப்பு' },
+    { label: '#மாவட்ட_செய்திகள்', category: 'districts', description: 'தமிழக 38 மாவட்டங்களின் உள்ளூர் செய்திகள்' }
   ];
+
+  const handleTrendingTagClick = (tagItem) => {
+    // 1. Gold Calculator action
+    if (tagItem.action === 'gold') {
+      if (onOpenGoldCalculator) {
+        onOpenGoldCalculator();
+      } else {
+        const el = document.getElementById('business-commodity');
+        if (el) el.scrollIntoView({ behavior: 'smooth' });
+      }
+      return;
+    }
+
+    // 2. Clear general search or set targeted query
+    if (tagItem.query) {
+      if (onSearchChange) onSearchChange(tagItem.query);
+    } else {
+      if (onSearchChange) onSearchChange('');
+    }
+
+    // 3. Switch category cleanly
+    if (tagItem.category) {
+      if (tagItem.category === 'spiritual') {
+        if (onNavigate) onNavigate('/spiritual');
+        else if (onSelectCategory) onSelectCategory('spiritual');
+      } else if (onSelectCategory) {
+        onSelectCategory(tagItem.category);
+      }
+    }
+
+    if (onNavigate && window.location.pathname !== '/' && tagItem.category !== 'spiritual') {
+      onNavigate('/');
+    }
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   return (
     <>
@@ -686,13 +723,15 @@ export default function Header({
             <span>டிரெண்டிங்:</span>
           </div>
           <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300 whitespace-nowrap text-xs font-semibold">
-            {trendingTags.map((tag, idx) => (
+            {trendingTags.map((tagItem, idx) => (
               <button
                 key={idx}
-                onClick={() => onSearchChange(tag.replace('#', '').replace(/_/g, ' '))}
-                className="hover:text-red-600 dark:hover:text-amber-300 bg-white dark:bg-slate-800/90 text-slate-700 dark:text-slate-200 px-2.5 py-0.5 rounded-full border border-slate-200 dark:border-slate-700 shadow-2xs hover:shadow transition-all cursor-pointer shrink-0"
+                type="button"
+                onClick={() => handleTrendingTagClick(tagItem)}
+                title={tagItem.description}
+                className="hover:text-red-600 dark:hover:text-amber-300 bg-white dark:bg-slate-800/90 text-slate-700 dark:text-slate-200 px-2.5 py-0.5 rounded-full border border-slate-200 dark:border-slate-700 shadow-2xs hover:shadow transition-all cursor-pointer shrink-0 active:scale-95"
               >
-                {tag}
+                {tagItem.label}
               </button>
             ))}
           </div>

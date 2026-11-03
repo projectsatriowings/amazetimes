@@ -20,7 +20,7 @@ import {
 import { useApp } from '../context/AppContext';
 import { api } from '../services/api';
 
-export default function CinemaAndSports({ onOpenArticle }) {
+export default function CinemaAndSports({ onOpenArticle, onSelectCategory }) {
   const { 
     newsList = [], 
     openArticleModal, 
@@ -38,23 +38,23 @@ export default function CinemaAndSports({ onOpenArticle }) {
   const [boxOfficeBuzz, setBoxOfficeBuzz] = useState([
     {
       id: 1,
-      title: 'தளபதி 69 (Thalapathy 69)',
-      star: 'விஜய்',
+      title: 'கூலி (Coolie)',
+      star: 'ரஜினிகாந்த்',
       rating: '5.0',
-      statusBadge: 'ரூ.1,000+ கோடி எதிர்பார்ப்பு',
-      collection: 'படப்பிடிப்பில் • மெகா எதிர்பார்ப்பு',
-      notes: 'அரசியல் களத்திற்கு செல்லும் முன் தளபதியின் கடைசி பிரம்மாண்ட படைப்பு',
-      poster: 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=400&q=80'
+      statusBadge: 'ரூ.450+ கோடி வசூல்',
+      collection: 'லோகேஷ் கனகராஜ் இயக்கம்',
+      notes: 'சன் பிக்சர்ஸ் தயாரிப்பில் அனிருத் இசையில் அதிரடி ஆக்ஷன் வேட்டை',
+      poster: 'https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?auto=format&fit=crop&w=400&q=80'
     },
     {
       id: 2,
-      title: 'கூலி (Coolie)',
-      star: 'ரஜினிகாந்த்',
+      title: 'தளபதி 69 (Thalapathy 69)',
+      star: 'விஜய்',
       rating: '4.9',
-      statusBadge: 'மெகா பிளாக்பஸ்டர்',
-      collection: 'ரூ.450+ கோடி வசூல் சாதனை',
-      notes: 'லோகேஷ் கனகராஜ் இயக்கத்தில் சூப்பர்ஸ்டாரின் அதிரடி ஆக்ஷன் வேட்டை',
-      poster: 'https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?auto=format&fit=crop&w=400&q=80'
+      statusBadge: 'ரூ.1,000+ கோடி எதிர்பார்ப்பு',
+      collection: 'எச். வினோத் இயக்கம்',
+      notes: 'அரசியல் களத்திற்கு செல்லும் முன் தளபதியின் கடைசி பிரம்மாண்ட படைப்பு',
+      poster: 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=400&q=80'
     },
     {
       id: 3,
@@ -62,7 +62,7 @@ export default function CinemaAndSports({ onOpenArticle }) {
       star: 'அஜித் குமார்',
       rating: '4.8',
       statusBadge: 'சூப்பர் ஹிட் டிரெண்டிங்',
-      collection: 'ரூ.300+ கோடி எதிர்பார்ப்பு',
+      collection: 'மகிழ் திருமேனி இயக்கம்',
       notes: 'மகிழ் திருமேனி இயக்கத்தில் அனிருத் இசையில் சர்வதேச கார் சேஸிங் காட்சிகள்',
       poster: 'https://images.unsplash.com/photo-1440404653325-ab127d49abc1?auto=format&fit=crop&w=400&q=80'
     }
@@ -70,7 +70,7 @@ export default function CinemaAndSports({ onOpenArticle }) {
 
   // Dynamic Live Match / CSK Tracker Banner (from sports_buzz_settings)
   const [liveMatch, setLiveMatch] = useState({
-    tournament: 'TATA IPL 2026 - லீக் ஆட்டம் 18',
+    tournament: 'TATA IPL 2025 - லீக் ஆட்டம் 18',
     badge: 'CSK UPDATE',
     status: 'LIVE',
     title: 'சென்னை சூப்பர் கிங்ஸ் அதிரடி வெற்றி: தோனியின் கடைசி ஓவர் ஃபினிஷிங்!',
@@ -78,6 +78,21 @@ export default function CinemaAndSports({ onOpenArticle }) {
     summary: 'சிஎஸ்கே 204/3 (20.0) vs மும்பை இந்தியன்ஸ் 188/7 (20.0) • 16 ரன்கள் வித்தியாசத்தில் சிஎஸ்கே திரில் வெற்றி!',
     link: '/category/sports'
   });
+
+  // Spotlight Filter Listener (Connected with top spotlight hashtags)
+  useEffect(() => {
+    const handleSpotlightFilter = (e) => {
+      const { type, subTab } = e.detail || {};
+      if (type === 'cinema' && subTab) {
+        setCinemaSubTab(subTab);
+      }
+      if (type === 'sports' && subTab) {
+        setSportsSubTab(subTab);
+      }
+    };
+    window.addEventListener('amaze:spotlight_filter', handleSpotlightFilter);
+    return () => window.removeEventListener('amaze:spotlight_filter', handleSpotlightFilter);
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -245,13 +260,14 @@ export default function CinemaAndSports({ onOpenArticle }) {
                 </div>
               </div>
 
-              <a
-                href="/category/cinema"
-                className="text-xs font-bold text-red-600 dark:text-red-400 hover:text-red-700 flex items-center gap-1 self-start sm:self-auto"
+              <button
+                type="button"
+                onClick={() => onSelectCategory && onSelectCategory('cinema')}
+                className="text-xs font-bold text-red-600 dark:text-red-400 hover:text-red-700 flex items-center gap-1 self-start sm:self-auto cursor-pointer"
               >
                 <span>அனைத்து சினிமா</span>
                 <ChevronRight className="w-4 h-4" />
-              </a>
+              </button>
             </div>
 
             {/* Subcategory Filter Tabs */}
@@ -373,13 +389,14 @@ export default function CinemaAndSports({ onOpenArticle }) {
 
           {/* Bottom Action Link */}
           <div className="pt-3 border-t border-slate-200 dark:border-slate-800">
-            <a
-              href="/category/cinema"
-              className="w-full py-2.5 px-4 rounded-xl bg-slate-100 dark:bg-slate-800/80 hover:bg-red-600 hover:text-white dark:hover:bg-red-600 text-slate-800 dark:text-slate-200 font-bold text-xs flex items-center justify-center gap-2 transition"
+            <button
+              type="button"
+              onClick={() => onSelectCategory && onSelectCategory('cinema')}
+              className="w-full py-2.5 px-4 rounded-xl bg-slate-100 dark:bg-slate-800/80 hover:bg-red-600 hover:text-white dark:hover:bg-red-600 text-slate-800 dark:text-slate-200 font-bold text-xs flex items-center justify-center gap-2 transition cursor-pointer"
             >
               <span>அனைத்து சினிமா & திரைவிமர்சனச் செய்திகள்</span>
               <ChevronRight className="w-4 h-4" />
-            </a>
+            </button>
           </div>
 
         </div>
@@ -411,13 +428,14 @@ export default function CinemaAndSports({ onOpenArticle }) {
                 </div>
               </div>
 
-              <a
-                href="/category/sports"
-                className="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 flex items-center gap-1 self-start sm:self-auto"
+              <button
+                type="button"
+                onClick={() => onSelectCategory && onSelectCategory('sports')}
+                className="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 flex items-center gap-1 self-start sm:self-auto cursor-pointer"
               >
                 <span>அனைத்து விளையாட்டு</span>
                 <ChevronRight className="w-4 h-4" />
-              </a>
+              </button>
             </div>
 
             {/* Subcategory Filter Tabs */}
@@ -534,13 +552,14 @@ export default function CinemaAndSports({ onOpenArticle }) {
 
           {/* Bottom Action Link */}
           <div className="pt-3 border-t border-slate-200 dark:border-slate-800">
-            <a
-              href="/category/sports"
-              className="w-full py-2.5 px-4 rounded-xl bg-slate-100 dark:bg-slate-800/80 hover:bg-emerald-600 hover:text-white dark:hover:bg-emerald-600 text-slate-800 dark:text-slate-200 font-bold text-xs flex items-center justify-center gap-2 transition"
+            <button
+              type="button"
+              onClick={() => onSelectCategory && onSelectCategory('sports')}
+              className="w-full py-2.5 px-4 rounded-xl bg-slate-100 dark:bg-slate-800/80 hover:bg-emerald-600 hover:text-white dark:hover:bg-emerald-600 text-slate-800 dark:text-slate-200 font-bold text-xs flex items-center justify-center gap-2 transition cursor-pointer"
             >
               <span>அனைத்து விளையாட்டு & ஐபிஎல் செய்திகள்</span>
               <ChevronRight className="w-4 h-4" />
-            </a>
+            </button>
           </div>
 
         </div>
