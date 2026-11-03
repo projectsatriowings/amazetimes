@@ -33,6 +33,7 @@ import HomepageBirthdayPopup from './components/HomepageBirthdayPopup';
 import { BirthdayWishModal } from './components/modals/BirthdayWishModal';
 import VideoGallery from './components/VideoGallery';
 import SocialMediaStrip from './components/SocialMediaStrip';
+import FloatingSocialDock from './components/FloatingSocialDock';
 import SearchModal from './components/SearchModal';
 import RasiPalanModal from './components/RasiPalanModal';
 import PWAInstallModal from './components/PWAInstallModal';
@@ -1168,7 +1169,10 @@ export default function App() {
         )}
       </main>
 
-      {/* Footer */}
+      
+            {/* 12. FLOATING SIDE SOCIAL MEDIA DOCK (Sticky on side of viewport) */}
+      <FloatingSocialDock onNavigate={navigateTo} />
+
       <Footer
         onSelectCategory={handleSelectCategory}
         onOpenEPaper={() => setIsEPaperOpen(true)}

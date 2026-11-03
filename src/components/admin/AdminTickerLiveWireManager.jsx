@@ -42,8 +42,9 @@ export const AdminTickerLiveWireManager = ({ showToast }) => {
       if (tickerRes && Array.isArray(tickerRes.tickers)) {
         setTickers(tickerRes.tickers);
       }
-      if (lwRes && Array.isArray(lwRes.liveWire)) {
-        setLiveWireItems(lwRes.liveWire);
+      const rawLiveWire = (lwRes && (lwRes.items || lwRes.liveWire)) || [];
+      if (Array.isArray(rawLiveWire)) {
+        setLiveWireItems(rawLiveWire);
       }
     } catch (err) {
       console.warn('Error fetching ticker/livewire:', err);

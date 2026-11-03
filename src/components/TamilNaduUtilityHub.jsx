@@ -126,73 +126,94 @@ export default function TamilNaduUtilityHub({ onSpeak, onToast }) {
 
   return (
     <div className="space-y-4 font-tamil">
-      {/* 1. DAILY THIRUKKURAL & LIFE WISDOM CARD */}
-      <div className="bg-gradient-to-br from-amber-500/10 via-white to-amber-500/5 dark:from-[#0D1424] dark:via-[#090F1E] dark:to-[#120B20] rounded-2xl p-4 shadow-sm border border-amber-300/40 dark:border-amber-500/20 space-y-3">
+      {/* 1. DAILY THIRUKKURAL & LIFE WISDOM CARD - HIGH VISIBILITY & ROYAL DESIGN */}
+      <div className="bg-gradient-to-br from-amber-500/15 via-orange-500/10 to-amber-600/20 dark:from-[#1e1505] dark:via-[#161022] dark:to-[#221606] rounded-3xl p-5 shadow-lg border-2 border-amber-400 dark:border-amber-500/60 space-y-4 relative overflow-hidden">
+        {/* Subtle decorative gold glow background */}
+        <div className="absolute -top-12 -right-12 w-36 h-36 bg-amber-400/20 rounded-full blur-2xl pointer-events-none"></div>
+
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-amber-200/60 dark:border-slate-800 pb-2.5">
-          <div className="flex items-center gap-2">
-            <span className="w-8 h-8 rounded-xl bg-gradient-to-tr from-amber-500 to-amber-600 text-slate-950 flex items-center justify-center font-black shadow-sm">
-              <BookOpen className="w-4 h-4 text-slate-950" />
+        <div className="flex items-center justify-between border-b-2 border-amber-300/60 dark:border-amber-500/30 pb-3 relative z-10 flex-wrap gap-2">
+          <div className="flex items-center gap-2.5">
+            <span className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500 via-amber-600 to-orange-500 text-slate-950 flex items-center justify-center font-black shadow-md shadow-amber-500/30 ring-2 ring-amber-300/40 shrink-0">
+              <BookOpen className="w-5 h-5 text-slate-950" />
             </span>
             <div>
-              <h3 className="font-title font-bold text-sm text-slate-900 dark:text-amber-400 flex items-center gap-1.5">
-                <span>இன்றைய திருக்குறள்</span>
-              </h3>
-              <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold block">
-                அதிகாரம்: {currentKural.athigaram} (குறள் {currentKural.number})
+              <div className="flex items-center gap-2">
+                <h3 className="font-title font-black text-base sm:text-lg text-slate-950 dark:text-amber-300 tracking-wide">
+                  இன்றைய திருக்குறள்
+                </h3>
+                <span className="text-[10px] font-black bg-amber-500 text-slate-950 px-2 py-0.5 rounded-full uppercase tracking-wider shadow-xs">
+                  தினசரி
+                </span>
+              </div>
+              <span className="text-xs font-bold text-amber-900 dark:text-amber-400/90 mt-0.5 block">
+                அதிகாரம்: {currentKural.athigaram} &bull; குறள் {currentKural.number}
               </span>
             </div>
           </div>
 
-          <div className="flex items-center gap-1">
-            <span className="text-[10px] font-black bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 border border-amber-300/40 px-2 py-0.5 rounded-full">
-              வாழ்வியல்
+          <div className="flex items-center gap-1.5">
+            <span className="text-[11px] font-black bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 border border-amber-400/60 px-2.5 py-1 rounded-xl shadow-xs">
+              ✨ உலகப் பொதுமறை
             </span>
           </div>
         </div>
 
-        {/* Kural Verses */}
-        <div className="bg-white/80 dark:bg-slate-900/60 rounded-xl p-3 border border-amber-200/50 dark:border-slate-800 space-y-1.5 shadow-2xs">
-          <p className="font-title font-bold text-xs sm:text-[13px] text-slate-900 dark:text-amber-300 leading-relaxed">
-            {currentKural.line1}
-          </p>
-          <p className="font-title font-bold text-xs sm:text-[13px] text-slate-900 dark:text-amber-300 leading-relaxed">
-            {currentKural.line2}
-          </p>
-          <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 mt-2">
-            <p className="text-[11px] text-slate-600 dark:text-slate-300 leading-normal">
-              <span className="font-bold text-amber-600 dark:text-amber-400">உரை: </span>
+        {/* Kural Verses Box - High Contrast & Grand Typography */}
+        <div className="bg-white/95 dark:bg-[#0c1220]/95 rounded-2xl p-4 sm:p-5 border-2 border-amber-300/80 dark:border-amber-500/40 space-y-3 shadow-md relative z-10">
+          <div className="space-y-1.5 text-center sm:text-left">
+            <p className="font-title font-black text-sm sm:text-base md:text-[17px] text-slate-900 dark:text-amber-200 leading-relaxed tracking-wide">
+              {currentKural.line1}
+            </p>
+            <p className="font-title font-black text-sm sm:text-base md:text-[17px] text-slate-900 dark:text-amber-200 leading-relaxed tracking-wide">
+              {currentKural.line2}
+            </p>
+          </div>
+
+          {/* Ornamental Divider */}
+          <div className="flex items-center justify-center gap-2 py-1 text-amber-500/60 dark:text-amber-400/40 text-xs select-none">
+            <span>───</span>
+            <span className="font-bold">✦ ✦ ✦</span>
+            <span>───</span>
+          </div>
+
+          {/* Meaning / Explanation */}
+          <div className="bg-amber-50/80 dark:bg-slate-900/80 rounded-xl p-3 border border-amber-200/80 dark:border-slate-800">
+            <p className="text-xs sm:text-[13px] text-slate-800 dark:text-slate-200 leading-relaxed font-medium">
+              <span className="font-extrabold text-amber-700 dark:text-amber-400 bg-amber-200/60 dark:bg-amber-950/60 px-1.5 py-0.5 rounded mr-1.5">
+                பொருள்:
+              </span>
               {currentKural.meaning}
             </p>
           </div>
         </div>
 
-        {/* Action Controls */}
-        <div className="flex items-center justify-between gap-2 pt-0.5 text-xs">
+        {/* Action Controls - High Visibility Buttons */}
+        <div className="flex items-center justify-between gap-2 pt-1 relative z-10 text-xs flex-wrap">
           <button
             onClick={handleSpeakKural}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500 text-amber-700 hover:text-slate-950 dark:text-amber-400 dark:hover:text-slate-950 font-bold transition cursor-pointer text-[11px]"
-            title="குரல் வடிவில் கேட்க"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 via-amber-600 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black transition cursor-pointer shadow-md hover:scale-105 active:scale-95 text-xs"
+            title="திருக்குறளை குரல் வடிவில் கேட்க"
           >
-            <Volume2 className="w-3.5 h-3.5" />
+            <Volume2 className="w-4 h-4 text-slate-950 animate-bounce" />
             <span>வாசித்து கேட்க</span>
           </button>
 
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-2">
             <button
               onClick={handleCopyKural}
-              className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition cursor-pointer"
-              title="குறளை நகலெடுக்க"
+              className="p-2 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition cursor-pointer border border-amber-300/60 dark:border-slate-700 shadow-2xs"
+              title="குறளை நகலெடுக்க (Copy)"
             >
-              {copied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+              {copied ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
             </button>
             <button
               onClick={handleNextKural}
-              className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-red-600 hover:text-white dark:hover:bg-red-600 dark:hover:text-white text-slate-700 dark:text-slate-300 font-bold transition cursor-pointer text-[11px]"
-              title="அடுத்த குறள் படிக்க"
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white dark:bg-slate-800 hover:bg-red-600 hover:text-white dark:hover:bg-red-600 dark:hover:text-white text-slate-800 dark:text-slate-200 font-black transition cursor-pointer border border-amber-300/60 dark:border-slate-700 shadow-2xs text-xs"
+              title="அடுத்த திருக்குறள் படிக்க"
             >
-              <RefreshCw className="w-3 h-3" />
-              <span>அடுத்த குறள்</span>
+              <RefreshCw className="w-3.5 h-3.5" />
+              <span>அடுத்த குறள் ({kuralIndex + 1}/{THIRUKKURAL_COLLECTION.length})</span>
             </button>
           </div>
         </div>

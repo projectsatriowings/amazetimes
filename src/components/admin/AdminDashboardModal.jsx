@@ -542,6 +542,7 @@ export default function AdminDashboardModal({
       setNewLiveWireHighlight(false);
       onToast('நேரலைச் செய்தி சேர்க்கப்பட்டது!', 'bolt');
       fetchTickersAndLiveWire();
+      window.dispatchEvent(new CustomEvent('amaze:content_updated'));
       if (onDataChanged) onDataChanged();
     } catch (err) {
       onToast(err.message, 'error');
@@ -553,6 +554,7 @@ export default function AdminDashboardModal({
       await api.deleteLiveWire(id);
       onToast('நேரலை செய்தி நீக்கப்பட்டது', 'delete');
       fetchTickersAndLiveWire();
+      window.dispatchEvent(new CustomEvent('amaze:content_updated'));
       if (onDataChanged) onDataChanged();
     } catch (err) {
       onToast(err.message, 'error');

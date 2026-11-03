@@ -1,5 +1,6 @@
-import React from 'react';
-import { Radio, Volume2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Radio, Volume2, Sparkles } from 'lucide-react';
+import { api } from '../services/api';
 
 export default function LiveWire({ items = [], onOpenArticle, onSpeak }) {
   const defaultItems = [
@@ -29,10 +30,48 @@ export default function LiveWire({ items = [], onOpenArticle, onSpeak }) {
     }
   ];
 
-  const feedItems = items && items.length > 0 ? items : defaultItems;
+  const [liveItems, setLiveItems] = useState(Array.isArray(items) && items.length > 0 ? items : []);
+
+  useEffect(() => {
+    if (Array.isArray(items) && items.length > 0) {
+      setLiveItems(items);
+    }
+  }, [items]);
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchLiveUpdates = async () => {
+      try {
+        const res = await api.getLiveWire();
+        const data = res?.items || res?.liveWire;
+        if (isMounted && Array.isArray(data) && data.length > 0) {
+          setLiveItems(data);
+        }
+      } catch (err) {
+        console.warn('LiveWire fetch notice:', err);
+      }
+    };
+
+    fetchLiveUpdates();
+
+    const handleUpdate = () => {
+      fetchLiveUpdates();
+    };
+
+    window.addEventListener('amaze:content_updated', handleUpdate);
+    const interval = setInterval(fetchLiveUpdates, 20000); // 20-sec real-time live refresh
+
+    return () => {
+      isMounted = false;
+      window.removeEventListener('amaze:content_updated', handleUpdate);
+      clearInterval(interval);
+    };
+  }, []);
+
+  const feedItems = liveItems.length > 0 ? liveItems : defaultItems;
 
   return (
-    <aside className="space-y-4">
+    <aside className="space-y-4 font-tamil">
       <div className="bg-white dark:bg-[#0D1424] rounded-2xl p-4 shadow-sm border border-slate-200 dark:border-slate-800 space-y-3">
         <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2.5">
           <h3 className="font-subtitle font-bold text-sm text-slate-900 dark:text-amber-400 flex items-center gap-2">
@@ -47,44 +86,59 @@ export default function LiveWire({ items = [], onOpenArticle, onSpeak }) {
 
         {/* Vertical Timeline Feed */}
         <div className="space-y-3.5 text-xs">
-          {feedItems.map((item) => (
-            <div
-              key={item.id}
-              className={`relative pl-4 border-l-2 space-y-1 ${
-                item.isHighlight
-                  ? 'border-red-600'
-                  : 'border-slate-300 dark:border-slate-700'
-              }`}
-            >
-              <span
-                className={`w-2 h-2 rounded-full absolute -left-[5px] top-1 ${
-                  item.isHighlight ? 'bg-red-600 shadow-sm' : 'bg-amber-400'
-                }`}
-              ></span>
-              <span
-                className={`text-[11px] font-extrabold ${
-                  item.isHighlight ? 'text-red-600 dark:text-red-400' : 'text-slate-600 dark:text-amber-400'
+          {feedItems.map((item) => {
+            const isHighlighted = Boolean(item.is_highlight || item.isHighlight);
+            const timeLabel = item.time_badge || item.time || (item.created_at ? new Date(item.created_at).toLocaleTimeString('ta-IN', { hour: '2-digit', minute: '2-digit' }) : 'சிறிது நேரத்திற்கு முன்');
+            return (
+              <div
+                key={item.id}
+                className={`relative pl-4 border-l-2 space-y-1 transition-all ${
+                  isHighlighted
+                    ? 'border-red-600 bg-red-50/20 dark:bg-red-950/10 -ml-1 pl-5 py-1 rounded-r-xl'
+                    : 'border-slate-300 dark:border-slate-700'
                 }`}
               >
-                {item.time || item.time_badge || 'சிறிது நேரத்திற்கு முன்'}
-              </span>
-              <h4
-                onClick={() => onOpenArticle && onOpenArticle(item.id)}
-                className="font-title font-bold text-slate-900 dark:text-slate-200 hover:text-red-600 dark:hover:text-amber-400 cursor-pointer leading-snug line-clamp-2 transition-colors"
-              >
-                {item.title}
-              </h4>
-              {onSpeak && (
-                <button
-                  onClick={() => onSpeak(item.title)}
-                  className="text-[11px] font-subtitle font-bold text-[#0e2a7a] dark:text-amber-300 flex items-center gap-1 hover:text-red-600 transition-colors cursor-pointer"
+                <span
+                  className={`w-2 h-2 rounded-full absolute -left-[5px] top-1.5 ${
+                    isHighlighted ? 'bg-red-600 shadow-sm ring-2 ring-red-400/50' : 'bg-amber-400'
+                  }`}
+                ></span>
+                <div className="flex items-center gap-1.5">
+                  <span
+                    className={`text-[11px] font-extrabold ${
+                      isHighlighted ? 'text-red-600 dark:text-red-400' : 'text-slate-600 dark:text-amber-400'
+                    }`}
+                  >
+                    {timeLabel}
+                  </span>
+                  {isHighlighted && (
+                    <span className="text-[9px] bg-red-600 text-white font-black px-1.5 py-0.2 rounded uppercase">
+                      முக்கியம்
+                    </span>
+                  )}
+                </div>
+                <h4
+                  onClick={() => onOpenArticle && onOpenArticle(item.id)}
+                  className={`font-title font-bold leading-snug line-clamp-2 transition-colors cursor-pointer ${
+                    isHighlighted
+                      ? 'text-red-700 dark:text-red-300 hover:text-red-600'
+                      : 'text-slate-900 dark:text-slate-200 hover:text-red-600 dark:hover:text-amber-400'
+                  }`}
                 >
-                  <Volume2 className="w-3.5 h-3.5 text-amber-500" />
-                  <span>கேட்க</span>
-                </button>
-              )}
-            </div>
-          ))}
+                  {item.title}
+                </h4>
+                {onSpeak && (
+                  <button
+                    onClick={() => onSpeak(item.title)}
+                    className="text-[11px] font-subtitle font-bold text-[#0e2a7a] dark:text-amber-300 flex items-center gap-1 hover:text-red-600 transition-colors cursor-pointer pt-0.5"
+                  >
+                    <Volume2 className="w-3.5 h-3.5 text-amber-500" />
+                    <span>கேட்க</span>
+                  </button>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
     </aside>
