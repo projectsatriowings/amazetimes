@@ -5,7 +5,7 @@ import Header from './components/Header';
 import Ticker from './components/Ticker';
 import LiveWire from './components/LiveWire';
 import HeroSpotlight from './components/HeroSpotlight';
-import ShortsReels from './components/ShortsReels';
+import TamilNaduUtilityHub from './components/TamilNaduUtilityHub';
 import AudioBrief from './components/AudioBrief';
 import SecondaryNewsGrid from './components/SecondaryNewsGrid';
 import QuizPoll from './components/QuizPoll';
@@ -1143,11 +1143,11 @@ export default function App() {
                 <AudioBrief onSpeak={speakTamilText} />
               </div>
 
-              {/* Col B (4 cols): Video Shorts & Reels */}
+              {/* Col B (4 cols): Tamil Nadu Utility Hub (Daily Thirukkural & Essentials) */}
               <div className="lg:col-span-4">
-                <ShortsReels
-                  stories={storiesToDisplay}
-                  onOpenStory={(idx) => setActiveStoryIndex(idx)}
+                <TamilNaduUtilityHub
+                  onSpeak={speakTamilText}
+                  onToast={addToast}
                 />
               </div>
 
