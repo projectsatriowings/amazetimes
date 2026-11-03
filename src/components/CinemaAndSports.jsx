@@ -20,7 +20,7 @@ import {
 import { useApp } from '../context/AppContext';
 import { api } from '../services/api';
 
-export default function CinemaAndSports({ onOpenArticle, onSelectCategory }) {
+export default function CinemaAndSports({ onOpenArticle, onSelectCategory, articles = [] }) {
   const { 
     newsList = [], 
     openArticleModal, 
@@ -119,12 +119,15 @@ export default function CinemaAndSports({ onOpenArticle, onSelectCategory }) {
     return () => { isMounted = false; };
   }, []);
 
-  // Filter Cinema Articles from newsList
-  const allCinemaArticles = newsList.filter(art => {
-    const cat = (art.category || '').toLowerCase();
+  // Source articles: Prefer passed articles prop (scoped to active category) if non-empty, else newsList
+  const sourceArticles = (Array.isArray(articles) && articles.length > 0) ? articles : newsList;
+
+  // Filter Cinema Articles
+  const allCinemaArticles = sourceArticles.filter(art => {
+    const cat = (art.category || art.category_id || '').toLowerCase();
     const tags = Array.isArray(art.tags) ? art.tags.join(' ').toLowerCase() : String(art.tags || '').toLowerCase();
     const title = (art.title || '').toLowerCase();
-    return cat === 'cinema' || cat === 'சினிமா' || cat.includes('விமர்சனம்') || tags.includes('சினிமா') || title.includes('சினிமா') || title.includes('திரைப்படம்');
+    return cat === 'cinema' || cat === 'சினிமா' || cat.includes('விமர்சனம்') || tags.includes('சினிமா') || title.includes('சினிமா') || title.includes('திரைப்படம்') || tags.includes('கூலி') || tags.includes('தளபதி');
   });
 
   const filteredCinemaArticles = allCinemaArticles.filter(art => {
@@ -136,12 +139,12 @@ export default function CinemaAndSports({ onOpenArticle, onSelectCategory }) {
     return true;
   });
 
-  // Filter Sports Articles from newsList
-  const allSportsArticles = newsList.filter(art => {
-    const cat = (art.category || '').toLowerCase();
+  // Filter Sports Articles
+  const allSportsArticles = sourceArticles.filter(art => {
+    const cat = (art.category || art.category_id || '').toLowerCase();
     const tags = Array.isArray(art.tags) ? art.tags.join(' ').toLowerCase() : String(art.tags || '').toLowerCase();
     const title = (art.title || '').toLowerCase();
-    return cat === 'sports' || cat === 'விளையாட்டு' || tags.includes('விளையாட்டு') || tags.includes('கிரிக்கெட்') || title.includes('கிரிக்கெட்') || title.includes('ஐபிஎல்') || title.includes('csk');
+    return cat === 'sports' || cat === 'விளையாட்டு' || tags.includes('விளையாட்டு') || tags.includes('கிரிக்கெட்') || title.includes('கிரிக்கெட்') || title.includes('ஐபிஎல்') || title.includes('csk') || tags.includes('csk');
   });
 
   const filteredSportsArticles = allSportsArticles.filter(art => {

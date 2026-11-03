@@ -162,6 +162,13 @@ const getCachedInitialNews = () => {
   return { lead: null, articles: [] };
 };
 
+// High-speed In-Memory Category Articles Cache (Instant 0ms Category Switching)
+const categoryArticlesCache = new Map();
+const cachedBootstrap = getCachedInitialNews();
+if (cachedBootstrap && (cachedBootstrap.lead || (Array.isArray(cachedBootstrap.articles) && cachedBootstrap.articles.length > 0))) {
+  categoryArticlesCache.set('all', cachedBootstrap);
+}
+
 export default function App() {
   const [activeCategory, setActiveCategory] = useState('all');
   const [isDark, setIsDark] = useState(false);
@@ -342,13 +349,24 @@ export default function App() {
     return () => clearInterval(heartbeatInterval);
   }, []);
 
-  // Fetch live content from Neon PostgreSQL (Optimized 50-item snappy payload + Client Cache)
+  // Fetch live content from Neon PostgreSQL (Optimized Snappy Payload + Category Cache)
   const fetchBackendContent = async (category = activeCategory, resetPage = true) => {
     try {
-      // Only show full skeleton if we have no articles yet
-      if (!backendLeadArticle && backendArticles.length === 0) {
+      // 1. Instant Category Switch from Memory Cache (0ms response)
+      if (resetPage && categoryArticlesCache.has(category)) {
+        const cached = categoryArticlesCache.get(category);
+        if (cached && (cached.lead || cached.articles?.length > 0)) {
+          setBackendLeadArticle(cached.lead);
+          setBackendArticles(cached.articles);
+          setIsLoadingNews(false);
+        }
+      } else if (resetPage) {
+        // Show clean skeleton and immediately clear mismatched category data
         setIsLoadingNews(true);
+        setBackendLeadArticle(null);
+        setBackendArticles([]);
       }
+
       const pageToFetch = resetPage ? 1 : currentPage;
       const params = {
         page: pageToFetch,
@@ -359,16 +377,25 @@ export default function App() {
         params.category = category;
       }
 
-      const [artRes, tickerRes, lwRes, shortsRes, layoutRes] = await Promise.all([
+      // Fast single-query optimization: Category switches ONLY fetch articles (~200ms)
+      // Do NOT wait on home-builder, livewire, tickers which take 4.5+ seconds!
+      const isHomepage = category === 'all';
+      const promises = [
         api.getArticles(params).catch(err => {
           console.warn('api.getArticles network warning:', err?.message || err);
           return { success: false, error: err?.message || err };
-        }),
-        api.getTickers().catch(() => ({ success: false })),
-        api.getLiveWire().catch(() => ({ success: false })),
-        api.getShorts().catch(() => ({ success: false })),
-        api.getHomeBuilderLayout().catch(() => ({ success: false }))
-      ]);
+        })
+      ];
+
+      // Only fetch auxiliary widgets on homepage or initial mount
+      if (isHomepage && (!backendTickers.length || !backendLiveWire.length)) {
+        promises.push(api.getTickers().catch(() => ({ success: false })));
+        promises.push(api.getLiveWire().catch(() => ({ success: false })));
+        promises.push(api.getShorts().catch(() => ({ success: false })));
+        promises.push(api.getHomeBuilderLayout().catch(() => ({ success: false })));
+      }
+
+      const [artRes, tickerRes, lwRes, shortsRes, layoutRes] = await Promise.all(promises);
 
       const articlesArr = (artRes && (artRes.articles || artRes.data || artRes.news)) || [];
       if (artRes?.success && Array.isArray(articlesArr) && articlesArr.length > 0) {
@@ -416,7 +443,10 @@ export default function App() {
         setBackendArticles(cards);
         setHasMoreArticles(false);
 
-        // Cache homepage articles in sessionStorage for 0ms instant display next time
+        // Update category cache for future 0ms instant loading
+        categoryArticlesCache.set(category, { lead, articles: cards });
+
+        // Cache homepage articles in sessionStorage for 0ms instant display next session
         if (category === 'all') {
           try {
             sessionStorage.setItem('amaze_cached_articles', JSON.stringify({ lead, articles: cards }));
@@ -426,6 +456,7 @@ export default function App() {
         setBackendLeadArticle(null);
         setBackendArticles([]);
         setHasMoreArticles(false);
+        categoryArticlesCache.set(category, { lead: null, articles: [] });
       }
 
       if (tickerRes?.success) setBackendTickers(tickerRes.tickers);
@@ -632,7 +663,30 @@ export default function App() {
 
   // Category select
   const handleSelectCategory = (catId) => {
+    if (catId === activeCategory && currentPath === '/') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
     setActiveCategory(catId);
+    setSearchQuery('');
+    setExtraCards([]);
+    setCurrentPage(1);
+
+    // Instant Category Switch: If category articles are already in cache, switch immediately in 0ms!
+    if (categoryArticlesCache.has(catId)) {
+      const cached = categoryArticlesCache.get(catId);
+      if (cached && (cached.lead || cached.articles?.length > 0)) {
+        setBackendLeadArticle(cached.lead);
+        setBackendArticles(cached.articles);
+        setIsLoadingNews(false);
+      }
+    } else {
+      // Clear previous category stale articles immediately so wrong category never shows!
+      setBackendLeadArticle(null);
+      setBackendArticles([]);
+      setIsLoadingNews(true);
+    }
+
     if (currentPath !== '/') {
       navigateTo('/');
     }
@@ -810,10 +864,28 @@ export default function App() {
   };
 
   // 100% Authentic Database News — Real Lead Hero & Display Cards directly from PostgreSQL
-  const leadData = backendLeadArticle;
+  const isLeadMatchingCategory = activeCategory === 'all' || 
+    (backendLeadArticle && (
+      backendLeadArticle.category_id === activeCategory || 
+      backendLeadArticle.category === activeCategory ||
+      (activeCategory === 'cinema' && (backendLeadArticle.category?.includes('சினிமா') || backendLeadArticle.category_id === 'cinema')) ||
+      (activeCategory === 'sports' && (backendLeadArticle.category?.includes('விளையாட்டு') || backendLeadArticle.category_id === 'sports'))
+    ));
+  const leadData = isLeadMatchingCategory ? backendLeadArticle : null;
   const rawCards = [...backendArticles, ...extraCards];
+
+  // Filter cards to match active category if not 'all'
+  const categoryFilteredCards = activeCategory === 'all' 
+    ? rawCards 
+    : rawCards.filter(c => {
+        const cat = (c.category || c.category_id || '').toLowerCase();
+        return cat === activeCategory.toLowerCase() || 
+          (activeCategory === 'cinema' && (cat.includes('சினிமா') || cat === 'cinema')) ||
+          (activeCategory === 'sports' && (cat.includes('விளையாட்டு') || cat === 'sports'));
+      });
+
   // Deduplicate by id to prevent duplicated cards when combining primary news with paginated lists
-  let displayCards = Array.from(new Map(rawCards.map(a => [String(a.id || a._id), a])).values());
+  let displayCards = Array.from(new Map(categoryFilteredCards.map(a => [String(a.id || a._id), a])).values());
 
   if (searchQuery.trim()) {
     const q = searchQuery.toLowerCase().replace('#', '').trim();
@@ -1012,7 +1084,7 @@ export default function App() {
 
                   <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
                     <span className="bg-white/10 text-white font-extrabold text-xs px-3.5 py-1.5 rounded-xl border border-white/15">
-                      {leadData ? 1 + displayCards.length : displayCards.length} செய்திகள்
+                      {isLoadingNews ? 'செய்திகள் ஏற்றப்படுகின்றன...' : `${leadData ? 1 + displayCards.length : displayCards.length} செய்திகள்`}
                     </span>
                     <button
                       onClick={() => handleSelectCategory('all')}
@@ -1025,8 +1097,8 @@ export default function App() {
               </div>
             )}
 
-            {/* DOMAIN EMPTY STATE: Shown when category has no database articles yet */}
-            {isLoadingNews && !leadData && displayCards.length === 0 ? (
+            {/* DOMAIN EMPTY STATE / SKELETON */}
+            {isLoadingNews ? (
               <NewsSkeleton />
             ) : (!leadData && displayCards.length === 0) ? (
               <div className="bg-white dark:bg-[#0f1b3d] rounded-3xl p-8 sm:p-14 text-center border border-slate-200 dark:border-slate-800 shadow-sm max-w-2xl mx-auto my-8 space-y-4">
@@ -1091,7 +1163,7 @@ export default function App() {
 
                 {(activeCategory === 'cinema' || activeCategory === 'sports') && (
                   <div id="cinema-and-sports">
-                    <CinemaAndSports onOpenArticle={openArticleModal} onSelectCategory={handleSelectCategory} />
+                    <CinemaAndSports onOpenArticle={openArticleModal} onSelectCategory={handleSelectCategory} articles={displayCards} />
                   </div>
                 )}
 
@@ -1130,7 +1202,7 @@ export default function App() {
                     </section>
 
                     <div id="cinema-and-sports">
-                      <CinemaAndSports onOpenArticle={openArticleModal} onSelectCategory={handleSelectCategory} />
+                      <CinemaAndSports onOpenArticle={openArticleModal} onSelectCategory={handleSelectCategory} articles={displayCards} />
                     </div>
 
                     <DistrictNewsHub
