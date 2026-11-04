@@ -27,6 +27,8 @@ export const formatNewsRow = (r) => {
     category: r.category || r.category_name || 'தமிழ்நாடு',
     cat: r.category || r.category_name || 'தமிழ்நாடு',
     category_id: r.category || 'all',
+    subCategory: r.sub_category || '',
+    sub_category: r.sub_category || '',
     district: r.district || 'all',
     mainImage: ensureHttpsUrl(r.main_image || r.cover_image_url || '/Amaze times.jpg'),
     image: ensureHttpsUrl(r.main_image || r.cover_image_url || '/Amaze times.jpg'),
@@ -88,6 +90,8 @@ router.get('/', optionalAuth, async (req, res) => {
       page = 1,
       limit = 50,
       category,
+      subCategory,
+      sub_category,
       district,
       status,
       search,
@@ -506,6 +510,8 @@ router.post('/', authenticate, requireReporterOrAdmin, async (req, res) => {
       desc = '',
       content = '',
       category = 'தமிழ்நாடு',
+      subCategory = '',
+      sub_category = '',
       district = 'all',
       mainImage = '',
       image = '',
@@ -524,6 +530,7 @@ router.post('/', authenticate, requireReporterOrAdmin, async (req, res) => {
 
     const cleanImage = ensureHttpsUrl(mainImage || image || '/Amaze times.jpg');
     const cleanSummary = summary || desc || (content ? content.substring(0, 160) + '...' : '');
+    const cleanSubCategory = subCategory || sub_category || '';
     const cleanTags = Array.isArray(tags) ? tags.join(', ') : (tags || '');
 
     // Compute display order
@@ -537,11 +544,11 @@ router.post('/', authenticate, requireReporterOrAdmin, async (req, res) => {
 
     const insertSql = `
       INSERT INTO news (
-        title, subtitle, summary, content, category, district, main_image,
+        title, subtitle, summary, content, category, sub_category, district, main_image,
         seo_keywords, tags, is_breaking, is_lead_hero, is_top_story,
         display_order, author_id, author_name, status, views_count, likes_count
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, 0, 0)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, 0, 0)
       RETURNING *;
     `;
 
@@ -551,6 +558,7 @@ router.post('/', authenticate, requireReporterOrAdmin, async (req, res) => {
       cleanSummary.trim(),
       content.trim() || cleanSummary.trim(),
       category,
+      cleanSubCategory,
       district,
       cleanImage,
       seoKeywords,
@@ -629,6 +637,7 @@ router.put('/:id', authenticate, requireReporterOrAdmin, async (req, res) => {
     const updatedSummary = summary !== undefined ? summary.trim() : (desc !== undefined ? desc.trim() : current.summary);
     const updatedContent = content !== undefined ? content.trim() : current.content;
     const updatedCategory = category !== undefined ? category : current.category;
+    const updatedSubCategory = (subCategory !== undefined || sub_category !== undefined) ? (subCategory ?? sub_category) : (current.sub_category || '');
     const updatedDistrict = district !== undefined ? district : current.district;
     const updatedImage = (mainImage || image) ? ensureHttpsUrl(mainImage || image) : current.main_image;
     const updatedSeoKeywords = seoKeywords !== undefined ? seoKeywords : current.seo_keywords;
@@ -649,11 +658,11 @@ router.put('/:id', authenticate, requireReporterOrAdmin, async (req, res) => {
     const updateSql = `
       UPDATE news
       SET title = $1, subtitle = $2, summary = $3, content = $4, category = $5,
-          district = $6, main_image = $7, seo_keywords = $8, tags = $9,
-          is_breaking = $10, is_lead_hero = $11, is_top_story = $12,
-          display_order = $13, author_name = $14, status = $15,
-          views_count = $16, likes_count = $17
-      WHERE id = $18
+          sub_category = $6, district = $7, main_image = $8, seo_keywords = $9, tags = $10,
+          is_breaking = $11, is_lead_hero = $12, is_top_story = $13,
+          display_order = $14, author_name = $15, status = $16,
+          views_count = $17, likes_count = $18
+      WHERE id = $19
       RETURNING *;
     `;
 
@@ -663,6 +672,7 @@ router.put('/:id', authenticate, requireReporterOrAdmin, async (req, res) => {
       updatedSummary,
       updatedContent,
       updatedCategory,
+      updatedSubCategory,
       updatedDistrict,
       updatedImage,
       updatedSeoKeywords,

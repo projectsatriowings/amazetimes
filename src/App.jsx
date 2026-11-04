@@ -538,7 +538,13 @@ export default function App() {
 
   // Re-fetch whenever activeCategory or currentPath changes to '/' (instant return from Admin)
   useEffect(() => {
-    if (currentPath === '/' || currentPath.startsWith('/category/') || ['/cinema', '/sports', '/tamilnadu', '/districts', '/business', '/india', '/world', '/magazine'].includes(currentPath)) {
+    if (currentPath === '/' || currentPath.startsWith('/category/') || currentPath.startsWith('/news/') || ['/cinema', '/sports', '/tamilnadu', '/districts', '/business', '/india', '/world', '/magazine'].includes(currentPath)) {
+      if (currentPath.startsWith('/news/')) {
+        if (backendArticles.length === 0) {
+          fetchBackendContent(activeCategory, true);
+        }
+        return;
+      }
       fetchBackendContent(activeCategory, true);
       setExtraCards([]);
       setCurrentPage(1);
@@ -1077,7 +1083,7 @@ export default function App() {
   const isNewsDetailRoute = Boolean(parseArticleUrl(currentPath));
 
   return (
-    <div className={`min-h-screen flex flex-col w-full max-w-full overflow-x-hidden min-w-0 ${fontSizeClass}`}>
+    <div className={`min-h-screen flex flex-col w-full max-w-full overflow-x-clip min-w-0 ${fontSizeClass}`}>
       {/* Newspaper Header with Unified Top Utility Strip */}
       <Header
         activeCategory={activeCategory}

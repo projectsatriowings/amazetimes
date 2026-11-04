@@ -74,6 +74,7 @@ export async function initDb(force = false) {
     await query(`ALTER TABLE news ADD COLUMN IF NOT EXISTS subtitle TEXT DEFAULT '';`);
     await query(`ALTER TABLE news ADD COLUMN IF NOT EXISTS summary TEXT DEFAULT '';`);
     await query(`ALTER TABLE news ADD COLUMN IF NOT EXISTS district VARCHAR(100) DEFAULT 'all';`);
+    await query(`ALTER TABLE news ADD COLUMN IF NOT EXISTS sub_category VARCHAR(100) DEFAULT '';`);
     await query(`ALTER TABLE news ADD COLUMN IF NOT EXISTS seo_keywords TEXT DEFAULT '';`);
     await query(`ALTER TABLE news ADD COLUMN IF NOT EXISTS tags TEXT DEFAULT '';`);
     await query(`ALTER TABLE news ADD COLUMN IF NOT EXISTS is_breaking BOOLEAN DEFAULT FALSE;`);

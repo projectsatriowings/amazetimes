@@ -26,7 +26,13 @@ import {
   TrendingUp,
   Radio,
   BookOpen,
-  Printer
+  Printer,
+  CloudSun,
+  Coins,
+  BarChart3,
+  CheckCircle2,
+  Wind,
+  Droplets
 } from 'lucide-react';
 import VoiceReaderPlayer from '../components/VoiceReaderPlayer';
 import { generateArticleUrl, getCategoryKey } from '../utils/slugUtils';
@@ -47,6 +53,25 @@ export default function NewsDetailPage({
   const [copied, setCopied] = useState(false);
   const [fontSizeMultiplier, setFontSizeMultiplier] = useState(1); // 0.9 = A-, 1 = A, 1.15 = A+
   const [isFullscreenImage, setIsFullscreenImage] = useState(false);
+  const [fallbackArticles, setFallbackArticles] = useState([]);
+
+  // Instant Interactive Opinion Poll state
+  const [pollVoted, setPollVoted] = useState(() => {
+    try {
+      return localStorage.getItem('amaze_poll_news_voted') === 'true';
+    } catch (_) {
+      return false;
+    }
+  });
+  const [pollChoice, setPollChoice] = useState(() => {
+    try {
+      return localStorage.getItem('amaze_poll_news_choice') || null;
+    } catch (_) {
+      return null;
+    }
+  });
+  const [pollCounts, setPollCounts] = useState({ yes: 488, no: 112 });
+
   const [activeReaction, setActiveReaction] = useState(() => {
     try {
       return localStorage.getItem(`reaction_${article?.id}`) || null;
@@ -56,7 +81,6 @@ export default function NewsDetailPage({
   });
 
   const [reactionCounts, setReactionCounts] = useState(() => {
-    // Generate organic baseline counts based on views
     const base = (article?.viewsCount || article?.views_count || 120);
     return {
       fire: Math.floor(base * 0.35) + 12,
@@ -79,6 +103,31 @@ export default function NewsDetailPage({
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // Guarantee sidebar articles are populated even on direct cold page load
+  useEffect(() => {
+    if (!allArticles || allArticles.length < 5) {
+      api.getArticles({ limit: 20, status: 'published' })
+        .then(res => {
+          const list = res?.data || res?.articles || res?.news || [];
+          if (Array.isArray(list) && list.length > 0) {
+            setFallbackArticles(list.map(a => ({
+              id: a.id,
+              title: a.title,
+              category: a.category || 'செய்தி',
+              subCategory: a.sub_category || a.subCategory || '',
+              district: a.district || 'all',
+              subtitle: a.subtitle || '',
+              summary: a.summary || a.desc || '',
+              image: a.main_image || a.image || '/Amaze times.jpg',
+              time: new Date(a.published_at || a.created_at || Date.now()).toLocaleDateString('ta-IN', { hour: '2-digit', minute: '2-digit' }),
+              viewsCount: a.views_count || a.viewsCount || 140
+            })));
+          }
+        })
+        .catch(err => console.warn('Could not load fallback articles for sidebar:', err));
+    }
+  }, [allArticles]);
 
   // Update document title for SEO & Browser tab
   useEffect(() => {
@@ -109,15 +158,20 @@ export default function NewsDetailPage({
   const categoryKey = getCategoryKey(article.category);
   const categoryTitle = article.category || 'செய்திகள்';
 
+  // Article pool: prioritize prop allArticles, fallback to internally fetched articles
+  const pool = (allArticles && allArticles.length >= 5)
+    ? allArticles
+    : (fallbackArticles.length > 0 ? fallbackArticles : allArticles);
+
   // Find related articles (same category, different id)
-  const relatedArticles = allArticles
+  const relatedArticles = pool
     .filter(a => String(a.id) !== String(article.id) && getCategoryKey(a.category) === categoryKey)
     .slice(0, 5);
 
   // Fallback trending articles if related is sparse
-  const trendingArticles = allArticles
+  const trendingArticles = pool
     .filter(a => String(a.id) !== String(article.id))
-    .slice(0, 5);
+    .slice(0, 6);
 
   const sidebarList = relatedArticles.length >= 3 ? relatedArticles : trendingArticles;
 
@@ -156,6 +210,25 @@ export default function NewsDetailPage({
     onToast('உங்கள் கருத்து பதிவு செய்யப்பட்டது. நன்றி!', 'success');
   };
 
+  const handleVotePoll = (choice) => {
+    if (pollVoted) return;
+    setPollCounts(prev => ({
+      ...prev,
+      [choice]: prev[choice] + 1
+    }));
+    setPollVoted(true);
+    setPollChoice(choice);
+    try {
+      localStorage.setItem('amaze_poll_news_voted', 'true');
+      localStorage.setItem('amaze_poll_news_choice', choice);
+    } catch (_) {}
+    onToast('உங்கள் வாக்கு வெற்றிகரமாக பதிவு செய்யப்பட்டது!');
+  };
+
+  const totalPollVotes = pollCounts.yes + pollCounts.no;
+  const yesPercent = Math.round((pollCounts.yes / totalPollVotes) * 100);
+  const noPercent = 100 - yesPercent;
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-[#070d1e] text-slate-800 dark:text-slate-100 font-tamil pb-16">
       
@@ -187,6 +260,12 @@ export default function NewsDetailPage({
             >
               {categoryTitle}
             </button>
+            {article.subCategory && (
+              <>
+                <ChevronRight className="w-3 h-3 text-slate-400" />
+                <span className="text-amber-600 dark:text-amber-300 font-bold">{article.subCategory}</span>
+              </>
+            )}
             {article.district && article.district !== 'all' && (
               <>
                 <ChevronRight className="w-3 h-3 text-slate-400" />
@@ -218,11 +297,16 @@ export default function NewsDetailPage({
           {/* LEFT COLUMN: Main News Content (8 of 12 cols) */}
           <article className="lg:col-span-8 bg-white dark:bg-[#0c1427] rounded-3xl p-4 sm:p-7 md:p-8 border border-slate-200 dark:border-slate-800/90 shadow-sm space-y-6">
             
-            {/* Category Tag + District */}
+            {/* Category Tag + Sub-Category + District */}
             <div className="flex items-center gap-2 flex-wrap">
               <span className="bg-gradient-to-r from-red-600 to-rose-600 text-white font-extrabold text-xs px-3.5 py-1 rounded-full uppercase tracking-wider shadow-sm">
                 {categoryTitle}
               </span>
+              {article.subCategory && (
+                <span className="bg-amber-400 text-slate-950 font-black text-xs px-3 py-1 rounded-full shadow-xs">
+                  ✨ {article.subCategory}
+                </span>
+              )}
               {article.district && article.district !== 'all' && (
                 <span className="bg-[#0e2a7a] text-amber-300 border border-amber-400/30 text-xs font-bold px-3 py-1 rounded-full">
                   📍 {article.district}
@@ -497,23 +581,23 @@ export default function NewsDetailPage({
 
           </article>
 
-          {/* RIGHT COLUMN: Sticky Sidebar (4 of 12 cols) */}
-          <aside className="lg:col-span-4 space-y-6 lg:sticky lg:top-14">
+          {/* RIGHT COLUMN: Full-Featured Multi-Widget Sidebar (4 of 12 cols) */}
+          <aside className="lg:col-span-4 space-y-5 self-start w-full">
             
-            {/* 1. Related & Trending News Card */}
+            {/* 1. Related & Category News Card */}
             <div className="bg-white dark:bg-[#0c1427] rounded-3xl p-5 border border-slate-200 dark:border-slate-800/90 shadow-sm space-y-4">
               <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
                 <h3 className="font-black text-base text-slate-900 dark:text-white flex items-center gap-2">
                   <TrendingUp className="w-5 h-5 text-red-600" />
-                  <span>தொடர்புடைய முக்கியச் செய்திகள்</span>
+                  <span>தொடர்புடைய செய்திகள்</span>
                 </h3>
-                <span className="text-[11px] font-bold text-amber-500">
+                <span className="text-[11px] font-bold text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
                   {categoryTitle}
                 </span>
               </div>
 
               <div className="divide-y divide-slate-100 dark:divide-slate-800/80">
-                {sidebarList.map((item, idx) => {
+                {sidebarList.slice(0, 4).map((item, idx) => {
                   const itemUrl = generateArticleUrl(item);
                   return (
                     <div
@@ -521,7 +605,7 @@ export default function NewsDetailPage({
                       onClick={() => onOpenArticle ? onOpenArticle(item) : onNavigate(itemUrl)}
                       className="py-3 flex items-start gap-3 group cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/40 p-2 rounded-xl transition"
                     >
-                      <span className="font-black text-lg text-slate-300 dark:text-slate-700 font-mono w-5 shrink-0 group-hover:text-amber-400 transition">
+                      <span className="font-black text-base text-slate-300 dark:text-slate-700 font-mono w-5 shrink-0 group-hover:text-amber-400 transition">
                         {idx + 1}
                       </span>
                       {item.image && (
@@ -539,7 +623,7 @@ export default function NewsDetailPage({
                         <div className="flex items-center gap-2 text-[10px] text-slate-400">
                           <span>{item.time || 'சமீபத்தியது'}</span>
                           <span>•</span>
-                          <span>{item.viewsCount || item.views_count || 120} பார்வைகள்</span>
+                          <span className="text-emerald-500 font-mono font-semibold">{item.viewsCount || item.views_count || 120} பார்வைகள்</span>
                         </div>
                       </div>
                     </div>
@@ -548,46 +632,222 @@ export default function NewsDetailPage({
               </div>
             </div>
 
-            {/* 2. E-Paper & Monthly Magazine Quick Access Widget */}
-            <div className="bg-gradient-to-br from-[#091538] via-[#0e2a7a] to-[#1e3a8a] text-white rounded-3xl p-5 border border-white/10 shadow-lg space-y-3">
-              <div className="flex items-center gap-2 text-amber-300 text-xs font-bold uppercase tracking-wider">
-                <BookOpen className="w-4 h-4" />
-                <span>இன்றைய டிஜிட்டல் நாளிதழ்</span>
+            {/* 2. Trending Top 5 Headlines Card */}
+            <div className="bg-white dark:bg-[#0c1427] rounded-3xl p-5 border border-slate-200 dark:border-slate-800/90 shadow-sm space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+                <h3 className="font-black text-base text-slate-900 dark:text-white flex items-center gap-2">
+                  <Flame className="w-5 h-5 text-amber-500" />
+                  <span>அதிகம் வாசிக்கப்பட்டவை</span>
+                </h3>
+                <span className="text-[10px] font-black text-rose-500 bg-rose-500/10 px-2 py-0.5 rounded-full border border-rose-500/20">
+                  TOP 5
+                </span>
               </div>
-              <h4 className="font-black text-lg leading-tight">
-                அமேஸ் டைம்ஸ் முழு இ-பேப்பர் (E-Paper)
-              </h4>
-              <p className="text-xs text-slate-200">
-                அனைத்துப் பக்கங்களையும் அச்சு வடிவில் உங்கள் மொபைல் மற்றும் கணினியில் வாசியுங்கள்.
-              </p>
-              <button
-                onClick={() => onNavigate('/epaper')}
-                className="w-full bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs py-2.5 rounded-xl shadow transition cursor-pointer flex items-center justify-center gap-1.5"
-              >
-                <span>இ-பேப்பர் வாசிக்க</span>
-                <ExternalLink className="w-3.5 h-3.5" />
-              </button>
+
+              <div className="space-y-2.5">
+                {trendingArticles.slice(0, 5).map((item, idx) => {
+                  const itemUrl = generateArticleUrl(item);
+                  return (
+                    <div
+                      key={item.id || idx}
+                      onClick={() => onOpenArticle ? onOpenArticle(item) : onNavigate(itemUrl)}
+                      className="flex items-start gap-3 p-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer transition group"
+                    >
+                      <div className={`w-7 h-7 rounded-xl font-black text-xs flex items-center justify-center shrink-0 ${
+                        idx === 0
+                          ? 'bg-gradient-to-tr from-red-600 to-amber-500 text-white shadow-xs'
+                          : idx === 1
+                          ? 'bg-gradient-to-tr from-amber-500 to-yellow-400 text-slate-950 shadow-xs'
+                          : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
+                      }`}>
+                        #{idx + 1}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="text-xs font-bold text-slate-800 dark:text-slate-100 group-hover:text-red-600 dark:group-hover:text-amber-400 line-clamp-2 leading-snug transition">
+                          {item.title}
+                        </h4>
+                        <div className="flex items-center gap-2 text-[10px] text-slate-400 mt-1">
+                          <span className="text-amber-600 dark:text-amber-400 font-semibold">{item.category || 'செய்தி'}</span>
+                          <span>•</span>
+                          <span>{item.viewsCount || item.views_count || 150} பார்வைகள்</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
 
-            {/* 3. Live News Channels & WhatsApp Group Banner */}
-            <div className="bg-white dark:bg-[#0c1427] rounded-3xl p-5 border border-slate-200 dark:border-slate-800/90 shadow-sm space-y-3">
-              <div className="flex items-center gap-2 text-red-600 text-xs font-bold">
-                <Radio className="w-4 h-4 animate-pulse" />
-                <span>உடனுக்குடன் செய்திகள்</span>
+            {/* STICKY BOTTOM CONTAINER: Pins dynamically as user scrolls down long articles */}
+            <div className="sticky top-20 space-y-5">
+
+              {/* 3. Live Climate Radar & Gold Rate Mini-Hub */}
+              <div className="bg-gradient-to-br from-[#071330] via-[#0b1e4c] to-[#0e2a7a] text-white rounded-3xl p-5 border border-white/10 shadow-md space-y-3.5">
+                <div className="flex items-center justify-between border-b border-white/10 pb-2.5">
+                  <div className="flex items-center gap-1.5 text-xs font-black text-amber-300">
+                    <CloudSun className="w-4 h-4 text-amber-400" />
+                    <span>நேரலை வானிலை & சந்தை</span>
+                  </div>
+                  <span className="text-[10px] font-mono text-emerald-300 bg-emerald-500/20 px-2 py-0.5 rounded-full border border-emerald-400/30">
+                    நிகழ்நேரம்
+                  </span>
+                </div>
+
+                {/* Weather grid */}
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  <div className="bg-white/5 rounded-xl p-2 border border-white/5">
+                    <span className="text-[11px] text-slate-300 block font-bold">சென்னை</span>
+                    <span className="text-base font-black text-amber-300 font-mono">31°C</span>
+                    <span className="text-[9px] text-emerald-300 block">வெயில்</span>
+                  </div>
+                  <div className="bg-white/5 rounded-xl p-2 border border-white/5">
+                    <span className="text-[11px] text-slate-300 block font-bold">மதுரை</span>
+                    <span className="text-base font-black text-amber-300 font-mono">33°C</span>
+                    <span className="text-[9px] text-amber-200 block">தெளிவான வானம்</span>
+                  </div>
+                  <div className="bg-white/5 rounded-xl p-2 border border-white/5">
+                    <span className="text-[11px] text-slate-300 block font-bold">கோவை</span>
+                    <span className="text-base font-black text-amber-300 font-mono">29°C</span>
+                    <span className="text-[9px] text-blue-200 block">மிதமான காற்று</span>
+                  </div>
+                </div>
+
+                {/* Gold & Silver quick rates */}
+                <div className="pt-2 border-t border-white/10 flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-1.5">
+                    <Coins className="w-3.5 h-3.5 text-amber-400" />
+                    <span className="font-semibold text-slate-200">22K தங்கம் (கி):</span>
+                  </div>
+                  <span className="font-black font-mono text-amber-300">₹12,800</span>
+                </div>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-slate-300">வெள்ளி (கிராம்):</span>
+                  <span className="font-black font-mono text-slate-100">₹200</span>
+                </div>
               </div>
-              <h4 className="font-bold text-sm text-slate-900 dark:text-white">
-                அமேஸ் டைம்ஸ் சமூக ஊடகச் சேனல்கள்
-              </h4>
-              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                முக்கியச் செய்திகள், பிரேக்கிங் அப்டேட்டுகள் மற்றும் தங்கம் விலை நிலவரங்களை உடனுக்குடன் பெற வாட்ஸ்அப்பில் இணையுங்கள்.
-              </p>
-              <button
-                onClick={() => window.open('https://chat.whatsapp.com', '_blank')}
-                className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs py-2.5 rounded-xl shadow transition cursor-pointer flex items-center justify-center gap-2"
-              >
-                <MessageCircle className="w-4 h-4 fill-current" />
-                <span>வாட்ஸ்அப் சேனலில் இணைய</span>
-              </button>
+
+              {/* 4. Live News Wire Timeline Feed */}
+              <div className="bg-white dark:bg-[#0c1427] rounded-3xl p-5 border border-slate-200 dark:border-slate-800/90 shadow-sm space-y-3">
+                <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2.5">
+                  <div className="flex items-center gap-2 text-xs font-black text-red-600">
+                    <Radio className="w-4 h-4 animate-pulse" />
+                    <span>நேரலை செய்தி அலை (Live Wire)</span>
+                  </div>
+                  <span className="w-2 h-2 rounded-full bg-red-600 animate-ping"></span>
+                </div>
+
+                <div className="space-y-3 pt-1">
+                  {pool.slice(0, 3).map((item, idx) => (
+                    <div
+                      key={item.id || idx}
+                      onClick={() => onOpenArticle ? onOpenArticle(item) : onNavigate(generateArticleUrl(item))}
+                      className="border-l-2 border-red-500 pl-3 py-0.5 space-y-0.5 cursor-pointer hover:border-amber-400 transition group"
+                    >
+                      <div className="flex items-center gap-2 text-[10px] text-slate-400">
+                        <span className="text-red-500 font-bold">{idx === 0 ? '5 நிமிடங்களுக்கு முன்' : `${(idx + 1) * 15} நிமிடங்களுக்கு முன்`}</span>
+                        <span>•</span>
+                        <span>{item.category || 'முக்கிய செய்தி'}</span>
+                      </div>
+                      <h5 className="text-xs font-bold text-slate-800 dark:text-slate-200 group-hover:text-red-600 dark:group-hover:text-amber-400 line-clamp-2 transition leading-snug">
+                        {item.title}
+                      </h5>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* 5. Reader Quick Opinion Poll Widget */}
+              <div className="bg-white dark:bg-[#0c1427] rounded-3xl p-5 border border-slate-200 dark:border-slate-800/90 shadow-sm space-y-3">
+                <div className="flex items-center gap-2 text-amber-500 text-xs font-bold">
+                  <BarChart3 className="w-4 h-4" />
+                  <span>வாசகர் கருத்துக்கணிப்பு</span>
+                </div>
+                <h4 className="font-bold text-xs text-slate-900 dark:text-white leading-relaxed">
+                  2026-ஆம் ஆண்டு தமிழகத்தின் தொழில் முதலீடுகள் மற்றும் வேலைவாய்ப்புகள் வளர்ச்சி அடையும் என நம்புகிறீர்களா?
+                </h4>
+
+                {!pollVoted ? (
+                  <div className="grid grid-cols-2 gap-2 pt-1">
+                    <button
+                      onClick={() => handleVotePoll('yes')}
+                      className="bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 font-bold text-xs py-2 rounded-xl transition cursor-pointer"
+                    >
+                      👍 ஆம்
+                    </button>
+                    <button
+                      onClick={() => handleVotePoll('no')}
+                      className="bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/30 font-bold text-xs py-2 rounded-xl transition cursor-pointer"
+                    >
+                      👎 இல்லை
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-2 pt-1 animate-fade-in text-xs font-semibold">
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-slate-600 dark:text-slate-300">
+                        <span>ஆம் ({yesPercent}%)</span>
+                        <span className="font-mono">{pollCounts.yes} வாக்குகள்</span>
+                      </div>
+                      <div className="h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                        <div className="h-full bg-emerald-500 rounded-full transition-all duration-500" style={{ width: `${yesPercent}%` }} />
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-slate-600 dark:text-slate-300">
+                        <span>இல்லை ({noPercent}%)</span>
+                        <span className="font-mono">{pollCounts.no} வாக்குகள்</span>
+                      </div>
+                      <div className="h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                        <div className="h-full bg-rose-500 rounded-full transition-all duration-500" style={{ width: `${noPercent}%` }} />
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-emerald-500 font-bold text-center pt-1 flex items-center justify-center gap-1">
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <span>உங்கள் கருத்து பதிவு செய்யப்பட்டது!</span>
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* 6. Digital E-Paper Preview Card */}
+              <div className="bg-gradient-to-br from-[#091538] via-[#0e2a7a] to-[#1e3a8a] text-white rounded-3xl p-5 border border-white/10 shadow-md space-y-2.5">
+                <div className="flex items-center gap-2 text-amber-300 text-xs font-bold uppercase tracking-wider">
+                  <BookOpen className="w-4 h-4" />
+                  <span>டிஜிட்டல் இ-பேப்பர்</span>
+                </div>
+                <h4 className="font-black text-sm leading-snug">
+                  அமேஸ் டைம்ஸ் நாளிதழ் முழு மின்-பதிப்பு
+                </h4>
+                <p className="text-[11px] text-slate-200 leading-relaxed">
+                  இன்றைய அனைத்து பக்கங்களையும் அச்சு வடிவில் ஆன்லைனில் வாசியுங்கள்.
+                </p>
+                <button
+                  onClick={() => onNavigate('/epaper')}
+                  className="w-full bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs py-2 rounded-xl shadow transition cursor-pointer flex items-center justify-center gap-1.5"
+                >
+                  <span>இ-பேப்பர் வாசிக்க</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              {/* 7. WhatsApp Community CTA */}
+              <div className="bg-white dark:bg-[#0c1427] rounded-3xl p-4 border border-slate-200 dark:border-slate-800/90 shadow-sm space-y-2.5">
+                <div className="flex items-center gap-2 text-emerald-600 text-xs font-bold">
+                  <MessageCircle className="w-4 h-4 fill-current" />
+                  <span>வாட்ஸ்அப் சேனல்</span>
+                </div>
+                <p className="text-xs text-slate-600 dark:text-slate-300 leading-snug">
+                  பிரேக்கிங் செய்திகளை உடனுக்குடன் உங்கள் வாட்ஸ்அப்பில் பெற இப்போதே இணையுங்கள்.
+                </p>
+                <button
+                  onClick={() => window.open('https://chat.whatsapp.com', '_blank')}
+                  className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs py-2 rounded-xl shadow transition cursor-pointer flex items-center justify-center gap-1.5"
+                >
+                  <MessageCircle className="w-3.5 h-3.5 fill-current" />
+                  <span>வாட்ஸ்அப்பில் இணைய</span>
+                </button>
+              </div>
+
             </div>
 
           </aside>
@@ -616,7 +876,7 @@ export default function NewsDetailPage({
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            {allArticles.slice(0, 4).map((story, i) => {
+            {pool.slice(0, 4).map((story, i) => {
               const storyUrl = generateArticleUrl(story);
               return (
                 <div
@@ -665,4 +925,3 @@ export default function NewsDetailPage({
     </div>
   );
 }
-

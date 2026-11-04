@@ -1,3 +1,4 @@
+import { DISTRICT_LIST, isDistrictCategory, getSubCategoriesForCategory } from '../data/categorySubCategories';
 import React, { useState, useEffect } from 'react';
 import {
   FileText, Plus, CheckCircle, Clock, XCircle, LogOut, RefreshCw,
@@ -5,15 +6,7 @@ import {
 } from 'lucide-react';
 import { api, getCurrentUser, logout } from '../services/api';
 
-const DISTRICT_LIST = [
-  'அனைத்து மாவட்டங்கள்', 'சென்னை', 'கோயம்புத்தூர்', 'மதுரை', 'திருச்சிராப்பள்ளி',
-  'சேலம்', 'திருநெல்வேலி', 'திருப்பூர்', 'வேலூர்', 'ஈரோடு', 'தூத்துக்குடி',
-  'திண்டுக்கல்', 'தஞ்சாவூர்', 'ராணிப்பேட்டை', 'சிவகங்கை', 'விருதுநகர்',
-  'நாமக்கல்', 'கன்னியாகுமரி', 'கடலூர்', 'திருவள்ளூர்', 'காஞ்சிபுரம்',
-  'விழுப்புரம்', 'திருப்பத்தூர்', 'கள்ளக்குறிச்சி', 'செங்கல்பட்டு', 'தென்காசி',
-  'தருமபுரி', 'கிருஷ்ணகிரி', 'அரியலூர்', 'பெரம்பலூர்', 'புதுக்கோட்டை',
-  'ராமநாதபுரம்', 'நீலகிரி', 'கரூர்', 'நாகப்பட்டினம்', 'திருவாரூர்', 'மயிலாடுதுறை'
-];
+// DISTRICT_LIST imported from categorySubCategories.js
 
 const CATEGORIES = [
   { id: 'தமிழ்நாடு', name: 'தமிழ்நாடு' },
@@ -43,6 +36,7 @@ export default function ReporterDashboard() {
     title: '',
     subtitle: '',
     category: 'தமிழ்நாடு',
+    subCategory: '',
     district: 'அனைத்து மாவட்டங்கள்',
     summary: '',
     content: '',
@@ -80,9 +74,18 @@ export default function ReporterDashboard() {
     window.location.href = '/';
   };
 
-  const handleInputChange = (e) => {
+    const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    if (name === 'category') {
+      setFormData(prev => ({
+        ...prev,
+        category: value,
+        district: isDistrictCategory(value) ? (prev.district || 'அனைத்து மாவட்டங்கள்') : 'all',
+        subCategory: isDistrictCategory(value) ? '' : (prev.subCategory || '')
+      }));
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -97,7 +100,8 @@ export default function ReporterDashboard() {
       setErrorMsg('');
       await api.createNews({
         ...formData,
-        district: formData.district === 'அனைத்து மாவட்டங்கள்' ? 'all' : formData.district,
+        subCategory: isDistrictCategory(formData.category) ? '' : (formData.subCategory || ''),
+        district: isDistrictCategory(formData.category) ? (formData.district === 'அனைத்து மாவட்டங்கள்' ? 'all' : formData.district) : 'all',
         authorName: user?.full_name || user?.username || 'செய்தியாளர்',
         status: 'pending' // Enforced for reporter review
       });
@@ -420,7 +424,7 @@ export default function ReporterDashboard() {
                     name="category"
                     value={formData.category}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 bg-gray-900/90 border border-gray-700 rounded-lg text-sm text-white focus:outline-none focus:border-red-500"
+                    className="w-full px-3 py-2 bg-gray-900/90 border border-gray-700 rounded-lg text-sm text-white focus:outline-none focus:border-red-500 font-tamil"
                   >
                     {CATEGORIES.map(c => (
                       <option key={c.id} value={c.name}>{c.name}</option>
@@ -429,17 +433,39 @@ export default function ReporterDashboard() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-gray-300 mb-1">மாவட்டம்</label>
-                  <select
-                    name="district"
-                    value={formData.district}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 bg-gray-900/90 border border-gray-700 rounded-lg text-sm text-white focus:outline-none focus:border-red-500"
-                  >
-                    {DISTRICT_LIST.map(d => (
-                      <option key={d} value={d}>{d}</option>
-                    ))}
-                  </select>
+                  {isDistrictCategory(formData.category) ? (
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-300 mb-1">மாவட்டம் (District)</label>
+                      <select
+                        name="district"
+                        value={formData.district}
+                        onChange={handleInputChange}
+                        className="w-full px-3 py-2 bg-gray-900/90 border border-gray-700 rounded-lg text-sm text-white focus:outline-none focus:border-red-500 font-tamil"
+                      >
+                        {DISTRICT_LIST.map(d => (
+                          <option key={d} value={d}>{d}</option>
+                        ))}
+                      </select>
+                    </div>
+                  ) : (
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="block text-xs font-semibold text-amber-400">துணைப் பிரிவு (Sub-Category)</label>
+                        <span className="text-[10px] text-gray-400">(விருப்பத்தேர்வு)</span>
+                      </div>
+                      <select
+                        name="subCategory"
+                        value={formData.subCategory || ''}
+                        onChange={handleInputChange}
+                        className="w-full px-3 py-2 bg-gray-900/90 border border-amber-500/40 rounded-lg text-sm text-amber-200 focus:outline-none focus:border-amber-400 font-tamil"
+                      >
+                        <option value="">விருப்பத்தேர்வு (தேவையில்லை / காலியாக விடவும்)</option>
+                        {getSubCategoriesForCategory(formData.category).map((sub, idx) => (
+                          <option key={idx} value={sub}>{sub}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
                 </div>
               </div>
 

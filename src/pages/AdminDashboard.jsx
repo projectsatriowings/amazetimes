@@ -1,3 +1,4 @@
+import { DISTRICT_LIST, isDistrictCategory, getSubCategoriesForCategory } from '../data/categorySubCategories';
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { api, getCurrentUser } from '../services/api';
@@ -432,11 +433,16 @@ export const AdminDashboard = () => {
 
     try {
       let result;
+      const savePayload = {
+        ...newsForm,
+        subCategory: isDistrictCategory(newsForm.category) ? '' : (newsForm.subCategory || ''),
+        district: isDistrictCategory(newsForm.category) ? (newsForm.district || 'all') : 'all'
+      };
       if (editingArticle) {
         const targetId = editingArticle._id || editingArticle.id;
-        result = await updateNews(targetId, newsForm);
+        result = await updateNews(targetId, savePayload);
       } else {
-        result = await addNews(newsForm);
+        result = await addNews(savePayload);
       }
       handleCloseNewsModal();
       if (result && result.data) {
@@ -3014,7 +3020,15 @@ export const AdminDashboard = () => {
                   <label className="font-bold text-slate-300 block mb-1">பிரிவு (Category):</label>
                   <select
                     value={newsForm.category}
-                    onChange={(e) => setNewsForm({ ...newsForm, category: e.target.value })}
+                    onChange={(e) => {
+                      const newCat = e.target.value;
+                      setNewsForm({
+                        ...newsForm,
+                        category: newCat,
+                        district: isDistrictCategory(newCat) ? (newsForm.district || 'all') : 'all',
+                        subCategory: isDistrictCategory(newCat) ? '' : (newsForm.subCategory || '')
+                      });
+                    }}
                     className="w-full bg-[#050915] border border-slate-700 rounded-xl p-3 text-white font-tamil"
                   >
                     <option value="தமிழ்நாடு">தமிழ்நாடு</option>
@@ -3031,39 +3045,43 @@ export const AdminDashboard = () => {
                 </div>
 
                 <div>
-                  <label className="font-bold text-slate-300 block mb-1">மாவட்டம் (District):</label>
-                  <select
-                    value={newsForm.district}
-                    onChange={(e) => setNewsForm({ ...newsForm, district: e.target.value })}
-                    className="w-full bg-[#050915] border border-slate-700 rounded-xl p-3 text-white font-tamil"
-                  >
-                    <option value="all">அனைத்து மாவட்டங்கள்</option>
-                    <option value="chennai">சென்னை</option>
-                    <option value="madurai">மதுரை</option>
-                    <option value="kovai">கோயம்புத்தூர்</option>
-                    <option value="trichy">திருச்சி</option>
-                    <option value="salem">சேலம்</option>
-                    <option value="nellai">திருநெல்வேலி</option>
-                  </select>
+                  {isDistrictCategory(newsForm.category) ? (
+                    <div>
+                      <label className="font-bold text-slate-300 block mb-1">மாவட்டம் (District):</label>
+                      <select
+                        value={newsForm.district || 'all'}
+                        onChange={(e) => setNewsForm({ ...newsForm, district: e.target.value })}
+                        className="w-full bg-[#050915] border border-slate-700 rounded-xl p-3 text-white font-tamil"
+                      >
+                        {DISTRICT_LIST.map((dist, idx) => (
+                          <option key={idx} value={dist === 'அனைத்து மாவட்டங்கள்' ? 'all' : dist}>
+                            {dist}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  ) : (
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="font-bold text-amber-400">துணைப் பிரிவு (Sub-Category):</label>
+                        <span className="text-[10px] text-slate-400">(விருப்பத்தேர்வு)</span>
+                      </div>
+                      <select
+                        value={newsForm.subCategory || ''}
+                        onChange={(e) => setNewsForm({ ...newsForm, subCategory: e.target.value })}
+                        className="w-full bg-[#050915] border border-amber-500/40 rounded-xl p-3 text-amber-200 font-semibold font-tamil"
+                      >
+                        <option value="">விருப்பத்தேர்வு (தேவையில்லை / காலியாக விடவும்)</option>
+                        {getSubCategoriesForCategory(newsForm.category).map((sub, idx) => (
+                          <option key={idx} value={sub}>
+                            {sub}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
                 </div>
               </div>
-
-              {newsForm.category === 'ஆன்மிகம்' && (
-                <div>
-                  <label className="font-bold text-amber-400 block mb-1">ஆன்மீக உட்பிரிவு (Aanmeegam Sub-Category):</label>
-                  <select
-                    value={newsForm.subCategory || 'news'}
-                    onChange={(e) => setNewsForm({ ...newsForm, subCategory: e.target.value })}
-                    className="w-full bg-[#050915] border border-amber-500/50 rounded-xl p-3 text-amber-300 font-bold font-tamil"
-                  >
-                    <option value="news">ஆன்மீக செய்திகள் (Spiritual News)</option>
-                    <option value="temple">கோவில் விழாக்கள் (Temple Festivals)</option>
-                    <option value="astrology">ராசி பலன் & ஜோதிடம் (Horoscope & Astrology)</option>
-                    <option value="remedies">பரிகாரங்கள் & யோகம் (Remedies & Yogas)</option>
-                    <option value="panchangam">பஞ்சாங்கம் (Panchangam / Calendar)</option>
-                  </select>
-                </div>
-              )}
 
               {/* IMAGE FILE UPLOAD INPUT (REQUIREMENT 2) */}
               <div>
