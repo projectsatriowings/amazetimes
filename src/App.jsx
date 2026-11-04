@@ -293,57 +293,6 @@ export default function App() {
     }
   }, [currentPath]);
 
-  // Direct Article Route Resolver (/news/:category/:slug or /article/:id)
-  useEffect(() => {
-    const parsed = parseArticleUrl(currentPath);
-    if (parsed && parsed.id) {
-      const found = backendArticles.find(a => String(a.id) === String(parsed.id)) ||
-                    (String(backendLeadArticle?.id) === String(parsed.id) ? backendLeadArticle : null) ||
-                    extraCards.find(a => String(a.id) === String(parsed.id));
-      if (found) {
-        setActiveDetailArticle(found);
-      } else {
-        setIsLoadingDetailArticle(true);
-        api.getArticle(parsed.id)
-          .then(res => {
-            const a = res?.data || res?.article || res?.news;
-            if (res && res.success && a) {
-              const formatted = {
-                id: a.id,
-                _id: String(a.id),
-                title: a.title,
-                category: a.category || 'செய்தி',
-                district: a.district,
-                subtitle: a.subtitle || '',
-                summary: a.summary || a.desc || '',
-                desc: a.summary || a.desc || '',
-                content: a.content || a.body || '',
-                body: a.content || a.body || '',
-                image: a.main_image || a.image || '/Amaze times.jpg',
-                author: a.author_name || 'செய்தி ஆசிரியர்',
-                authorName: a.author_name || 'செய்தி ஆசிரியர்',
-                time: new Date(a.published_at || a.created_at || Date.now()).toLocaleDateString('ta-IN', { hour: '2-digit', minute: '2-digit' }),
-                tags: Array.isArray(a.tags) ? a.tags : (a.tags ? String(a.tags).split(',').map(t => t.trim()) : []),
-                viewsCount: a.views_count || 0,
-                views_count: a.views_count || 0,
-                likesCount: a.likes_count || 0,
-                likes_count: a.likes_count || 0
-              };
-              setActiveDetailArticle(formatted);
-            }
-          })
-          .catch(err => {
-            console.warn('Failed to load article by URL:', err);
-          })
-          .finally(() => {
-            setIsLoadingDetailArticle(false);
-          });
-      }
-    } else {
-      setActiveDetailArticle(null);
-    }
-  }, [currentPath, backendArticles]);
-
   // Reader (Authentication & Profile) State - Auto Purge temporary/mock users
   const [readerUser, setReaderUserState] = useState(() => {
     const u = getReaderUser();
@@ -604,6 +553,57 @@ export default function App() {
     window.addEventListener('amaze:content_updated', handleLiveContentUpdate);
     return () => window.removeEventListener('amaze:content_updated', handleLiveContentUpdate);
   }, [activeCategory]);
+
+  // Direct Article Route Resolver (/news/:category/:slug or /article/:id)
+  useEffect(() => {
+    const parsed = parseArticleUrl(currentPath);
+    if (parsed && parsed.id) {
+      const found = backendArticles.find(a => String(a.id) === String(parsed.id)) ||
+                    (String(backendLeadArticle?.id) === String(parsed.id) ? backendLeadArticle : null) ||
+                    extraCards.find(a => String(a.id) === String(parsed.id));
+      if (found) {
+        setActiveDetailArticle(found);
+      } else {
+        setIsLoadingDetailArticle(true);
+        api.getArticle(parsed.id)
+          .then(res => {
+            const a = res?.data || res?.article || res?.news;
+            if (res && res.success && a) {
+              const formatted = {
+                id: a.id,
+                _id: String(a.id),
+                title: a.title,
+                category: a.category || 'செய்தி',
+                district: a.district,
+                subtitle: a.subtitle || '',
+                summary: a.summary || a.desc || '',
+                desc: a.summary || a.desc || '',
+                content: a.content || a.body || '',
+                body: a.content || a.body || '',
+                image: a.main_image || a.image || '/Amaze times.jpg',
+                author: a.author_name || 'செய்தி ஆசிரியர்',
+                authorName: a.author_name || 'செய்தி ஆசிரியர்',
+                time: new Date(a.published_at || a.created_at || Date.now()).toLocaleDateString('ta-IN', { hour: '2-digit', minute: '2-digit' }),
+                tags: Array.isArray(a.tags) ? a.tags : (a.tags ? String(a.tags).split(',').map(t => t.trim()) : []),
+                viewsCount: a.views_count || 0,
+                views_count: a.views_count || 0,
+                likesCount: a.likes_count || 0,
+                likes_count: a.likes_count || 0
+              };
+              setActiveDetailArticle(formatted);
+            }
+          })
+          .catch(err => {
+            console.warn('Failed to load article by URL:', err);
+          })
+          .finally(() => {
+            setIsLoadingDetailArticle(false);
+          });
+      }
+    } else {
+      setActiveDetailArticle(null);
+    }
+  }, [currentPath, backendArticles, backendLeadArticle, extraCards]);
 
   // Dark mode toggle
   const toggleDarkMode = () => {
