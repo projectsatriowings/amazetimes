@@ -46,6 +46,8 @@ const SILENT_AUDIO_DATA_URI = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAA
 const VoiceReaderPlayer = forwardRef(function VoiceReaderPlayer(
   {
     text = '',
+    fullText = '',
+    article = null,
     title = '',
     autoPlay = false,
     onPlayStateChange,
@@ -76,9 +78,25 @@ const VoiceReaderPlayer = forwardRef(function VoiceReaderPlayer(
   const currentStreamUrlRef = useRef('');
 
   // Pre-normalize text and prepare chunks using normalizeTamilForSpeech
+  const effectiveRawText = React.useMemo(() => {
+    if (text && typeof text === 'string' && text.trim()) return text;
+    if (fullText && typeof fullText === 'string' && fullText.trim()) return fullText;
+    if (article) {
+      const parts = [
+        article.title,
+        article.subtitle,
+        article.summary,
+        article.content || article.body || article.desc
+      ].filter(Boolean);
+      if (parts.length > 0) return parts.join('. ');
+    }
+    if (title && typeof title === 'string' && title.trim()) return title;
+    return '';
+  }, [text, fullText, article, title]);
+
   const normalizedText = React.useMemo(() => {
-    return normalizeTamilForSpeech(text || title || '');
-  }, [text, title]);
+    return normalizeTamilForSpeech(effectiveRawText);
+  }, [effectiveRawText]);
 
 
   useEffect(() => {
@@ -542,8 +560,7 @@ const VoiceReaderPlayer = forwardRef(function VoiceReaderPlayer(
         preload="auto"
         playsInline
         webkit-playsinline="true"
-        crossOrigin="anonymous"
-      />
+        />
 
       {/* Top Bar: Engine info & Equalizer */}
       <div className="flex items-center justify-between pb-3 border-b border-indigo-900/60 text-xs">

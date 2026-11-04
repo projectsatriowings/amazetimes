@@ -418,7 +418,9 @@ export default function NewsDetailPage({
             <div className="my-2">
               <VoiceReaderPlayer
                 article={article}
+                text={[article.title, article.subtitle, article.content || article.body || article.summary].filter(Boolean).join('. ')}
                 fullText={[article.title, article.subtitle, article.content || article.body || article.summary].filter(Boolean).join('. ')}
+                title={article.title}
               />
             </div>
 
