@@ -43,6 +43,8 @@ import PushNotificationPrompt from './components/PushNotificationPrompt';
 import SocialMediaPage from './pages/SocialMediaPage';
 import ReporterDashboard from './pages/ReporterDashboard';
 import CategoryPage from './pages/CategoryPage';
+import NewsDetailPage from './pages/NewsDetailPage';
+import { generateArticleUrl, parseArticleUrl } from './utils/slugUtils';
 import { GoldMarketDashboard } from './components/GoldMarketDashboard';
 import Toast from './components/Toast';
 import NotFoundPage from './components/NotFoundPage';
@@ -291,6 +293,57 @@ export default function App() {
     }
   }, [currentPath]);
 
+  // Direct Article Route Resolver (/news/:category/:slug or /article/:id)
+  useEffect(() => {
+    const parsed = parseArticleUrl(currentPath);
+    if (parsed && parsed.id) {
+      const found = backendArticles.find(a => String(a.id) === String(parsed.id)) ||
+                    (String(backendLeadArticle?.id) === String(parsed.id) ? backendLeadArticle : null) ||
+                    extraCards.find(a => String(a.id) === String(parsed.id));
+      if (found) {
+        setActiveDetailArticle(found);
+      } else {
+        setIsLoadingDetailArticle(true);
+        api.getArticle(parsed.id)
+          .then(res => {
+            const a = res?.data || res?.article || res?.news;
+            if (res && res.success && a) {
+              const formatted = {
+                id: a.id,
+                _id: String(a.id),
+                title: a.title,
+                category: a.category || 'செய்தி',
+                district: a.district,
+                subtitle: a.subtitle || '',
+                summary: a.summary || a.desc || '',
+                desc: a.summary || a.desc || '',
+                content: a.content || a.body || '',
+                body: a.content || a.body || '',
+                image: a.main_image || a.image || '/Amaze times.jpg',
+                author: a.author_name || 'செய்தி ஆசிரியர்',
+                authorName: a.author_name || 'செய்தி ஆசிரியர்',
+                time: new Date(a.published_at || a.created_at || Date.now()).toLocaleDateString('ta-IN', { hour: '2-digit', minute: '2-digit' }),
+                tags: Array.isArray(a.tags) ? a.tags : (a.tags ? String(a.tags).split(',').map(t => t.trim()) : []),
+                viewsCount: a.views_count || 0,
+                views_count: a.views_count || 0,
+                likesCount: a.likes_count || 0,
+                likes_count: a.likes_count || 0
+              };
+              setActiveDetailArticle(formatted);
+            }
+          })
+          .catch(err => {
+            console.warn('Failed to load article by URL:', err);
+          })
+          .finally(() => {
+            setIsLoadingDetailArticle(false);
+          });
+      }
+    } else {
+      setActiveDetailArticle(null);
+    }
+  }, [currentPath, backendArticles]);
+
   // Reader (Authentication & Profile) State - Auto Purge temporary/mock users
   const [readerUser, setReaderUserState] = useState(() => {
     const u = getReaderUser();
@@ -356,6 +409,8 @@ export default function App() {
 
   // Modals state
   const [activeModalArticle, setActiveModalArticle] = useState(null);
+  const [activeDetailArticle, setActiveDetailArticle] = useState(null);
+  const [isLoadingDetailArticle, setIsLoadingDetailArticle] = useState(false);
   const [isEPaperOpen, setIsEPaperOpen] = useState(false);
   const [isLiveTVOpen, setIsLiveTVOpen] = useState(false);
   const [isDemoGuideOpen, setIsDemoGuideOpen] = useState(false);
@@ -800,21 +855,31 @@ export default function App() {
     window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
   };
 
-  // Open Full Article Modal & Record History with permanent atomic view increment
+  // Open Full Article & Route to Daily Thanthi Style URL
   const openArticleModal = async (articleOrId) => {
     let target = null;
     if (typeof articleOrId === 'object' && articleOrId !== null) {
       target = articleOrId;
     } else {
       const id = articleOrId;
-      target = backendArticles.find(a => a.id === id) || (backendLeadArticle?.id === id ? backendLeadArticle : null) || extraCards.find(a => a.id === id) || fallbackArticlesData[id] || Object.values(fallbackArticlesData).find(a => a.id === id) || {
+      target = backendArticles.find(a => String(a.id) === String(id)) || 
+               (String(backendLeadArticle?.id) === String(id) ? backendLeadArticle : null) || 
+               extraCards.find(a => String(a.id) === String(id)) || 
+               fallbackArticlesData[id] || 
+               Object.values(fallbackArticlesData).find(a => String(a.id) === String(id)) || {
         id,
         title: `செய்தி விவரம்`,
         desc: 'செய்தி விவரங்கள் ஏற்றப்படுகின்றன...',
         category: 'செய்தி'
       };
     }
-    setActiveModalArticle(target);
+
+    if (target && target.id) {
+      const articleUrl = generateArticleUrl(target);
+      navigateTo(articleUrl);
+    }
+    setActiveDetailArticle(target);
+    setActiveModalArticle(null);
     addToReadingHistory(target);
 
     // Atomically increment views in Neon PostgreSQL
@@ -822,7 +887,7 @@ export default function App() {
       try {
         const res = await api.recordNewsView(target.id);
         if (res && res.success && typeof res.viewsCount === 'number') {
-          setActiveModalArticle(prev => prev ? { ...prev, viewCount: res.viewsCount, viewsCount: res.viewsCount } : prev);
+          setActiveDetailArticle(prev => prev ? { ...prev, viewCount: res.viewsCount, viewsCount: res.viewsCount } : prev);
           setBackendArticles(prev => prev.map(a => String(a.id) === String(target.id) ? { ...a, viewCount: res.viewsCount, viewsCount: res.viewsCount } : a));
           setBackendLeadArticle(prev => prev && String(prev.id) === String(target.id) ? { ...prev, viewCount: res.viewsCount, viewsCount: res.viewsCount } : prev);
         }
@@ -1009,6 +1074,8 @@ export default function App() {
     );
   }
 
+  const isNewsDetailRoute = Boolean(parseArticleUrl(currentPath));
+
   return (
     <div className={`min-h-screen flex flex-col w-full max-w-full overflow-x-hidden min-w-0 ${fontSizeClass}`}>
       {/* Newspaper Header with Unified Top Utility Strip */}
@@ -1047,18 +1114,40 @@ export default function App() {
         onOpenGoldCalculator={() => setIsGoldCalculatorOpen(true)}
       />
 
-      {/* Dina Thanthi-style High Visibility Cinema & Sports Spotlight Bar */}
-      {currentPath === '/' && activeCategory === 'all' && (
-        <CinemaSportsSpotlightBar
-          onOpenSearch={(query) => {
-            setSearchQuery(query);
-          }}
-          onSelectCategory={handleSelectCategory}
-        />
-      )}
+      {/* 2. DEDICATED ROUTE: Daily Thanthi Style News Detail Page */}
+      {isNewsDetailRoute ? (
+        isLoadingDetailArticle && !activeDetailArticle ? (
+          <div className="min-h-[60vh] flex flex-col items-center justify-center space-y-4 py-20 font-tamil">
+            <div className="w-12 h-12 border-4 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
+            <p className="font-bold text-slate-400">செய்தி விவரங்கள் ஏற்றப்படுகின்றன...</p>
+          </div>
+        ) : (
+          <NewsDetailPage
+            article={activeDetailArticle}
+            allArticles={backendArticles.length > 0 ? backendArticles : displayCards}
+            onNavigate={navigateTo}
+            onOpenArticle={openArticleModal}
+            onToggleBookmark={handleBookmark}
+            isBookmarked={savedBookmarks.some(b => String(b.id) === String(activeDetailArticle?.id))}
+            onToggleLike={handleToggleLike}
+            isLiked={likedArticles.some(a => String(a.id) === String(activeDetailArticle?.id))}
+            onToast={addToast}
+          />
+        )
+      ) : (
+        <>
+          {/* Dina Thanthi-style High Visibility Cinema & Sports Spotlight Bar */}
+          {currentPath === '/' && activeCategory === 'all' && (
+            <CinemaSportsSpotlightBar
+              onOpenSearch={(query) => {
+                setSearchQuery(query);
+              }}
+              onSelectCategory={handleSelectCategory}
+            />
+          )}
 
-      {/* Main Container */}
-      <main className="max-w-[1400px] mx-auto px-2.5 sm:px-4 py-3 sm:py-6 flex-1 w-full max-w-full min-w-0 overflow-x-hidden space-y-8 sm:space-y-12 pb-20 sm:pb-8">
+          {/* Main Container */}
+          <main className="max-w-[1400px] mx-auto px-2.5 sm:px-4 py-3 sm:py-6 flex-1 w-full max-w-full min-w-0 overflow-x-hidden space-y-8 sm:space-y-12 pb-20 sm:pb-8">
         
         {/* Route Handlers: Social Media Hub, Editorial, Blogs, Aanmeegam, Known Routes & 404 Error Page */}
         {(currentPath !== '/' && 
@@ -1326,6 +1415,8 @@ export default function App() {
           </>
         )}
       </main>
+      </>
+      )}
 
       
             {/* 12. FLOATING SIDE SOCIAL MEDIA DOCK (Sticky on side of viewport) */}
