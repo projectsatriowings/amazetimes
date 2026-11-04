@@ -119,6 +119,7 @@ import {
   Calendar,
   Radio,
   Vote,
+  Feather,
   Star
 } from 'lucide-react';
 
@@ -1492,7 +1493,8 @@ export const AdminDashboard = () => {
                     <option value="all">அனைத்து பிரிவுகள்</option>
                     <option value="தமிழ்நாடு">தமிழ்நாடு</option>
                     <option value="அரசியல்">அரசியல்</option>
-                    <option value="அரசியல்">அரசியல்</option>
+                    <option value="தேசியம்">தேசியம் (இந்தியா)</option>
+                    <option value="உலகம்">உலகம் (சர்வதேசம்)</option>
                     <option value="வணிகம்">வணிகம்</option>
                     <option value="ஆன்மிகம்">ஆன்மிகம்</option>
                     <option value="தொழில்நுட்பம்">தொழில்நுட்பம்</option>
@@ -3059,6 +3061,7 @@ export const AdminDashboard = () => {
                     className="w-full bg-[#050915] border border-slate-700 rounded-xl p-3 text-white font-tamil"
                   >
                     <option value="தமிழ்நாடு">தமிழ்நாடு</option>
+                    <option value="அரசியல்">அரசியல் (Politics)</option>
                     <option value="தேசியம்">தேசியம் (இந்தியா)</option>
                     <option value="உலகம்">உலகம் (சர்வதேசம்)</option>
                     <option value="கல்வி">கல்வி & வேலைவாய்ப்பு</option>
