@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { CheckCircle2, BookOpen, Volume2, Bookmark, BookmarkCheck, UserCheck, Clock, ArrowRight, MessageSquare, ChevronRight, Mail, CheckCircle, Send } from 'lucide-react';
+import { api } from '../services/api';
 
 export default function EditorialView({
   articles = [],
@@ -13,8 +14,25 @@ export default function EditorialView({
   onNewEditorial
 }) {
   const [activeTab, setActiveTab] = useState('all');
+  const [readerName, setReaderName] = useState('');
+  const [readerEmail, setReaderEmail] = useState('');
+  const [letterTitle, setLetterTitle] = useState('');
   const [readerFeedback, setReaderFeedback] = useState('');
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [dbEditorials, setDbEditorials] = useState([]);
+
+  useEffect(() => {
+    const loadEditorials = async () => {
+      try {
+        const res = await api.getContent('editorial_articles');
+        if (res && res.found && Array.isArray(res.data) && res.data.length > 0) {
+          setDbEditorials(res.data);
+        }
+      } catch (_) {}
+    };
+    loadEditorials();
+  }, []);
 
   // Thirukkural of the Day for Editorial Page
   const dailyKural = {
@@ -71,14 +89,46 @@ export default function EditorialView({
     }
   ];
 
-  const displayColumns = columnistArticles.length > 0 ? columnistArticles : fallbackColumns;
+  const displayColumns = dbEditorials.length > 0 ? dbEditorials : (columnistArticles.length > 0 ? columnistArticles : fallbackColumns);
 
-  const handleFeedbackSubmit = (e) => {
+  const handleFeedbackSubmit = async (e) => {
     e.preventDefault();
-    if (!readerFeedback.trim()) return;
-    setFeedbackSubmitted(true);
-    setReaderFeedback('');
-    setTimeout(() => setFeedbackSubmitted(false), 5000);
+    if (!readerFeedback.trim() || !readerName.trim()) return;
+    setIsSubmitting(true);
+    try {
+      let currentSubs = [];
+      try {
+        const res = await api.getContent('reader_submissions');
+        if (res && res.found && Array.isArray(res.data)) {
+          currentSubs = res.data;
+        }
+      } catch (_) {}
+
+      const newSub = {
+        id: `edit-sub-${Date.now()}`,
+        type: 'editorial',
+        authorName: readerName,
+        email: readerEmail || '',
+        title: letterTitle || 'ஆசிரியருக்கு வாசகர் கடிதம்',
+        content: readerFeedback,
+        status: 'pending',
+        createdAt: new Date().toLocaleString('ta-IN')
+      };
+
+      const updated = [newSub, ...currentSubs];
+      await api.saveContent('reader_submissions', updated);
+
+      setFeedbackSubmitted(true);
+      setReaderFeedback('');
+      setLetterTitle('');
+      setReaderName('');
+      setReaderEmail('');
+      setTimeout(() => setFeedbackSubmitted(false), 6000);
+    } catch (err) {
+      console.error('Error submitting editorial feedback:', err);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -303,20 +353,46 @@ export default function EditorialView({
           </div>
         ) : (
           <form onSubmit={handleFeedbackSubmit} className="space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <input
+                type="text"
+                required
+                placeholder="உங்கள் பெயர் *"
+                value={readerName}
+                onChange={(e) => setReaderName(e.target.value)}
+                className="bg-white dark:bg-[#0D1424] border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#DC2626]"
+              />
+              <input
+                type="email"
+                placeholder="மின்னஞ்சல் முகவரி"
+                value={readerEmail}
+                onChange={(e) => setReaderEmail(e.target.value)}
+                className="bg-white dark:bg-[#0D1424] border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#DC2626]"
+              />
+              <input
+                type="text"
+                placeholder="கட்டுரை / கருத்து தலைப்பு"
+                value={letterTitle}
+                onChange={(e) => setLetterTitle(e.target.value)}
+                className="bg-white dark:bg-[#0D1424] border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#DC2626]"
+              />
+            </div>
             <textarea
               rows={3}
+              required
               value={readerFeedback}
               onChange={(e) => setReaderFeedback(e.target.value)}
-              placeholder="தலையங்கம் குறித்த உங்கள் ஆரோக்கியமான கருத்துக்களை இங்கு பதிவு செய்யுங்கள்..."
-              className="w-full bg-white dark:bg-[#0D1424] border border-slate-300 dark:border-slate-700 rounded-xl p-3 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-red/40"
+              placeholder="தலையங்கம் குறித்த உங்கள் ஆரோக்கியமான கருத்துக்கள் / சிந்தனைக் கட்டுரையை இங்கு பதிவு செய்யுங்கள்... *"
+              className="w-full bg-white dark:bg-[#0D1424] border border-slate-300 dark:border-slate-700 rounded-xl p-3 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#DC2626]"
             />
             <div className="flex justify-end">
               <button
                 type="submit"
-                className="bg-slate-900 hover:bg-[#DC2626] text-white font-subtitle font-bold text-xs px-5 py-2 rounded-xl transition-all shadow cursor-pointer flex items-center gap-1.5"
+                disabled={isSubmitting}
+                className="bg-slate-900 hover:bg-[#DC2626] disabled:opacity-50 text-white font-subtitle font-bold text-xs px-5 py-2 rounded-xl transition-all shadow cursor-pointer flex items-center gap-1.5"
               >
                 <Send className="w-4 h-4" />
-                <span>ஆசிரியருக்கு அனுப்புக</span>
+                <span>{isSubmitting ? 'அனுப்பப்படுகிறது...' : 'ஆசிரியருக்கு அனுப்புக'}</span>
               </button>
             </div>
           </form>

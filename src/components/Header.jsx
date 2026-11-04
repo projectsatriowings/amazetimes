@@ -28,6 +28,7 @@ import {
   Film,
   Trophy,
   PenTool,
+  Vote,
   LogOut,
   User,
   ChevronDown,
@@ -176,12 +177,14 @@ export default function Header({
 
   const categories = [
     { id: 'all', label: 'முகப்பு', icon: Home },
+    { id: 'politics', label: 'அரசியல்', icon: Vote, badge: 'HOT 🗳️', badgeColor: 'bg-gradient-to-r from-red-600 to-amber-600 font-bold' },
     { id: 'tamilnadu', label: 'தமிழ்நாடு', icon: Building2 },
     { id: 'districts', label: 'மாவட்டங்கள்', icon: MapPin, badge: 'HOT', badgeColor: 'bg-red-600' },
     { id: 'cinema', label: 'சினிமா', icon: Film, badge: 'HOT 🔥', badgeColor: 'bg-gradient-to-r from-red-600 to-rose-600' },
     { id: 'sports', label: 'விளையாட்டு', icon: Trophy, badge: 'LIVE 🏏', badgeColor: 'bg-gradient-to-r from-emerald-500 to-green-600 animate-pulse' },
     { id: 'business', label: 'வணிகம்', icon: TrendingUp, badge: 'HOT', badgeColor: 'bg-amber-500 text-slate-950 font-black' },
     { id: 'social', label: 'சமூக ஊடகம்', icon: Share2, badge: 'HOT 🚀', badgeColor: 'bg-gradient-to-r from-red-600 to-pink-600 font-bold' },
+    { id: 'competitions', label: 'போட்டிகள்', icon: Trophy, badge: 'பரிசு 🏆', badgeColor: 'bg-gradient-to-r from-yellow-500 to-amber-600 text-slate-950 font-black' },
     { id: 'spiritual', label: 'ஆன்மிகம்', icon: Sparkles, badge: 'சிறப்பு', badgeColor: 'bg-amber-500' },
     { id: 'magazine', label: 'மாத இதழ்', icon: BookOpen, badge: 'புதியது', badgeColor: 'bg-emerald-600' },
     { id: 'blogs', label: 'வலைப்பதிவுகள்', icon: Rss },
@@ -191,6 +194,7 @@ export default function Header({
   ];
 
   const trendingTags = [
+    { label: '#தேர்தல்_2026', category: 'politics', description: 'தமிழ்நாடு தேர்தல் 2026 களம்' },
     { label: '#தமிழக_செய்திகள்', category: 'tamilnadu', description: 'தமிழ்நாடு முக்கியச் செய்திகள்' },
     { label: '#தங்கம்_விலை_நிலவரம்', action: 'gold', description: 'இன்றைய நேரலை தங்கம் & வெள்ளி விலை நிலவரம்' },
     { label: '#சென்னை_மெட்ரோ', category: 'tamilnadu', query: 'மெட்ரோ', description: 'சென்னை மெட்ரோ ரயில் திட்டப் பணிகள்' },

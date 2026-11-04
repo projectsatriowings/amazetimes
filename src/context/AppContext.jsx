@@ -128,9 +128,9 @@ export const AppProvider = ({ children }) => {
   const [birthdayWishes, setBirthdayWishes] = useState(() => {
     try {
       const saved = localStorage.getItem('amazetimes_birthday');
-      if (saved) {
+      if (saved !== null) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed)) return parsed;
       }
     } catch (e) {}
     return defaultBirthdayWishes;
@@ -273,7 +273,7 @@ export const AppProvider = ({ children }) => {
         if (allContent.wisdom && Array.isArray(allContent.wisdom) && allContent.wisdom.length > 0) setSpiritualWisdom(allContent.wisdom);
         if (allContent.christian && typeof allContent.christian === 'object' && Object.keys(allContent.christian).length > 0) setChristianData(allContent.christian);
         if (allContent.islamic && typeof allContent.islamic === 'object' && Object.keys(allContent.islamic).length > 0) setIslamicData(allContent.islamic);
-        if (allContent.birthday && Array.isArray(allContent.birthday) && allContent.birthday.length > 0) {
+        if (allContent.birthday !== undefined && Array.isArray(allContent.birthday)) {
           setBirthdayWishes(allContent.birthday);
           try {
             localStorage.setItem('amazetimes_birthday', JSON.stringify(allContent.birthday));
@@ -874,7 +874,7 @@ export const AppProvider = ({ children }) => {
       const urlParams = new URLSearchParams(window.location.search);
       const bdayId = urlParams.get('birthday');
       if (bdayId) {
-        const list = birthdayWishes && birthdayWishes.length > 0 ? birthdayWishes : defaultBirthdayWishes;
+        const list = Array.isArray(birthdayWishes) ? birthdayWishes : [];
         const found = list.find((b) => String(b.id) === String(bdayId));
         if (found) {
           openBirthdayModal(found);
@@ -1154,14 +1154,26 @@ export const AppProvider = ({ children }) => {
 
   const deleteBirthdayOfficial = (id) => {
     setBirthdayWishes((prev) => {
-      const next = prev.filter((item) => item.id !== id);
+      const currentList = Array.isArray(prev) ? prev : [];
+      const next = currentList.filter((item) => String(item.id) !== String(id));
       try {
         localStorage.setItem('amazetimes_birthday', JSON.stringify(next));
       } catch (_) {}
       saveSiteContent('birthday', next);
+      api.saveContent('birthday', next).catch(() => {});
       return next;
     });
-    showToast('பதிவு நீக்கப்பட்டது');
+    showToast('அதிகாரி பதிவு நீக்கப்பட்டது');
+  };
+
+  const resetBirthdayWishesToDefault = () => {
+    setBirthdayWishes(defaultBirthdayWishes);
+    try {
+      localStorage.setItem('amazetimes_birthday', JSON.stringify(defaultBirthdayWishes));
+    } catch (_) {}
+    saveSiteContent('birthday', defaultBirthdayWishes);
+    api.saveContent('birthday', defaultBirthdayWishes).catch(() => {});
+    showToast('பிறந்தநாள் வாழ்த்துக்கள் இயல்புநிலைக்கு மீட்டமைக்கப்பட்டது');
   };
 
   const incrementOfficialWishCount = (id) => {
@@ -1306,6 +1318,7 @@ export const AppProvider = ({ children }) => {
         addBirthdayOfficial,
         updateBirthdayOfficial,
         deleteBirthdayOfficial,
+        resetBirthdayWishesToDefault,
         incrementOfficialWishCount,
         magazinesList,
         addMagazine,

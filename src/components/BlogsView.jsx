@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { DEFAULT_BLOG_ITEMS } from './admin/AdminBlogManager';
+import { api } from '../services/api';
 
 export default function BlogsView({
   onOpenArticle,
@@ -92,18 +93,46 @@ export default function BlogsView({
     }
   };
 
-  const handleSubmitForm = (e) => {
+  const handleSubmitForm = async (e) => {
     e.preventDefault();
     if (!submissionForm.title || !submissionForm.content || !submissionForm.authorName) {
       if (onToast) onToast('தயவுசெய்து அனைத்து விவரங்களையும் நிரப்பவும்.');
       return;
     }
-    setIsSubmitted(true);
-    if (onToast) onToast('உங்கள் படைப்பு ஆசிரியரின் பார்வைக்கு வெற்றிகரமாக அனுப்பப்பட்டது! 🎉');
-    setTimeout(() => {
-      setSubmissionForm({ authorName: '', email: '', category: 'story', title: '', content: '' });
-      setIsSubmitted(false);
-    }, 4000);
+    try {
+      let currentSubs = [];
+      try {
+        const res = await api.getContent('reader_submissions');
+        if (res && res.found && Array.isArray(res.data)) {
+          currentSubs = res.data;
+        }
+      } catch (_) {}
+
+      const newSub = {
+        id: `blog-sub-${Date.now()}`,
+        type: 'blog',
+        authorName: submissionForm.authorName,
+        email: submissionForm.email || '',
+        category: submissionForm.category,
+        title: submissionForm.title,
+        content: submissionForm.content,
+        status: 'pending',
+        createdAt: new Date().toLocaleString('ta-IN')
+      };
+
+      const updated = [newSub, ...currentSubs];
+      await api.saveContent('reader_submissions', updated);
+
+      setIsSubmitted(true);
+      if (onToast) onToast('உங்கள் படைப்பு ஆசிரியரின் பார்வைக்கு வெற்றிகரமாக அனுப்பப்பட்டது! 🎉');
+      setTimeout(() => {
+        setSubmissionForm({ authorName: '', email: '', category: 'story', title: '', content: '' });
+        setIsSubmitted(false);
+      }, 4000);
+    } catch (err) {
+      console.error('Error submitting blog:', err);
+      if (onToast) onToast('படைப்பைச் சமர்ப்பிப்பதில் பிழை. மீண்டும் முயற்சிக்கவும்.');
+    }
   };
 
   return (

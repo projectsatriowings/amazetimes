@@ -1,1 +1,97 @@
-export const defaultCompetitionsData = [];
+/**
+ * Competitions & Contests Data Repository
+ * Amaze Times Digital News Portal
+ */
+
+export const defaultCompetitionsData = [
+  {
+    id: 'comp-poetry-2026',
+    title: 'அமேஸ் டைம்ஸ் மாநில அளவிலான பாரதியார் கவிதைப் போட்டி 2026',
+    organizer: 'அமேஸ் டைம்ஸ் இலக்கிய அரங்கம் & பாரதி பாசறை',
+    type: 'poetry',
+    eligibility: 'அனைத்து வயதுப் பிரிவினர் (பள்ளி, கல்லூரி & பொதுமக்கள்)',
+    prizeMoney: 'ரூ. 50,000',
+    prizeDetails: 'முதல் பரிசு: ரூ.25,000 • 2-ம் பரிசு: ரூ.15,000 • 3-ம் பரிசு: ரூ.10,000',
+    deadline: '2026-11-30',
+    venue: 'இணையவழி சமர்ப்பிப்பு (Online Entry)',
+    summary: 'மகாகவி பாரதியாரின் சிந்தனைகளை முன்வைத்து புதிய தலைமுறை தமிழ் கவிஞர்களை ஊக்குவிக்கும் பிரம்மாண்ட மாநில கவிதைப் போட்டி.',
+    details: 'கவிதைகள் சொந்தப் படைப்பாக இருத்தல் வேண்டும். 24 முதல் 40 வரிகளுக்குள் அமைய வேண்டும். தேர்ந்தெடுக்கப்படும் சிறந்த 50 கவிதைகள் அமேஸ் டைம்ஸ் பொங்கல் சிறப்பு மலரில் பிரசுரிக்கப்பட்டு சான்றிதழ் வழங்கப்படும்.',
+    applyUrl: '#apply-form',
+    contactEmail: 'competitions@amazetimes.in',
+    status: 'published',
+    participantsCount: 412,
+    image: 'https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&w=800&q=80'
+  },
+  {
+    id: 'comp-story-2026',
+    title: 'தமிழ்நாடு இளம் எழுத்தாளர் சிறுகதைப் போட்டி 2026',
+    organizer: 'அமேஸ் டைம்ஸ் பப்ளிகேஷன்ஸ்',
+    type: 'essay',
+    eligibility: '18 முதல் 35 வயதுக்குட்பட்ட இளம் எழுத்தாளர்கள்',
+    prizeMoney: 'ரூ. 45,000',
+    prizeDetails: 'முதல் பரிசு: ரூ.20,000 + புத்தகம் வெளியீடு • ஆறுதல் பரிசுகள்: 5 x ரூ.5,000',
+    deadline: '2026-12-15',
+    venue: 'ஆன்லைன் சமர்ப்பிப்பு',
+    summary: 'சமகால வாழ்வியல் மற்றும் சமூகப் பின்னணியில் புத்தம் புதிய தமிழ் சிறுகதைகளை வரவேற்கும் பிரத்யேகப் படைப்பாளர் களம்.',
+    details: 'சிறுகதை 1500 முதல் 2500 வார்த்தைகளுக்குள் இருக்க வேண்டும். வெற்றி பெறும் சிறந்த 10 சிறுகதைகள் முன்னணி தமிழ் எழுத்தாளர்களால் தேர்ந்தெடுக்கப்பட்டு தனி நூலாக வெளியிடப்படும்.',
+    applyUrl: '#apply-form',
+    contactEmail: 'stories@amazetimes.in',
+    status: 'published',
+    participantsCount: 285,
+    image: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=800&q=80'
+  },
+  {
+    id: 'comp-quiz-2026',
+    title: 'மாநில அளவிலான தமிழ்நாடு வினாடி வினா பெருவிழா (TN Mega Knowledge Quiz 2026)',
+    organizer: 'அமேஸ் டைம்ஸ் கல்வி & வழிகாட்டல் பிரிவு',
+    type: 'quiz',
+    eligibility: 'பள்ளி & கல்லூரி மாணவர்கள் (இருவர் கொண்ட குழு)',
+    prizeMoney: 'ரூ. 1,00,000',
+    prizeDetails: 'முதல் பரிசு: ரூ.50,000 + வெற்றிக் கோப்பை • இரண்டாம் பரிசு: ரூ.30,000 • மூன்றாம் பரிசு: ரூ.20,000',
+    deadline: '2026-12-05',
+    venue: 'சென்னை & நேரலை இணையத் தளம்',
+    summary: 'தமிழ்நாடு வரலாறு, விடுதலைப் போராட்டம், அறிவியல் மற்றும் சமகால நடப்பு நிகழ்வுகள் குறித்த மாநில அளவிலான மாபெரும் வினாடி வினா போட்டி.',
+    details: 'முதல் சுற்று இணையவழியில் அமேஸ் டைம்ஸ் தளத்தில் நடைபெறும். தேர்வு செய்யப்படும் 12 குழுக்கள் சென்னை கலைவாணர் அரங்கில் நடைபெறும் இறுதிச் சுற்றில் பங்கேற்பர்.',
+    applyUrl: '#apply-form',
+    contactEmail: 'quiz@amazetimes.in',
+    status: 'published',
+    participantsCount: 890,
+    image: 'https://images.unsplash.com/photo-1606326608606-aa0b62935f2b?auto=format&fit=crop&w=800&q=80'
+  },
+  {
+    id: 'comp-essay-2026',
+    title: 'சுற்றுச்சூழல் விழிப்புணர்வு மாநிலக் கட்டுரைப் போட்டி 2026',
+    organizer: 'அமேஸ் டைம்ஸ் பசுமை அறக்கட்டளை',
+    type: 'essay',
+    eligibility: 'பள்ளி, கல்லூரி மாணவர்கள் மற்றும் பொதுமக்கள்',
+    prizeMoney: 'ரூ. 30,000',
+    prizeDetails: 'முதல் பரிசு: ரூ.15,000 • 2-ம் பரிசு: ரூ.10,000 • 3-ம் பரிசு: ரூ.5,000',
+    deadline: '2026-11-25',
+    venue: 'இணையவழி சமர்ப்பிப்பு',
+    summary: 'தலைப்பு: ‘காலநிலை மாற்றமும் தமிழகத்தின் எதிர்கால நீர்நிலைப் பாதுகாப்பும் - சாத்தியமான தீர்வுகள்’',
+    details: 'கட்டுரைகள் சொந்த நடையில் 1000 முதல் 1500 வார்த்தைகளுக்குள் இருக்க வேண்டும். நடைமுறை சாத்தியமான தீர்வுகள் மற்றும் கள ஆய்வுகளுக்கு கூடுதல் மதிப்பெண்கள் உண்டு.',
+    applyUrl: '#apply-form',
+    contactEmail: 'essay@amazetimes.in',
+    status: 'published',
+    participantsCount: 340,
+    image: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=800&q=80'
+  },
+  {
+    id: 'comp-photo-2026',
+    title: 'தமிழ்நாடு பாரம்பரியம் & இயற்கை எழில் புகைப்படப் போட்டி 2026',
+    organizer: 'அமேஸ் டைம்ஸ் மீடியா & புகைப்படக் கழகம்',
+    type: 'art',
+    eligibility: 'புகைப்படக் கலைஞர்கள் & ஆர்வலர்கள் (DSLR & மொபைல்)',
+    prizeMoney: 'ரூ. 35,000',
+    prizeDetails: 'DSLR பிரிவு முதல் பரிசு: ரூ.20,000 • மொபைல் புகைப்படம் முதல் பரிசு: ரூ.15,000',
+    deadline: '2026-12-20',
+    venue: 'டிஜிட்டல் சமர்ப்பிப்பு (Google Drive / Email)',
+    summary: 'தமிழகத்தின் வரலாற்று சின்னங்கள், கிராமிய கலைகள், திருவிழாக்கள் மற்றும் இயற்கை எழிலை வெளிப்படுத்தும் புகைப்படப் போட்டி.',
+    details: 'புகைப்படங்கள் வாட்டர்மார்க் இன்றி மூலத் தரத்தில் (Original High-Res) இருக்க வேண்டும். மொபைல் போன் புகைப்படப் பிரிவிற்கும் தனிப் பரிசுகள் உண்டு.',
+    applyUrl: '#apply-form',
+    contactEmail: 'photos@amazetimes.in',
+    status: 'published',
+    participantsCount: 520,
+    image: 'https://images.unsplash.com/photo-1582510003544-4d00b7f74220?auto=format&fit=crop&w=800&q=80'
+  }
+];

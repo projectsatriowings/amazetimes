@@ -8,10 +8,14 @@ export const GovernmentBirthdaySection = () => {
   const [activeTab, setActiveTab] = useState('today');
   const [wishedIds, setWishedIds] = useState([]);
 
-  const list = birthdayWishes && birthdayWishes.length > 0 ? birthdayWishes : defaultBirthdayWishes;
+  const list = Array.isArray(birthdayWishes) ? birthdayWishes : [];
   const activeOfficials = list.filter((item) => item.isActive !== false);
   const todayOfficials = activeOfficials.filter((item) => checkIsTodayBirthday(item));
   const displayedList = activeTab === 'today' ? todayOfficials : activeOfficials;
+
+  if (activeOfficials.length === 0) {
+    return null;
+  }
 
   const handleSendWish = (id, e) => {
     e.stopPropagation();

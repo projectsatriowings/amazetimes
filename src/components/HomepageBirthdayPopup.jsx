@@ -49,7 +49,7 @@ export const HomepageBirthdayPopup = () => {
   const [minimized, setMinimized] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
 
-  const list = birthdayWishes && birthdayWishes.length > 0 ? birthdayWishes : defaultBirthdayWishes;
+  const list = Array.isArray(birthdayWishes) ? birthdayWishes : [];
 
   // Auto-expiry check: only render today's active birthdays
   const activeItems = list.filter(

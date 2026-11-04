@@ -56,6 +56,30 @@ export const CATEGORY_SUB_CATEGORIES = {
   'மாவட்டங்கள்': null,
   'districts': null,
 
+  // Politics
+  'அரசியல்': [
+    'அனைத்து அரசியல் செய்திகள்',
+    'தமிழக அரசியல் களம் (TN Politics)',
+    'தேர்தல் 2026 சிறப்பு (Election 2026 Special)',
+    'திமுக & கூட்டணிக் களம்',
+    'அதிமுக & கூட்டணிக் களம்',
+    'பாஜக & தேசிய அரசியல்',
+    'விஜய் - தவெக அரசியல் (TVK Politics)',
+    'நாம் தமிழர் & பிற கட்சிகள்',
+    'சட்டமன்ற நிகழ்வுகள் & கொள்கை முடிவுகள்'
+  ],
+  'politics': [
+    'அனைத்து அரசியல் செய்திகள்',
+    'தமிழக அரசியல் களம் (TN Politics)',
+    'தேர்தல் 2026 சிறப்பு (Election 2026 Special)',
+    'திமுக & கூட்டணிக் களம்',
+    'அதிமுக & கூட்டணிக் களம்',
+    'பாஜக & தேசிய அரசியல்',
+    'விஜய் - தவெக அரசியல் (TVK Politics)',
+    'நாம் தமிழர் & பிற கட்சிகள்',
+    'சட்டமன்ற நிகழ்வுகள் & கொள்கை முடிவுகள்'
+  ],
+
   // Cinema
   'சினிமா': [
     'அனைத்து சினிமா செய்திகள்',
@@ -275,3 +299,4 @@ export function getSubCategoriesForCategory(category) {
   const clean = String(category).trim();
   return CATEGORY_SUB_CATEGORIES[clean] || CATEGORY_SUB_CATEGORIES[clean.toLowerCase()] || [];
 }
+

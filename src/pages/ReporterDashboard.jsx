@@ -10,6 +10,7 @@ import { api, getCurrentUser, logout } from '../services/api';
 
 const CATEGORIES = [
   { id: 'தமிழ்நாடு', name: 'தமிழ்நாடு' },
+  { id: 'அரசியல்', name: 'அரசியல்' },
   { id: 'தேசியம்', name: 'தேசியம்' },
   { id: 'உலகம்', name: 'உலகம்' },
   { id: 'சினிமா', name: 'சினிமா' },

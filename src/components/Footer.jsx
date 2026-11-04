@@ -193,6 +193,7 @@ export default function Footer({ onSelectCategory, onOpenEPaper, onOpenBookmarks
               <span>செய்திப் பிரிவுகள்</span>
             </h4>
             <ul className="space-y-2 text-slate-400 text-xs">
+              <li><button onClick={() => onSelectCategory('politics')} className="text-amber-300 font-bold hover:text-amber-200 transition-colors flex items-center gap-1.5 cursor-pointer">› அரசியல் & தேர்தல் 2026 🗳️</button></li>
               <li><button onClick={() => onSelectCategory('tamilnadu')} className="hover:text-amber-400 transition-colors flex items-center gap-1.5 cursor-pointer">› தமிழ்நாடு செய்திகள்</button></li>
               <li><button onClick={() => onSelectCategory('districts')} className="hover:text-amber-400 transition-colors flex items-center gap-1.5 cursor-pointer">› மாவட்டச் செய்திகள்</button></li>
               <li><button onClick={() => onSelectCategory('business')} className="hover:text-amber-400 transition-colors flex items-center gap-1.5 cursor-pointer">› வணிகம் & பங்குச்சந்தை</button></li>
@@ -217,6 +218,7 @@ export default function Footer({ onSelectCategory, onOpenEPaper, onOpenBookmarks
                   › சமூக ஊடக மையம் (Social Hub 🚀)
                 </button>
               </li>
+              <li><button onClick={() => onSelectCategory('competitions')} className="text-amber-400 font-bold hover:text-amber-300 transition-colors flex items-center gap-1.5 cursor-pointer">› மாணவர் & வாசகர் போட்டிகள் 🏆</button></li>
               <li><button onClick={onOpenEPaper} className="hover:text-amber-400 transition-colors flex items-center gap-1.5 cursor-pointer">› அமேஸ் இ-பேப்பர் (E-Paper)</button></li>
               <li><button onClick={() => onSelectCategory('magazine')} className="hover:text-amber-400 transition-colors flex items-center gap-1.5 cursor-pointer">› மாதாந்திர டிஜிட்டல் இதழ்</button></li>
               <li><button onClick={() => onSpeak('அமேஸ் டைம்ஸ் குரல் செய்திகள் இயக்கப்படுகின்றன.')} className="hover:text-amber-400 transition-colors flex items-center gap-1.5 cursor-pointer">› AI செய்தி வாசிப்பாளர் (Audio)</button></li>

@@ -61,11 +61,12 @@ export const AdminBirthdayManager = () => {
     addBirthdayOfficial,
     updateBirthdayOfficial,
     deleteBirthdayOfficial,
+    resetBirthdayWishesToDefault,
     openBirthdayModal,
     showToast
   } = useApp();
 
-  const officialsList = birthdayWishes && birthdayWishes.length > 0 ? birthdayWishes : defaultBirthdayWishes;
+  const officialsList = Array.isArray(birthdayWishes) ? birthdayWishes : [];
 
   // Search & Filter state
   const [searchTerm, setSearchTerm] = useState('');
@@ -278,13 +279,27 @@ export const AdminBirthdayManager = () => {
           </p>
         </div>
 
-        <button
-          onClick={() => handleOpenModal()}
-          className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-extrabold shadow-md shadow-red-600/30 px-5 py-3 rounded-2xl text-xs sm:text-sm flex items-center gap-2 cursor-pointer transition transform hover:scale-[1.02] shrink-0"
-        >
-          <Plus className="w-4 h-4" />
-          <span>+ புதிய VIP பதிவு சேர்</span>
-        </button>
+        <div className="flex items-center gap-2 flex-wrap shrink-0">
+          <button
+            type="button"
+            onClick={() => {
+              if (window.confirm('இயல்புநிலை VIP பிறந்தநாள் பதிவுகளை மீண்டும் கொண்டுவர விரும்புகிறீர்களா?')) {
+                resetBirthdayWishesToDefault();
+              }
+            }}
+            className="bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 font-bold px-4 py-3 rounded-2xl text-xs sm:text-sm flex items-center gap-1.5 cursor-pointer transition shrink-0"
+            title="முந்தைய இயல்புநிலை பதிவுகளை மீட்டமைக்க"
+          >
+            <span>🔄 இயல்புநிலை மீட்டமை</span>
+          </button>
+          <button
+            onClick={() => handleOpenModal()}
+            className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-extrabold shadow-md shadow-red-600/30 px-5 py-3 rounded-2xl text-xs sm:text-sm flex items-center gap-2 cursor-pointer transition transform hover:scale-[1.02] shrink-0"
+          >
+            <Plus className="w-4 h-4" />
+            <span>+ புதிய VIP பதிவு சேர்</span>
+          </button>
+        </div>
       </div>
 
       {/* Filter & Stats Row */}

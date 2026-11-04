@@ -49,6 +49,7 @@ import { AdminSportsManager } from '../components/admin/AdminSportsManager';
 import { AdminErrorBoundary } from '../components/admin/AdminErrorBoundary';
 import { AdminTickerLiveWireManager } from '../components/admin/AdminTickerLiveWireManager';
 import { AdminPollsManager } from '../components/admin/AdminPollsManager';
+import { AdminReaderSubmissionsManager } from '../components/admin/AdminReaderSubmissionsManager';
 import {
   LayoutDashboard,
   FilePlus,
@@ -1099,6 +1100,18 @@ export const AdminDashboard = () => {
               </button>
 
               <button
+                onClick={() => setActiveTab('reader-submissions-manager')}
+                className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold cursor-pointer transition ${
+                  activeTab === 'reader-submissions-manager'
+                    ? 'bg-gradient-to-r from-red-600 to-amber-600 text-white font-black shadow-lg'
+                    : 'text-slate-300 hover:bg-slate-800/60'
+                }`}
+              >
+                <Feather className="w-4 h-4 text-amber-400" />
+                <span>வாசகர் படைப்புகள் & தலையங்க மேலாண்மை</span>
+              </button>
+
+              <button
                 onClick={() => setActiveTab('competitions-manager')}
                 className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold cursor-pointer transition ${
                   activeTab === 'competitions-manager'
@@ -1478,6 +1491,8 @@ export const AdminDashboard = () => {
                   >
                     <option value="all">அனைத்து பிரிவுகள்</option>
                     <option value="தமிழ்நாடு">தமிழ்நாடு</option>
+                    <option value="அரசியல்">அரசியல்</option>
+                    <option value="அரசியல்">அரசியல்</option>
                     <option value="வணிகம்">வணிகம்</option>
                     <option value="ஆன்மிகம்">ஆன்மிகம்</option>
                     <option value="தொழில்நுட்பம்">தொழில்நுட்பம்</option>
@@ -2091,6 +2106,7 @@ export const AdminDashboard = () => {
               {/* Categories Cards Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {[
+                  { name: 'அரசியல்', key: 'அரசியல்', desc: 'தமிழக அரசியல் களம், தேர்தல் 2026, கட்சி அறிக்கைகள் & சட்டமன்ற நிகழ்வுகள்.', icon: Vote, color: 'from-red-500/20 to-red-500/5 text-red-400 border-red-500/30' },
                   { name: 'தமிழ்நாடு', key: 'தமிழ்நாடு', desc: 'தமிழகத்தின் முதன்மை செய்திகள், மாவட்ட செய்திகள் மற்றும் அரசியல் நிகழ்வுகள்.', icon: Globe, color: 'from-amber-500/20 to-amber-500/5 text-amber-400 border-amber-500/30' },
                   { name: 'தேசியம் (இந்தியா)', key: 'தேசியம்', desc: 'இந்திய நாட்டின் முக்கிய தேசிய நிகழ்வுகள், மத்திய அரசு திட்டங்கள் & தலைநகர் செய்திகள்.', icon: Flag, color: 'from-orange-500/20 to-orange-500/5 text-orange-400 border-orange-500/30' },
                   { name: 'உலகம் (சர்வதேசம்)', key: 'உலகம்', desc: 'உலகளாவிய அரசியல், சர்வதேச நிகழ்வுகள், விண்வெளி மற்றும் உலக வணிகம்.', icon: Globe, color: 'from-sky-500/20 to-sky-500/5 text-sky-400 border-sky-500/30' },
@@ -2272,6 +2288,15 @@ export const AdminDashboard = () => {
             <AdminErrorBoundary sectionName="சான்றோர் பொன்மொழிகள்" onResetTab={() => setActiveTab('dashboard')}>
               <div className="max-w-6xl w-full">
                 <AdminQuotesManager />
+              </div>
+            </AdminErrorBoundary>
+          )}
+
+          {/* VIEW: READER SUBMISSIONS & STORIES DESK */}
+          {activeTab === 'reader-submissions-manager' && (
+            <AdminErrorBoundary sectionName="வாசகர் படைப்புகள் & தலையங்க மேலாண்மை" onResetTab={() => setActiveTab('dashboard')}>
+              <div className="max-w-6xl w-full">
+                <AdminReaderSubmissionsManager />
               </div>
             </AdminErrorBoundary>
           )}

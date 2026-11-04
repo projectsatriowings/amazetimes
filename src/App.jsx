@@ -28,6 +28,8 @@ import CinemaAndSports from './components/CinemaAndSports';
 import CinemaSportsHub from './components/CinemaSportsHub';
 import CinemaSportsSpotlightBar from './components/CinemaSportsSpotlightBar';
 import DistrictNewsHub from './components/DistrictNewsHub';
+import PoliticsSection from './components/PoliticsSection';
+import CompetitionsPage from './pages/CompetitionsPage';
 import GovernmentBirthdaySection from './components/GovernmentBirthdaySection';
 import HomepageBirthdayPopup from './components/HomepageBirthdayPopup';
 import { BirthdayWishModal } from './components/modals/BirthdayWishModal';
@@ -62,6 +64,20 @@ import { api, getCurrentUser, setCurrentUser as persistCurrentUser, setToken, ge
 import { shortsStories as fallbackShorts } from './data/newsData';
 
 export const DOMAINS_CONFIG = {
+  politics: {
+    id: 'politics',
+    name: 'அரசியல்',
+    title: 'அரசியல் களம் & தேர்தல் 2026',
+    subtitle: 'தமிழகம், தேசியம் மற்றும் சர்வதேச அரசியல் களத்தின் அனல் பறக்கும் செய்திகள்',
+    badge: 'அரசியல்'
+  },
+  competitions: {
+    id: 'competitions',
+    name: 'போட்டிகள்',
+    title: 'மாணவர் & வாசகர் போட்டிகள் அரங்கம்',
+    subtitle: 'மாநில அளவிலான கவிதை, சிறுகதை, கட்டுரை, வினாடி வினா & புகைப்படப் போட்டிகள்',
+    badge: 'போட்டிகள்'
+  },
   all: {
     id: 'all',
     name: 'முதன்மைச் செய்திகள்',
@@ -149,6 +165,8 @@ export const DOMAINS_CONFIG = {
 };
 
 export const CATEGORY_ALIASES = {
+  politics: ['politics', 'அரசியல்', 'தேர்தல்', 'அரசியல் களம்'],
+  competitions: ['competitions', 'போட்டிகள்', 'போட்டி', 'competition'],
   all: ['all', 'அனைத்தும்', 'முகப்பு'],
   tamilnadu: ['tamilnadu', 'தமிழ்நாடு', 'தமிழகம்'],
   districts: ['districts', 'மாவட்டங்கள்', 'மாவட்டம்'],
@@ -288,7 +306,7 @@ export default function App() {
     } else if (p.startsWith('/category/')) {
       const cat = p.replace('/category/', '').trim();
       if (cat) setActiveCategory(cat);
-    } else if (['/cinema', '/sports', '/tamilnadu', '/districts', '/business', '/india', '/world', '/magazine', '/editorial', '/thalaiyangam', '/spiritual', '/aanmeegam', '/blogs', '/valaipathivugal'].includes(p)) {
+    } else if (['/cinema', '/sports', '/tamilnadu', '/districts', '/business', '/india', '/world', '/magazine', '/editorial', '/thalaiyangam', '/spiritual', '/aanmeegam', '/blogs', '/valaipathivugal', '/politics', '/competitions'].includes(p)) {
       setActiveCategory(p.replace('/', ''));
     }
   }, [currentPath]);
@@ -538,7 +556,7 @@ export default function App() {
 
   // Re-fetch whenever activeCategory or currentPath changes to '/' (instant return from Admin)
   useEffect(() => {
-    if (currentPath === '/' || currentPath.startsWith('/category/') || currentPath.startsWith('/news/') || ['/cinema', '/sports', '/tamilnadu', '/districts', '/business', '/india', '/world', '/magazine'].includes(currentPath)) {
+    if (currentPath === '/' || currentPath.startsWith('/category/') || currentPath.startsWith('/news/') || ['/cinema', '/sports', '/tamilnadu', '/districts', '/business', '/india', '/world', '/magazine', '/politics', '/competitions'].includes(currentPath)) {
       if (currentPath.startsWith('/news/')) {
         if (backendArticles.length === 0) {
           fetchBackendContent(activeCategory, true);
@@ -1165,12 +1183,14 @@ export default function App() {
           currentPath !== '/spiritual' && 
           currentPath !== '/thalaiyangam' && 
           currentPath !== '/valaipathivugal' && 
-          currentPath !== '/aanmeegam') ? (
+          currentPath !== '/aanmeegam' && currentPath !== '/politics' && currentPath !== '/competitions') ? (
           currentPath === '/social-media' ? (
             <SocialMediaPage onNavigate={navigateTo} onToast={addToast} />
           ) : (
             <NotFoundPage onNavigate={navigateTo} onSelectCategory={handleSelectCategory} />
           )
+        ) : (activeCategory === 'competitions' || currentPath === '/competitions') ? (
+          <CompetitionsPage onNavigate={navigateTo} />
         ) : (activeCategory === 'editorial' || currentPath === '/editorial' || currentPath === '/thalaiyangam') ? (
           <EditorialView
             articles={backendArticles.length > 0 ? backendArticles : (displayCards.length > 0 ? displayCards : [])}
@@ -1325,6 +1345,14 @@ export default function App() {
                   </>
                 )}
 
+                {activeCategory === 'politics' && (
+                  <PoliticsSection
+                    articles={displayCards}
+                    onOpenArticle={openArticleModal}
+                    onSelectCategory={handleSelectCategory}
+                  />
+                )}
+
                 {activeCategory === 'magazine' && (
                   <div className="space-y-6">
                     <MagazineShowcase onOpenEPaper={() => setIsEPaperOpen(true)} onToast={addToast} />
@@ -1355,6 +1383,12 @@ export default function App() {
                     <div id="cinema-and-sports">
                       <CinemaAndSports onOpenArticle={openArticleModal} onSelectCategory={handleSelectCategory} articles={displayCards} />
                     </div>
+
+                    <PoliticsSection
+                      articles={displayCards}
+                      onOpenArticle={openArticleModal}
+                      onSelectCategory={handleSelectCategory}
+                    />
 
                     <DistrictNewsHub
                       articles={displayCards}
