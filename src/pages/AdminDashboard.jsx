@@ -75,6 +75,15 @@ import {
   Trash2,
   Camera,
   Eye,
+  EyeOff,
+  KeyRound,
+  Lock,
+  Copy,
+  CheckCircle,
+  AlertCircle,
+  AtSign,
+  Smartphone,
+  Key,
   Globe,
   Sliders,
   Tv,
@@ -118,7 +127,7 @@ const getArticleViews = (article) => {
 
 
 export const AdminDashboard = () => {
-  const { user, handleLogout, showToast, fetchNews, fetchGoldRate, theme, toggleTheme, liveViewersCount, totalLifetimeVisitors, addNews, updateNews, deleteNews } = useApp();
+  const { user, setUser, handleLogout, showToast, fetchNews, fetchGoldRate, theme, toggleTheme, liveViewersCount, totalLifetimeVisitors, addNews, updateNews, deleteNews } = useApp();
   const navigate = useNavigate();
 
   // Navigation State
@@ -177,17 +186,36 @@ export const AdminDashboard = () => {
   const [userSearchQuery, setUserSearchQuery] = useState('');
   const [userRoleFilter, setUserRoleFilter] = useState('all');
 
-  // Profile Form State
+  // Profile Form State (Separate from Security)
   const [profileForm, setProfileForm] = useState({
-    name: user?.name || '',
+    name: user?.full_name || user?.name || '',
+    username: user?.username || '',
     email: user?.email || '',
     phone: user?.phone || '',
     bio: user?.bio || '',
-    avatar: user?.avatar || '',
+    avatar: user?.avatar_url || user?.avatar || ''
+  });
+
+  // Dedicated Password & Passcode Studio State
+  const [passwordForm, setPasswordForm] = useState({
     currentPassword: '',
     newPassword: '',
     confirmPassword: ''
   });
+  const [passwordMode, setPasswordMode] = useState('password'); // 'password' | 'passcode'
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
+  const [copiedCode, setCopiedCode] = useState(false);
+
+  // User Management Modals State
+  const [passwordResetUser, setPasswordResetUser] = useState(null);
+  const [resetPasswordForm, setResetPasswordForm] = useState({ newPassword: '', isPasscode: false });
+  const [showResetPasswordEye, setShowResetPasswordEye] = useState(false);
+  const [editingUser, setEditingUser] = useState(null);
+  const [editUserForm, setEditUserForm] = useState({ username: '', full_name: '', email: '', role: 'reporter', phone: '', bio: '' });
 
   // Commodity Form State (GoodReturns Chennai)
   const [goldForm, setGoldForm] = useState({
@@ -211,14 +239,14 @@ export const AdminDashboard = () => {
 
   useEffect(() => {
     if (user) {
-      setProfileForm((prev) => ({
-        ...prev,
-        name: user.name || '',
+      setProfileForm({
+        name: user.full_name || user.name || '',
+        username: user.username || '',
         email: user.email || '',
         phone: user.phone || '',
         bio: user.bio || '',
-        avatar: user.avatar || ''
-      }));
+        avatar: user.avatar_url || user.avatar || ''
+      });
     }
   }, [user]);
 
@@ -507,27 +535,157 @@ export const AdminDashboard = () => {
     }
   };
 
-  // Handlers for Profile
+  // Quick Passcode & Strong Password Generator
+  const generateRandomCode = (isPasscode = false) => {
+    let generated = '';
+    if (isPasscode) {
+      generated = Math.floor(100000 + Math.random() * 900000).toString();
+    } else {
+      const chars = 'abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789!@#$%&*';
+      for (let i = 0; i < 12; i++) {
+        generated += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+    }
+    setPasswordForm(prev => ({
+      ...prev,
+      newPassword: generated,
+      confirmPassword: generated
+    }));
+    setShowNewPassword(true);
+    setShowConfirmPassword(true);
+    navigator.clipboard?.writeText(generated);
+    setCopiedCode(true);
+    setTimeout(() => setCopiedCode(false), 3000);
+    showToast(`புதிய ${isPasscode ? 'பாஸ்கோடு' : 'கடவுச்சொல்'} உருவாக்கப்பட்டு நகலெடுக்கப்பட்டது: ${generated}`);
+  };
+
+  // Password Strength Checker
+  const getPasswordStrength = (pass) => {
+    if (!pass) return { score: 0, label: '', color: 'bg-slate-700' };
+    if (passwordMode === 'passcode') {
+      if (pass.length < 4) return { score: 30, label: 'குறைந்த இலக்கங்கள் (குறைந்தது 4)', color: 'bg-rose-500' };
+      if (pass.length === 4 || pass.length === 5) return { score: 70, label: 'நடுத்தர பாஸ்கோடு', color: 'bg-amber-500' };
+      return { score: 100, label: 'முழுமையான 6-இலக்க பாஸ்கோடு', color: 'bg-emerald-500' };
+    }
+    let score = 0;
+    if (pass.length >= 6) score += 25;
+    if (pass.length >= 10) score += 25;
+    if (/[0-9]/.test(pass)) score += 20;
+    if (/[A-Z]/.test(pass)) score += 15;
+    if (/[^a-zA-Z0-9]/.test(pass)) score += 15;
+
+    if (score < 40) return { score, label: 'எளிதான கடவுச்சொல் (Weak)', color: 'bg-rose-500' };
+    if (score < 75) return { score, label: 'நடுத்தர பாதுகாப்பு (Fair)', color: 'bg-amber-500' };
+    return { score: 100, label: 'வலுவான கடவுச்சொல் (Strong)', color: 'bg-emerald-500' };
+  };
+
+  // Handler for Profile Information (Name, Username, Phone, Bio, Avatar)
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
-    if (profileForm.newPassword && profileForm.newPassword !== profileForm.confirmPassword) {
-      showToast('புதிய கடவுச்சொற்கள் பொருந்தவில்லை');
+    setIsUpdatingProfile(true);
+    try {
+      const res = await api.updateProfile({
+        full_name: profileForm.name,
+        name: profileForm.name,
+        username: profileForm.username,
+        phone: profileForm.phone,
+        bio: profileForm.bio,
+        avatar: profileForm.avatar,
+        avatar_url: profileForm.avatar
+      });
+      if (res && res.success && res.user) {
+        if (setUser) setUser(res.user);
+        localStorage.setItem('amaze_user', JSON.stringify(res.user));
+        localStorage.setItem('adutha_user', JSON.stringify(res.user));
+        if (res.token) {
+          localStorage.setItem('amaze_token', res.token);
+          localStorage.setItem('adutha_token', res.token);
+        }
+        showToast('சுயவிவரம் & பயனர் பெயர் வெற்றிகரமாக புதுப்பிக்கப்பட்டது!');
+        loadAdminData();
+      } else {
+        showToast(res.message || 'சுயவிவரம் புதுப்பிப்பதில் பிழை');
+      }
+    } catch (err) {
+      showToast(err.message || 'சுயவிவரம் புதுப்பிப்பதில் பிழை');
+    } finally {
+      setIsUpdatingProfile(false);
+    }
+  };
+
+  // Handler for Security & Password / Passcode Studio
+  const handleChangePassword = async (e) => {
+    e.preventDefault();
+    if (!passwordForm.newPassword) {
+      showToast('புதிய கடவுச்சொல் அல்லது பாஸ்கோடை உள்ளிடவும்');
       return;
     }
-    const res = await api.updateProfile({
-      name: profileForm.name,
-      phone: profileForm.phone,
-      bio: profileForm.bio,
-      avatar: profileForm.avatar,
-      currentPassword: profileForm.currentPassword,
-      newPassword: profileForm.newPassword
-    });
-    if (res.success) {
-      showToast('சுயவிவரம் புதுப்பிக்கப்பட்டது!');
-      setProfileForm((prev) => ({ ...prev, currentPassword: '', newPassword: '', confirmPassword: '' }));
-      loadAdminData();
-    } else {
-      showToast(res.message || 'புதுப்பிப்பதில் பிழை');
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      showToast('புதிய கடவுச்சொற்கள் பொருந்தவில்லை!');
+      return;
+    }
+    if (passwordMode === 'passcode' && passwordForm.newPassword.length < 4) {
+      showToast('பாஸ்கோடு குறைந்தது 4 இலக்கங்கள் கொண்டிருக்க வேண்டும்');
+      return;
+    }
+    setIsUpdatingPassword(true);
+    try {
+      const res = await api.changePassword({
+        current_password: passwordForm.currentPassword,
+        new_password: passwordForm.newPassword,
+        is_passcode: passwordMode === 'passcode'
+      });
+      if (res && res.success) {
+        showToast(res.message || 'கடவுச்சொல் வெற்றிகரமாக மாற்றப்பட்டது!');
+        setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      } else {
+        showToast(res.message || 'கடவுச்சொல் மாற்றுவதில் பிழை');
+      }
+    } catch (err) {
+      showToast(err.message || 'கடவுச்சொல் மாற்றுவதில் பிழை');
+    } finally {
+      setIsUpdatingPassword(false);
+    }
+  };
+
+  // Handler for Admin resetting any user's password
+  const handleAdminResetPasswordSubmit = async (e) => {
+    e.preventDefault();
+    if (!passwordResetUser || !resetPasswordForm.newPassword) return;
+    try {
+      const res = await api.changeUserPassword(
+        passwordResetUser.id,
+        resetPasswordForm.newPassword,
+        resetPasswordForm.isPasscode
+      );
+      if (res && res.success) {
+        showToast(res.message || 'கடவுச்சொல் மாற்றப்பட்டது!');
+        setPasswordResetUser(null);
+        setResetPasswordForm({ newPassword: '', isPasscode: false });
+        loadAdminData();
+      } else {
+        showToast(res.message || 'கடவுச்சொல் மாற்றுவதில் பிழை');
+      }
+    } catch (err) {
+      showToast(err.message || 'கடவுச்சொல் மாற்றுவதில் பிழை');
+    }
+  };
+
+  // Handler for Admin editing another user's details
+  const handleAdminEditUserSubmit = async (e) => {
+    e.preventDefault();
+    if (!editingUser) return;
+    try {
+      const res = await api.updateUser(editingUser.id, editUserForm);
+      if (res && res.success) {
+        showToast(res.message || 'பயனர் விவரங்கள் புதுப்பிக்கப்பட்டன!');
+        setEditingUser(null);
+        loadAdminData();
+      } else {
+        showToast(res.message || 'பயனர் புதுப்பிப்பதில் பிழை');
+      }
+    } catch (err) {
+      showToast(err.message || 'பயனர் புதுப்பிப்பதில் பிழை');
     }
   };
 
@@ -1453,143 +1611,434 @@ export const AdminDashboard = () => {
             </AdminErrorBoundary>
           )}
 
-          {/* VIEW 4: MY PROFILE */}
+          {/* VIEW 4: MY PROFILE & SECURITY STUDIO */}
           {activeTab === 'profile' && (
-            <div className="space-y-6 font-tamil">
-              <div>
-                <h1 className="text-2xl sm:text-3xl font-black text-white flex items-center gap-2">
-                  <UserIcon className="w-7 h-7 text-amber-400" />
-                  எனது சுயவிவரம் (My Profile)
-                </h1>
-                <p className="text-xs sm:text-sm text-slate-400 mt-1 font-sans">Manage personal profile details and security credentials.</p>
-              </div>
-
-              {/* AVATAR HERO FRAME */}
-              <div className="bg-[#0f172a] rounded-2xl border border-slate-800 p-6 flex flex-col items-center justify-center space-y-3 relative shadow-xl">
-                <div className="relative">
-                  <div className="w-24 h-24 rounded-full bg-gradient-to-tr from-amber-500 to-amber-300 p-1 shadow-xl overflow-hidden flex items-center justify-center bg-[#050915]">
-                    {profileForm.avatar ? (
-                      <img src={profileForm.avatar} alt="Avatar" className="w-full h-full object-cover rounded-full" />
-                    ) : (
-                      <span className="text-3xl font-black text-amber-400 uppercase">{user?.name?.charAt(0) || 'A'}</span>
-                    )}
-                  </div>
-                  <label className="absolute bottom-0 right-0 bg-amber-500 hover:bg-amber-600 text-slate-950 p-2 rounded-full shadow-lg border-2 border-[#0f172a] cursor-pointer transition">
-                    <Camera className="w-4 h-4" />
-                    <input type="file" accept="image/*" className="hidden" onChange={handleAvatarFileChange} />
-                  </label>
-                </div>
-
-                <div className="bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 text-xs font-black px-4 py-1 rounded-full shadow">
-                  {user?.designation || 'தலைமை நிர்வாகி (Chief Editor)'}
-                </div>
-              </div>
-
-              {/* FORM GRID */}
-              <form onSubmit={handleUpdateProfile} className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-2 bg-[#0f172a] rounded-2xl border border-slate-800 p-6 shadow-xl space-y-4">
-                  <h3 className="text-base font-bold text-white border-b border-slate-800 pb-3">தனிப்பட்ட தகவல்கள்</h3>
-
-                  <div className="space-y-4 text-xs sm:text-sm">
+            <div className="space-y-6 font-tamil max-w-6xl w-full">
+              {/* Header Banner */}
+              <div className="bg-[#0f172a] rounded-3xl border border-slate-800 p-6 shadow-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2.5 bg-amber-500/20 text-amber-400 rounded-xl border border-amber-500/30">
+                      <UserIcon className="w-6 h-6" />
+                    </div>
                     <div>
-                      <label className="block text-slate-300 font-bold mb-1.5">முழு பெயர்</label>
+                      <h1 className="text-xl sm:text-2xl font-black text-white flex items-center gap-2">
+                        <span>நிர்வாகக் கணக்கு &amp; பாதுகாப்பு மேலாண்மை</span>
+                      </h1>
+                      <p className="text-xs text-slate-400 font-sans">
+                        Admin Profile, Username Customization &amp; Advanced Password/Passcode Studio
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span>நேரலை தரவுத்தள இணைப்பு</span>
+                  </span>
+                </div>
+              </div>
+
+              {/* AVATAR HERO CARD */}
+              <div className="bg-[#0f172a] rounded-3xl border border-slate-800 p-6 sm:p-8 flex flex-col md:flex-row items-center justify-between gap-6 relative shadow-2xl overflow-hidden">
+                <div className="absolute right-0 top-0 translate-x-12 -translate-y-12 w-64 h-64 bg-amber-500/5 rounded-full blur-3xl pointer-events-none"></div>
+
+                <div className="flex flex-col sm:flex-row items-center gap-5 text-center sm:text-left z-10">
+                  <div className="relative group">
+                    <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-gradient-to-tr from-amber-500 via-amber-400 to-amber-200 p-1 shadow-2xl overflow-hidden flex items-center justify-center bg-[#050915]">
+                      {profileForm.avatar ? (
+                        <img src={profileForm.avatar} alt="Avatar" className="w-full h-full object-cover rounded-full" />
+                      ) : (
+                        <span className="text-4xl font-black text-amber-400 uppercase">
+                          {(profileForm.name || user?.name || 'A').charAt(0)}
+                        </span>
+                      )}
+                    </div>
+                    <label className="absolute bottom-0 right-0 bg-amber-500 hover:bg-amber-400 text-slate-950 p-2.5 rounded-full shadow-lg border-2 border-[#0f172a] cursor-pointer transition transform group-hover:scale-110" title="சுயவிவரப் படம் மாற்றுக">
+                      <Camera className="w-4 h-4" />
+                      <input type="file" accept="image/*" className="hidden" onChange={handleAvatarFileChange} />
+                    </label>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-center sm:justify-start gap-2 flex-wrap">
+                      <h2 className="text-xl sm:text-2xl font-black text-white">
+                        {profileForm.name || 'தலைமை ஆசிரியர்'}
+                      </h2>
+                      <span className="bg-amber-500/20 text-amber-300 font-mono text-xs px-2.5 py-0.5 rounded-lg border border-amber-400/30 font-bold">
+                        @{profileForm.username || 'admin'}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-center sm:justify-start gap-2 flex-wrap text-xs text-slate-300">
+                      <span className="bg-blue-500/10 text-blue-300 border border-blue-500/30 px-2.5 py-0.5 rounded-md font-bold">
+                        {user?.designation || 'தலைமை நிர்வாகி (Chief Editor / Super Admin)'}
+                      </span>
+                      <span className="text-slate-400 flex items-center gap-1 font-sans">
+                        <Mail className="w-3.5 h-3.5 text-slate-400" />
+                        <span>{profileForm.email || 'admin@amazetimes.com'}</span>
+                      </span>
+                    </div>
+
+                    <p className="text-xs text-slate-400 max-w-xl italic">
+                      "{profileForm.bio || 'அமேஸ் டைம்ஸ் தலைமை செய்தி நிர்வாகம் மற்றும் இதழியல் பார்வை.'}"
+                    </p>
+                  </div>
+                </div>
+
+                <div className="bg-[#050915] border border-slate-800 p-4 rounded-2xl text-center sm:text-right shrink-0 z-10 space-y-1 min-w-[200px]">
+                  <span className="text-[10px] text-slate-400 block font-bold uppercase tracking-wider">பாதுகாப்பு நிலை (Security)</span>
+                  <div className="flex items-center justify-center sm:justify-end gap-1.5 text-emerald-400 font-bold text-sm">
+                    <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                    <span>2FA &amp; SSL பாதுகாப்பானது</span>
+                  </div>
+                  <span className="text-[10px] text-slate-500 font-mono block">கணக்கு ID: {user?.id?.substring(0, 8)}...</span>
+                </div>
+              </div>
+
+              {/* TWO SEPARATE DEDICATED FORMS */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                
+                {/* 1. PERSONAL PROFILE & ACCOUNT INFO FORM (7 cols) */}
+                <div className="lg:col-span-7 bg-[#0f172a] rounded-3xl border border-slate-800 p-6 sm:p-7 shadow-xl space-y-5">
+                  <div className="border-b border-slate-800 pb-3 flex items-center justify-between">
+                    <div>
+                      <h3 className="text-base sm:text-lg font-black text-white flex items-center gap-2">
+                        <UserIcon className="w-5 h-5 text-amber-400" />
+                        <span>தனிப்பட்ட தகவல்கள் &amp; பயனர் பெயர்</span>
+                      </h3>
+                      <p className="text-xs text-slate-400 mt-0.5 font-sans">
+                        முழு பெயர், தொலைபேசி மற்றும் பயனர் பெயரை எப்போது வேண்டுமானாலும் மாற்றலாம்.
+                      </p>
+                    </div>
+                  </div>
+
+                  <form onSubmit={handleUpdateProfile} className="space-y-4 text-xs sm:text-sm">
+                    
+                    {/* Full Name */}
+                    <div>
+                      <label className="block text-slate-300 font-bold mb-1.5">
+                        முழு பெயர் (Full Name) <span className="text-rose-400">*</span>
+                      </label>
                       <input
                         type="text"
+                        required
                         value={profileForm.name}
                         onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })}
-                        className="w-full bg-[#050915] border border-slate-700 focus:border-amber-500 rounded-xl px-4 py-3 text-white focus:outline-none font-medium"
+                        placeholder="முதன்மை ஆசிரியர்"
+                        className="w-full bg-[#050915] border border-slate-700 focus:border-amber-500 rounded-xl px-4 py-3 text-white focus:outline-none font-medium placeholder-slate-500"
                       />
                     </div>
 
+                    {/* Username & Phone Row */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {/* Username (Editable anytime) */}
                       <div>
-                        <label className="block text-slate-300 font-bold mb-1.5">மின்னஞ்சல் முகவரி</label>
+                        <label className="block text-slate-300 font-bold mb-1.5">
+                          பயனர் பெயர் (Username) <span className="text-rose-400">*</span>
+                        </label>
+                        <div className="relative">
+                          <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-amber-400 font-mono font-black text-sm select-none">
+                            @
+                          </span>
+                          <input
+                            type="text"
+                            required
+                            autoComplete="off"
+                            value={profileForm.username}
+                            onChange={(e) => setProfileForm({ ...profileForm, username: e.target.value.toLowerCase().replace(/\s+/g, '') })}
+                            placeholder="admin"
+                            className="w-full bg-[#050915] border border-slate-700 focus:border-amber-500 rounded-xl pl-8 pr-4 py-3 text-white focus:outline-none font-mono font-bold text-xs sm:text-sm placeholder-slate-500"
+                          />
+                        </div>
+                        <span className="text-[10px] text-slate-400 mt-1 block">
+                          எழுத்துகள், எண்கள், _ மற்றும் - (உள்நுழைய பயன்படும்)
+                        </span>
+                      </div>
+
+                      {/* Phone Number */}
+                      <div>
+                        <label className="block text-slate-300 font-bold mb-1.5">
+                          தொலைபேசி எண் (Phone Number)
+                        </label>
+                        <div className="relative">
+                          <Phone className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
+                          <input
+                            type="tel"
+                            autoComplete="off"
+                            placeholder="+91 98765 43210"
+                            value={profileForm.phone}
+                            onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })}
+                            className="w-full bg-[#050915] border border-slate-700 focus:border-amber-500 rounded-xl pl-10 pr-4 py-3 text-white focus:outline-none font-mono text-xs sm:text-sm placeholder-slate-500"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Email (Readonly) */}
+                    <div>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="text-slate-300 font-bold">
+                          மின்னஞ்சல் முகவரி (Email Address)
+                        </label>
+                        <span className="text-[10px] text-emerald-400 font-bold flex items-center gap-1">
+                          <CheckCircle className="w-3 h-3" /> உறுதிப்படுத்தப்பட்டது
+                        </span>
+                      </div>
+                      <div className="relative">
+                        <Mail className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
                         <input
                           type="email"
                           disabled
                           value={profileForm.email}
-                          className="w-full bg-[#050915]/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-400 font-medium cursor-not-allowed"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-slate-300 font-bold mb-1.5">தொலைபேசி எண்</label>
-                        <input
-                          type="text"
-                          placeholder="+91 98765 43210"
-                          value={profileForm.phone}
-                          onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })}
-                          className="w-full bg-[#050915] border border-slate-700 focus:border-amber-500 rounded-xl px-4 py-3 text-white focus:outline-none font-medium"
+                          className="w-full bg-[#050915]/50 border border-slate-800 rounded-xl pl-10 pr-4 py-3 text-slate-400 font-mono text-xs sm:text-sm cursor-not-allowed select-none"
                         />
                       </div>
                     </div>
 
+                    {/* Bio */}
                     <div>
-                      <label className="block text-slate-300 font-bold mb-1.5">சுய அறிமுகம் (Bio)</label>
+                      <label className="block text-slate-300 font-bold mb-1.5">
+                        சுய அறிமுகம் (Editorial Bio &amp; Designation)
+                      </label>
                       <textarea
-                        rows="4"
-                        placeholder="பத்திரிகையாளர் அனுபவங்களை உள்ளிடவும்..."
+                        rows="3"
+                        placeholder="அமேஸ் டைம்ஸ் தலைமை ஆசிரியர் அனுபவங்களை உள்ளிடவும்..."
                         value={profileForm.bio}
                         onChange={(e) => setProfileForm({ ...profileForm, bio: e.target.value })}
-                        className="w-full bg-[#050915] border border-slate-700 focus:border-amber-500 rounded-xl px-4 py-3 text-white focus:outline-none font-medium"
+                        className="w-full bg-[#050915] border border-slate-700 focus:border-amber-500 rounded-xl px-4 py-2.5 text-white focus:outline-none font-medium placeholder-slate-500 leading-relaxed"
                       ></textarea>
                     </div>
 
-                    <button
-                      type="submit"
-                      className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-extrabold px-6 py-3 rounded-xl text-xs sm:text-sm shadow-lg shadow-red-600/30 cursor-pointer transition"
-                    >
-                      விவரங்களை சேமி
-                    </button>
-                  </div>
+                    <div className="pt-2">
+                      <button
+                        type="submit"
+                        disabled={isUpdatingProfile}
+                        className="bg-gradient-to-r from-red-600 via-rose-600 to-red-700 hover:from-red-500 hover:to-rose-600 text-white font-extrabold px-6 py-3 rounded-xl text-xs sm:text-sm shadow-lg shadow-red-600/30 cursor-pointer transition flex items-center gap-2 disabled:opacity-50"
+                      >
+                        {isUpdatingProfile ? (
+                          <>
+                            <RefreshCw className="w-4 h-4 animate-spin text-white" />
+                            <span>சேமிக்கப்படுகிறது...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Check className="w-4 h-4 text-white" />
+                            <span>விவரங்களை சேமி (Save Details)</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+
+                  </form>
                 </div>
 
-                <div className="bg-[#0f172a] rounded-2xl border border-slate-800 p-6 shadow-xl space-y-4 h-fit">
-                  <h3 className="text-base font-bold text-white border-b border-slate-800 pb-3">பாதுகாப்பு & கடவுச்சொல்</h3>
-
-                  <div className="space-y-4 text-xs sm:text-sm font-sans">
+                {/* 2. SECURITY, PASSCODE & PASSWORD STUDIO (5 cols) */}
+                <div className="lg:col-span-5 bg-[#0f172a] rounded-3xl border border-slate-800 p-6 sm:p-7 shadow-xl space-y-5">
+                  <div className="border-b border-slate-800 pb-3 flex items-center justify-between">
                     <div>
-                      <label className="block text-slate-300 font-bold mb-1.5 font-tamil">தற்போதைய கடவுச்சொல்</label>
-                      <input
-                        type="password"
-                        placeholder="••••••••••••"
-                        value={profileForm.currentPassword}
-                        onChange={(e) => setProfileForm({ ...profileForm, currentPassword: e.target.value })}
-                        className="w-full bg-[#050915] border border-slate-700 focus:border-amber-500 rounded-xl px-4 py-3 text-white focus:outline-none font-medium"
-                      />
+                      <h3 className="text-base sm:text-lg font-black text-white flex items-center gap-2">
+                        <Lock className="w-5 h-5 text-amber-400" />
+                        <span>பாதுகாப்பு &amp; கடவுச்சொல் அரங்கம்</span>
+                      </h3>
+                      <p className="text-xs text-slate-400 mt-0.5 font-sans">
+                        Password &amp; Quick Passcode Management Studio
+                      </p>
                     </div>
+                  </div>
 
-                    <div>
-                      <label className="block text-slate-300 font-bold mb-1.5 font-tamil">புதிய கடவுச்சொல்</label>
-                      <input
-                        type="password"
-                        placeholder="••••••••••••"
-                        value={profileForm.newPassword}
-                        onChange={(e) => setProfileForm({ ...profileForm, newPassword: e.target.value })}
-                        className="w-full bg-[#050915] border border-slate-700 focus:border-amber-500 rounded-xl px-4 py-3 text-white focus:outline-none font-medium"
-                      />
-                    </div>
+                  {/* Mode Selector Pill: Password vs Quick Passcode */}
+                  <div className="bg-[#050915] p-1 rounded-2xl border border-slate-800 flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setPasswordMode('password')}
+                      className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition cursor-pointer flex items-center justify-center gap-1.5 ${
+                        passwordMode === 'password'
+                          ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-black shadow-md'
+                          : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      <Key className="w-3.5 h-3.5" />
+                      <span>கடவுச்சொல் (Password)</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPasswordMode('passcode')}
+                      className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition cursor-pointer flex items-center justify-center gap-1.5 ${
+                        passwordMode === 'passcode'
+                          ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-black shadow-md'
+                          : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      <KeyRound className="w-3.5 h-3.5" />
+                      <span>எளிய பாஸ்கோடு (PIN)</span>
+                    </button>
+                  </div>
 
-                    <div>
-                      <label className="block text-slate-300 font-bold mb-1.5 font-tamil">கடவுச்சொல்லை உறுதிசெய்</label>
-                      <input
-                        type="password"
-                        placeholder="••••••••••••"
-                        value={profileForm.confirmPassword}
-                        onChange={(e) => setProfileForm({ ...profileForm, confirmPassword: e.target.value })}
-                        className="w-full bg-[#050915] border border-slate-700 focus:border-amber-500 rounded-xl px-4 py-3 text-white focus:outline-none font-medium"
-                      />
+                  {/* Quick Auto-Generator Banner */}
+                  <div className="bg-gradient-to-r from-blue-950/40 via-indigo-950/30 to-purple-950/40 p-3.5 rounded-2xl border border-blue-500/30 flex items-center justify-between gap-2">
+                    <div className="space-y-0.5 text-xs">
+                      <span className="font-bold text-blue-300 block flex items-center gap-1">
+                        <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                        <span>தானியங்கி {passwordMode === 'passcode' ? '6-இலக்க பாஸ்கோடு' : 'வலுவான கடவுச்சொல்'}</span>
+                      </span>
+                      <span className="text-[11px] text-slate-400">1-கிளிக்கில் உருவாக்கி நகலெடுக்கலாம்</span>
                     </div>
 
                     <button
-                      type="submit"
-                      className="w-full bg-slate-800 hover:bg-slate-700 text-amber-400 font-bold py-3 rounded-xl text-xs sm:text-sm border border-slate-700 shadow cursor-pointer transition font-tamil"
+                      type="button"
+                      onClick={() => generateRandomCode(passwordMode === 'passcode')}
+                      className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-[11px] px-3 py-1.5 rounded-xl shadow transition cursor-pointer flex items-center gap-1 shrink-0"
                     >
-                      கடவுச்சொல் மாற்று
+                      {copiedCode ? (
+                        <>
+                          <Check className="w-3.5 h-3.5 text-slate-950" />
+                          <span>நகலெடுக்கப்பட்டது!</span>
+                        </>
+                      ) : (
+                        <>
+                          <RefreshCcw className="w-3.5 h-3.5 text-slate-950" />
+                          <span>உருவாக்கு</span>
+                        </>
+                      )}
                     </button>
                   </div>
+
+                  <form onSubmit={handleChangePassword} className="space-y-4 text-xs sm:text-sm font-sans">
+                    
+                    {/* Current Password */}
+                    <div>
+                      <label className="block text-slate-300 font-bold mb-1.5 font-tamil">
+                        தற்போதைய கடவுச்சொல் (Current Password)
+                      </label>
+                      <div className="relative">
+                        <input
+                          type={showCurrentPassword ? 'text' : 'password'}
+                          autoComplete="current-password"
+                          placeholder="••••••••••••"
+                          value={passwordForm.currentPassword}
+                          onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
+                          className="w-full bg-[#050915] border border-slate-700 focus:border-amber-500 rounded-xl px-4 pr-11 py-3 text-white focus:outline-none font-mono text-xs sm:text-sm"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-amber-400 p-1 cursor-pointer"
+                        >
+                          {showCurrentPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* New Password / Passcode */}
+                    <div>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="text-slate-300 font-bold font-tamil">
+                          புதிய {passwordMode === 'passcode' ? 'பாஸ்கோடு (New PIN)' : 'கடவுச்சொல் (New Password)'} <span className="text-rose-400">*</span>
+                        </label>
+                        {passwordForm.newPassword && (
+                          <span className="text-[10px] font-bold text-amber-400 font-tamil">
+                            {getPasswordStrength(passwordForm.newPassword).label}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="relative">
+                        <input
+                          type={showNewPassword ? 'text' : 'password'}
+                          autoComplete="new-password"
+                          required
+                          placeholder={passwordMode === 'passcode' ? '6-இலக்க எண் (எ.கா. 849201)' : 'புதிய வலுவான கடவுச்சொல்'}
+                          value={passwordForm.newPassword}
+                          onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
+                          className="w-full bg-[#050915] border border-slate-700 focus:border-amber-500 rounded-xl px-4 pr-11 py-3 text-white focus:outline-none font-mono text-xs sm:text-sm tracking-wider"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowNewPassword(!showNewPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-amber-400 p-1 cursor-pointer"
+                        >
+                          {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
+
+                      {/* Password Strength Meter Bar */}
+                      {passwordForm.newPassword && (
+                        <div className="mt-2 space-y-1.5">
+                          <div className="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                            <div 
+                              className={`h-full transition-all duration-300 ${getPasswordStrength(passwordForm.newPassword).color}`}
+                              style={{ width: `${getPasswordStrength(passwordForm.newPassword).score}%` }}
+                            ></div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Confirm Password / Passcode */}
+                    <div>
+                      <label className="block text-slate-300 font-bold mb-1.5 font-tamil">
+                        {passwordMode === 'passcode' ? 'பாஸ்கோடை உறுதிசெய் (Confirm PIN)' : 'கடவுச்சொல்லை உறுதிசெய் (Confirm Password)'} <span className="text-rose-400">*</span>
+                      </label>
+                      <div className="relative">
+                        <input
+                          type={showConfirmPassword ? 'text' : 'password'}
+                          autoComplete="new-password"
+                          required
+                          placeholder={passwordMode === 'passcode' ? 'பாஸ்கோடை மீண்டும் உள்ளிடவும்' : 'கடவுச்சொல்லை மீண்டும் உள்ளிடவும்'}
+                          value={passwordForm.confirmPassword}
+                          onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
+                          className="w-full bg-[#050915] border border-slate-700 focus:border-amber-500 rounded-xl px-4 pr-11 py-3 text-white focus:outline-none font-mono text-xs sm:text-sm tracking-wider"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-amber-400 p-1 cursor-pointer"
+                        >
+                          {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
+
+                      {passwordForm.confirmPassword && (
+                        <div className="mt-1 text-[11px] font-tamil">
+                          {passwordForm.newPassword === passwordForm.confirmPassword ? (
+                            <span className="text-emerald-400 font-bold flex items-center gap-1">
+                              <Check className="w-3.5 h-3.5" /> கடவுச்சொற்கள் பொருந்துகின்றன!
+                            </span>
+                          ) : (
+                            <span className="text-rose-400 font-bold flex items-center gap-1">
+                              <X className="w-3.5 h-3.5" /> கடவுச்சொற்கள் பொருந்தவில்லை!
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="pt-2">
+                      <button
+                        type="submit"
+                        disabled={isUpdatingPassword || (passwordForm.newPassword && passwordForm.newPassword !== passwordForm.confirmPassword)}
+                        className="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black py-3 rounded-xl text-xs sm:text-sm shadow-lg shadow-amber-500/20 cursor-pointer transition font-tamil flex items-center justify-center gap-2 disabled:opacity-50"
+                      >
+                        {isUpdatingPassword ? (
+                          <>
+                            <RefreshCw className="w-4 h-4 animate-spin" />
+                            <span>மாற்றப்படுகிறது...</span>
+                          </>
+                        ) : (
+                          <>
+                            <KeyRound className="w-4 h-4" />
+                            <span>{passwordMode === 'passcode' ? 'பாஸ்கோடு மாற்று (Set PIN)' : 'கடவுச்சொல் மாற்று (Update Password)'}</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+
+                  </form>
                 </div>
-              </form>
+
+              </div>
             </div>
           )}
 
@@ -2178,17 +2627,50 @@ export const AdminDashboard = () => {
                               </td>
 
                               <td className="py-3 px-4 text-right">
-                                <button
-                                  type="button"
-                                  onClick={() => handleDeleteUser(u)}
-                                  disabled={isCurrentUser}
-                                  title={isCurrentUser ? 'உங்கள் சொந்த கணக்கை நீக்க முடியாது' : 'கணக்கை நீக்கு'}
-                                  className={`p-2 rounded-xl text-slate-400 hover:text-red-400 hover:bg-red-500/10 border border-transparent hover:border-red-500/30 transition cursor-pointer ${
-                                    isCurrentUser ? 'opacity-30 cursor-not-allowed' : ''
-                                  }`}
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
+                                <div className="flex items-center justify-end gap-1">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setPasswordResetUser(u);
+                                      setResetPasswordForm({ newPassword: '', isPasscode: false });
+                                    }}
+                                    title="கடவுச்சொல் / பாஸ்கோடு மாற்று"
+                                    className="p-2 rounded-xl text-slate-400 hover:text-amber-400 hover:bg-amber-500/10 border border-transparent hover:border-amber-500/30 transition cursor-pointer"
+                                  >
+                                    <KeyRound className="w-4 h-4" />
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setEditingUser(u);
+                                      setEditUserForm({
+                                        username: u.username || '',
+                                        full_name: u.full_name || '',
+                                        email: u.email || '',
+                                        role: u.role || 'reporter',
+                                        phone: u.phone || '',
+                                        bio: u.bio || ''
+                                      });
+                                    }}
+                                    title="பயனர் விவரங்களைத் திருத்து"
+                                    className="p-2 rounded-xl text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 border border-transparent hover:border-blue-500/30 transition cursor-pointer"
+                                  >
+                                    <Edit3 className="w-4 h-4" />
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteUser(u)}
+                                    disabled={isCurrentUser}
+                                    title={isCurrentUser ? 'உங்கள் சொந்த கணக்கை நீக்க முடியாது' : 'கணக்கை நீக்கு'}
+                                    className={`p-2 rounded-xl text-slate-400 hover:text-red-400 hover:bg-red-500/10 border border-transparent hover:border-red-500/30 transition cursor-pointer ${
+                                      isCurrentUser ? 'opacity-30 cursor-not-allowed' : ''
+                                    }`}
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                </div>
                               </td>
                             </tr>
                           );
@@ -2198,6 +2680,216 @@ export const AdminDashboard = () => {
                   </table>
                 </div>
               </div>
+
+              {/* ADMIN RESET USER PASSWORD MODAL */}
+              {passwordResetUser && (
+                <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+                  <div className="bg-[#0f172a] rounded-3xl max-w-md w-full p-6 border border-slate-700 shadow-2xl font-tamil space-y-4">
+                    <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+                      <div>
+                        <h3 className="font-black text-amber-400 text-base flex items-center gap-2">
+                          <KeyRound className="w-5 h-5 text-amber-400" />
+                          <span>கடவுச்சொல் / பாஸ்கோடு மாற்று</span>
+                        </h3>
+                        <p className="text-xs text-slate-400 mt-0.5">
+                          பயனர்: <strong className="text-white">{passwordResetUser.full_name || passwordResetUser.username}</strong> (@{passwordResetUser.username})
+                        </p>
+                      </div>
+                      <button onClick={() => setPasswordResetUser(null)} className="text-slate-400 hover:text-white cursor-pointer p-1">
+                        <X className="w-5 h-5" />
+                      </button>
+                    </div>
+
+                    <form onSubmit={handleAdminResetPasswordSubmit} className="space-y-4 text-xs sm:text-sm">
+                      {/* Passcode toggle */}
+                      <div className="bg-[#050915] p-1 rounded-xl border border-slate-800 flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => setResetPasswordForm({ ...resetPasswordForm, isPasscode: false })}
+                          className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition cursor-pointer ${
+                            !resetPasswordForm.isPasscode ? 'bg-amber-500 text-slate-950 font-black' : 'text-slate-400'
+                          }`}
+                        >
+                          கடவுச்சொல்
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setResetPasswordForm({ ...resetPasswordForm, isPasscode: true })}
+                          className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition cursor-pointer ${
+                            resetPasswordForm.isPasscode ? 'bg-amber-500 text-slate-950 font-black' : 'text-slate-400'
+                          }`}
+                        >
+                          6-இலக்க பாஸ்கோடு (PIN)
+                        </button>
+                      </div>
+
+                      {/* Quick Generate button */}
+                      <div className="flex items-center justify-between text-xs bg-slate-800/40 p-2.5 rounded-xl border border-slate-700/60">
+                        <span className="text-slate-400">தானியங்கி குறியீடு:</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const gen = resetPasswordForm.isPasscode
+                              ? Math.floor(100000 + Math.random() * 900000).toString()
+                              : 'Amaze@' + Math.floor(1000 + Math.random() * 9000);
+                            setResetPasswordForm({ ...resetPasswordForm, newPassword: gen });
+                            setShowResetPasswordEye(true);
+                            navigator.clipboard?.writeText(gen);
+                            showToast(`புதிய குறியீடு உருவாக்கப்பட்டு நகலெடுக்கப்பட்டது: ${gen}`);
+                          }}
+                          className="bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-bold px-3 py-1 rounded-lg border border-amber-400/30 text-[11px] cursor-pointer flex items-center gap-1"
+                        >
+                          <RefreshCcw className="w-3 h-3" />
+                          <span>தானாக உருவாக்கு</span>
+                        </button>
+                      </div>
+
+                      <div>
+                        <label className="block text-slate-300 font-bold mb-1.5">
+                          புதிய {resetPasswordForm.isPasscode ? 'பாஸ்கோடு (PIN)' : 'கடவுச்சொல்'} *
+                        </label>
+                        <div className="relative">
+                          <input
+                            type={showResetPasswordEye ? 'text' : 'password'}
+                            required
+                            placeholder={resetPasswordForm.isPasscode ? '6-இலக்க எண் (எ.கா. 482019)' : 'குறைந்தது 6 எழுத்துகள்'}
+                            value={resetPasswordForm.newPassword}
+                            onChange={(e) => setResetPasswordForm({ ...resetPasswordForm, newPassword: e.target.value })}
+                            className="w-full bg-[#050915] border border-slate-700 focus:border-amber-500 rounded-xl px-4 pr-11 py-2.5 text-white focus:outline-none font-mono text-xs sm:text-sm"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowResetPasswordEye(!showResetPasswordEye)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-amber-400 p-1 cursor-pointer"
+                          >
+                            {showResetPasswordEye ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 pt-2">
+                        <button
+                          type="button"
+                          onClick={() => setPasswordResetUser(null)}
+                          className="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-2.5 rounded-xl cursor-pointer transition text-xs"
+                        >
+                          ரத்துசெய்
+                        </button>
+                        <button
+                          type="submit"
+                          className="flex-1 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black py-2.5 rounded-xl cursor-pointer transition shadow text-xs"
+                        >
+                          கடவுச்சொல் மாற்று
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              )}
+
+              {/* ADMIN EDIT USER DETAILS MODAL */}
+              {editingUser && (
+                <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+                  <div className="bg-[#0f172a] rounded-3xl max-w-lg w-full p-6 border border-slate-700 shadow-2xl font-tamil space-y-4">
+                    <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+                      <div>
+                        <h3 className="font-black text-amber-400 text-base flex items-center gap-2">
+                          <Edit3 className="w-5 h-5 text-amber-400" />
+                          <span>பயனர் விவரங்களைத் திருத்து (Edit User)</span>
+                        </h3>
+                        <p className="text-xs text-slate-400 mt-0.5">
+                          ID: <span className="font-mono text-slate-400">{editingUser.id?.substring(0, 8)}...</span>
+                        </p>
+                      </div>
+                      <button onClick={() => setEditingUser(null)} className="text-slate-400 hover:text-white cursor-pointer p-1">
+                        <X className="w-5 h-5" />
+                      </button>
+                    </div>
+
+                    <form onSubmit={handleAdminEditUserSubmit} className="space-y-4 text-xs sm:text-sm">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-slate-300 font-bold mb-1">முழு பெயர் (Full Name) *</label>
+                          <input
+                            type="text"
+                            required
+                            value={editUserForm.full_name}
+                            onChange={(e) => setEditUserForm({ ...editUserForm, full_name: e.target.value })}
+                            className="w-full bg-[#050915] border border-slate-700 focus:border-amber-500 rounded-xl px-3.5 py-2.5 text-white font-medium"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-slate-300 font-bold mb-1">பயனர் பெயர் (Username) *</label>
+                          <div className="relative">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-amber-400 font-mono font-bold">@</span>
+                            <input
+                              type="text"
+                              required
+                              value={editUserForm.username}
+                              onChange={(e) => setEditUserForm({ ...editUserForm, username: e.target.value.toLowerCase().replace(/\s+/g, '') })}
+                              className="w-full bg-[#050915] border border-slate-700 focus:border-amber-500 rounded-xl pl-7 pr-3 py-2.5 text-white font-mono"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-slate-300 font-bold mb-1">மின்னஞ்சல் (Email) *</label>
+                          <input
+                            type="email"
+                            required
+                            value={editUserForm.email}
+                            onChange={(e) => setEditUserForm({ ...editUserForm, email: e.target.value })}
+                            className="w-full bg-[#050915] border border-slate-700 focus:border-amber-500 rounded-xl px-3.5 py-2.5 text-white font-mono"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-slate-300 font-bold mb-1">பங்கு (Role) *</label>
+                          <select
+                            value={editUserForm.role}
+                            onChange={(e) => setEditUserForm({ ...editUserForm, role: e.target.value })}
+                            className="w-full bg-[#050915] border border-slate-700 focus:border-amber-500 rounded-xl px-3.5 py-2.5 text-white"
+                          >
+                            <option value="reporter">செய்தியாளர் (Reporter)</option>
+                            <option value="reader">வாசகர் (Reader)</option>
+                            <option value="admin">நிர்வாகி (Admin)</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-slate-300 font-bold mb-1">தொலைபேசி எண் (Phone)</label>
+                        <input
+                          type="tel"
+                          placeholder="+91 98765 43210"
+                          value={editUserForm.phone}
+                          onChange={(e) => setEditUserForm({ ...editUserForm, phone: e.target.value })}
+                          className="w-full bg-[#050915] border border-slate-700 focus:border-amber-500 rounded-xl px-3.5 py-2.5 text-white font-mono"
+                        />
+                      </div>
+
+                      <div className="flex items-center gap-2 pt-2">
+                        <button
+                          type="button"
+                          onClick={() => setEditingUser(null)}
+                          className="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-2.5 rounded-xl cursor-pointer transition text-xs"
+                        >
+                          ரத்துசெய்
+                        </button>
+                        <button
+                          type="submit"
+                          className="flex-1 bg-[#0e2a7a] hover:bg-[#0a1f5c] text-white font-black py-2.5 rounded-xl cursor-pointer transition shadow border border-blue-400/30 text-xs"
+                        >
+                          விவரங்களை சேமி
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              )}
             </div>
             </AdminErrorBoundary>
           )}

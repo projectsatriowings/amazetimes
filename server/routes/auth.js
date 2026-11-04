@@ -395,25 +395,192 @@ router.put('/users/:id/status', optionalAuth, async (req, res) => {
 });
 
 // =========================================================================
+// 8.1 PUT /api/auth/users/:id (ADMIN: Edit User Details & Role)
+// =========================================================================
+router.put('/users/:id', authenticate, async (req, res) => {
+  try {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ success: false, message: 'நிர்வாகிகளுக்கு மட்டுமே அனுமதி' });
+    }
+    const { id } = req.params;
+    const { username, full_name, email, role, phone, bio } = req.body;
+
+    const existing = await query('SELECT * FROM users WHERE id = $1', [id]);
+    if (existing.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'பயனர் கிடைக்கவில்லை' });
+    }
+    const user = existing.rows[0];
+
+    let newUsername = (username || user.username || '').trim().toLowerCase();
+    if (newUsername && newUsername !== user.username) {
+      if (!/^[a-zA-Z0-9_-]{3,30}$/.test(newUsername)) {
+        return res.status(400).json({ success: false, message: 'பயனர் பெயர் 3-30 எழுத்துகள், எண்கள், _ அல்லது - மட்டுமே கொண்டிருக்க வேண்டும்' });
+      }
+      const dup = await query('SELECT id FROM users WHERE username = $1 AND id != $2', [newUsername, id]);
+      if (dup.rows.length > 0) {
+        return res.status(400).json({ success: false, message: 'இந்த பயனர் பெயர் ஏற்கனவே பயன்பாட்டில் உள்ளது' });
+      }
+    }
+
+    const updateRes = await query(
+      `UPDATE users 
+       SET username = $1, full_name = $2, email = $3, role = $4, phone = $5, bio = $6, updated_at = NOW()
+       WHERE id = $7 
+       RETURNING id, username, email, full_name, role, provider, avatar_url, phone, bio, is_active, updated_at`,
+      [
+        newUsername,
+        (full_name || user.full_name || '').trim(),
+        (email || user.email || '').trim().toLowerCase(),
+        role || user.role,
+        phone !== undefined ? (phone ? phone.trim() : null) : user.phone,
+        bio !== undefined ? (bio ? bio.trim() : null) : user.bio,
+        id
+      ]
+    );
+
+    res.json({
+      success: true,
+      message: 'பயனர் விவரங்கள் வெற்றிகரமாக புதுப்பிக்கப்பட்டன',
+      user: updateRes.rows[0]
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// =========================================================================
+// 8.2 PUT /api/auth/users/:id/password (ADMIN: Reset User Password/Passcode)
+// =========================================================================
+router.put('/users/:id/password', authenticate, async (req, res) => {
+  try {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ success: false, message: 'நிர்வாகிகளுக்கு மட்டுமே அனுமதி' });
+    }
+    const { id } = req.params;
+    const { new_password, is_passcode } = req.body;
+    if (!new_password || new_password.trim().length < 4) {
+      return res.status(400).json({ success: false, message: 'கடவுச்சொல் அல்லது பாஸ்கோடு குறைந்தது 4 எழுத்துகள் கொண்டிருக்க வேண்டும்' });
+    }
+
+    const newHash = await bcrypt.hash(new_password.trim(), 10);
+    const updateRes = await query(
+      'UPDATE users SET password_hash = $1, updated_at = NOW() WHERE id = $2 RETURNING id, username, full_name',
+      [newHash, id]
+    );
+    if (updateRes.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'பயனர் கிடைக்கவில்லை' });
+    }
+
+    res.json({
+      success: true,
+      message: `${updateRes.rows[0].full_name || updateRes.rows[0].username} பயனரின் கடவுச்சொல் வெற்றிகரமாக மாற்றப்பட்டது!`
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// =========================================================================
+// 8.3 PUT /api/auth/profile (Authenticated User: Update Profile & Username)
+// =========================================================================
+router.put('/profile', authenticate, async (req, res) => {
+  try {
+    const { username, full_name, name, phone, bio, avatar, avatar_url } = req.body;
+    const userId = req.user.id;
+
+    const existingRes = await query(
+      'SELECT id, username, email, full_name, role, phone, bio, avatar_url FROM users WHERE id = $1',
+      [userId]
+    );
+    if (existingRes.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'பயனர் கணக்கு கிடைக்கவில்லை' });
+    }
+    const currentUser = existingRes.rows[0];
+
+    let newUsername = (username || currentUser.username || '').trim().toLowerCase();
+    if (newUsername && newUsername !== currentUser.username) {
+      if (!/^[a-zA-Z0-9_-]{3,30}$/.test(newUsername)) {
+        return res.status(400).json({
+          success: false,
+          message: 'பயனர் பெயர் (Username) 3 முதல் 30 எழுத்துகள், எண்கள், _ அல்லது - மட்டுமே கொண்டிருக்க வேண்டும்'
+        });
+      }
+      const duplicateRes = await query('SELECT id FROM users WHERE username = $1 AND id != $2', [newUsername, userId]);
+      if (duplicateRes.rows.length > 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'இந்த பயனர் பெயர் ஏற்கனவே பயன்பாட்டில் உள்ளது. வேறு ஒரு பெயரைத் தேர்ந்தெடுக்கவும்.'
+        });
+      }
+    } else {
+      newUsername = currentUser.username;
+    }
+
+    const newFullName = (full_name || name || currentUser.full_name || '').trim();
+    const newPhone = phone !== undefined ? (phone ? phone.trim() : null) : currentUser.phone;
+    const newBio = bio !== undefined ? (bio ? bio.trim() : null) : currentUser.bio;
+    const newAvatar = avatar || avatar_url || currentUser.avatar_url;
+
+    const updateRes = await query(
+      `UPDATE users 
+       SET username = $1, full_name = $2, phone = $3, bio = $4, avatar_url = $5, updated_at = NOW() 
+       WHERE id = $6 
+       RETURNING id, username, email, full_name, role, provider, avatar_url, phone, bio, updated_at`,
+      [newUsername, newFullName, newPhone, newBio, newAvatar, userId]
+    );
+
+    const updatedUser = updateRes.rows[0];
+    const token = generateToken(updatedUser);
+
+    res.json({
+      success: true,
+      message: 'சுயவிவரம் வெற்றிகரமாக புதுப்பிக்கப்பட்டது',
+      user: {
+        ...updatedUser,
+        name: updatedUser.full_name,
+        avatar: updatedUser.avatar_url
+      },
+      token
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// =========================================================================
 // 9. POST /api/auth/change-password
 // =========================================================================
 router.post('/change-password', authenticate, async (req, res) => {
   try {
-    const { current_password, new_password } = req.body;
-    if (!current_password || !new_password) {
-      return res.status(400).json({ success: false, message: 'தற்போதைய மற்றும் புதிய கடவுச்சொல் தேவை' });
+    const { current_password, new_password, is_passcode } = req.body;
+    if (!new_password || new_password.trim().length < 4) {
+      return res.status(400).json({
+        success: false,
+        message: 'புதிய கடவுச்சொல் அல்லது பாஸ்கோடு குறைந்தது 4 எழுத்துகள் கொண்டிருக்க வேண்டும்'
+      });
     }
 
-    const userRes = await query('SELECT password_hash FROM users WHERE id = $1', [req.user.id]);
-    const isMatch = await bcrypt.compare(current_password, userRes.rows[0].password_hash);
-    if (!isMatch) {
-      return res.status(400).json({ success: false, message: 'தற்போதைய கடவுச்சொல் தவறானது' });
+    const userRes = await query('SELECT id, password_hash, role FROM users WHERE id = $1', [req.user.id]);
+    if (userRes.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'பயனர் கிடைக்கவில்லை' });
     }
 
-    const newHash = await bcrypt.hash(new_password, 10);
+    if (current_password) {
+      const isMatch = await bcrypt.compare(current_password, userRes.rows[0].password_hash);
+      if (!isMatch) {
+        return res.status(400).json({ success: false, message: 'தற்போதைய கடவுச்சொல் தவறானது' });
+      }
+    } else if (userRes.rows[0].role !== 'admin') {
+      return res.status(400).json({ success: false, message: 'தற்போதைய கடவுச்சொல் தேவை' });
+    }
+
+    const newHash = await bcrypt.hash(new_password.trim(), 10);
     await query('UPDATE users SET password_hash = $1, updated_at = NOW() WHERE id = $2', [newHash, req.user.id]);
 
-    res.json({ success: true, message: 'கடவுச்சொல் வெற்றிகரமாக மாற்றப்பட்டது' });
+    res.json({
+      success: true,
+      message: is_passcode ? 'பாஸ்கோடு வெற்றிகரமாக மாற்றப்பட்டது!' : 'கடவுச்சொல் வெற்றிகரமாக மாற்றப்பட்டது!'
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

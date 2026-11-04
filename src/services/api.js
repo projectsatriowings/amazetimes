@@ -232,10 +232,19 @@ export const api = {
     body: JSON.stringify(payload)
   }),
   getMe: () => request('/auth/me'),
-  changePassword: (current_password, new_password) => request('/auth/change-password', {
-    method: 'POST',
-    body: JSON.stringify({ current_password, new_password })
+  updateProfile: (payload) => request('/auth/profile', {
+    method: 'PUT',
+    body: JSON.stringify(payload)
   }),
+  changePassword: (arg1, arg2, is_passcode = false) => {
+    const payload = typeof arg1 === 'object' && arg1 !== null
+      ? arg1
+      : { current_password: arg1, new_password: arg2, is_passcode };
+    return request('/auth/change-password', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+  },
 
   // Users & Readers Management (Admin only)
   getUsers: (params = {}) => {
@@ -249,6 +258,14 @@ export const api = {
   createUser: (userData) => request('/auth/users', {
     method: 'POST',
     body: JSON.stringify(userData)
+  }),
+  updateUser: (id, payload) => request(`/auth/users/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(payload)
+  }),
+  changeUserPassword: (id, new_password, is_passcode = false) => request(`/auth/users/${id}/password`, {
+    method: 'PUT',
+    body: JSON.stringify({ new_password, is_passcode })
   }),
   deleteUser: (id) => request(`/auth/users/${id}`, {
     method: 'DELETE'

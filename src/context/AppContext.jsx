@@ -1326,6 +1326,7 @@ export const AppProvider = ({ children }) => {
         liveViewersCount,
         totalLifetimeVisitors,
         user,
+        setUser,
         token,
         handleLogin,
         handleLogout,
