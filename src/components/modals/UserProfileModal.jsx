@@ -19,7 +19,9 @@ import {
   Sun,
   BookOpen,
   Sparkles,
-  ArrowRight
+  ArrowRight,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { api, setToken, setReaderUser } from '../../services/api';
 
@@ -61,6 +63,9 @@ export default function UserProfileModal({
 
   const [savingProfile, setSavingProfile] = useState(false);
   const [changingPassword, setChangingPassword] = useState(false);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // Sync state if readerUser changes
   React.useEffect(() => {
@@ -346,35 +351,74 @@ export default function UserProfileModal({
                 <form onSubmit={handleChangePassword} className="space-y-2.5 text-xs">
                   <div>
                     <label className="text-slate-400 block mb-1">தற்போதைய கடவுச்சொல்:</label>
-                    <input
-                      type="password"
-                      placeholder="••••••••••••"
-                      value={passwordData.currentPassword}
-                      onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
-                      className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white focus:outline-none focus:border-amber-400 font-sans"
-                    />
+                    <div className="relative">
+                      <input
+                        key={showCurrentPassword ? 'user-curr-pw-txt' : 'user-curr-pw-pwd'}
+                        type={showCurrentPassword ? 'text' : 'password'}
+                        autoComplete={showCurrentPassword ? 'off' : 'current-password'}
+                        placeholder="தற்போதைய கடவுச்சொல்"
+                        value={passwordData.currentPassword}
+                        onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
+                        className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 pr-9 text-white focus:outline-none focus:border-amber-400 font-sans"
+                      />
+                      <button
+                        type="button"
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-amber-400 p-1 cursor-pointer transition-colors"
+                        title={showCurrentPassword ? 'மறைக்கவும்' : 'பார்க்கவும்'}
+                      >
+                        {showCurrentPassword ? <EyeOff className="w-3.5 h-3.5 text-amber-400" /> : <Eye className="w-3.5 h-3.5 text-slate-400 hover:text-amber-400" />}
+                      </button>
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                     <div>
                       <label className="text-slate-400 block mb-1">புதிய கடவுச்சொல்:</label>
-                      <input
-                        type="password"
-                        placeholder="••••••••••••"
-                        value={passwordData.newPassword}
-                        onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
-                        className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white focus:outline-none focus:border-amber-400 font-sans"
-                      />
+                      <div className="relative">
+                        <input
+                          key={showNewPassword ? 'user-new-pw-txt' : 'user-new-pw-pwd'}
+                          type={showNewPassword ? 'text' : 'password'}
+                          autoComplete={showNewPassword ? 'off' : 'new-password'}
+                          placeholder="புதிய கடவுச்சொல்"
+                          value={passwordData.newPassword}
+                          onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                          className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 pr-9 text-white focus:outline-none focus:border-amber-400 font-sans"
+                        />
+                        <button
+                          type="button"
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => setShowNewPassword(!showNewPassword)}
+                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-amber-400 p-1 cursor-pointer transition-colors"
+                          title={showNewPassword ? 'மறைக்கவும்' : 'பார்க்கவும்'}
+                        >
+                          {showNewPassword ? <EyeOff className="w-3.5 h-3.5 text-amber-400" /> : <Eye className="w-3.5 h-3.5 text-slate-400 hover:text-amber-400" />}
+                        </button>
+                      </div>
                     </div>
                     <div>
                       <label className="text-slate-400 block mb-1">உறுதி செய்க:</label>
-                      <input
-                        type="password"
-                        placeholder="••••••••••••"
-                        value={passwordData.confirmPassword}
-                        onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
-                        className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white focus:outline-none focus:border-amber-400 font-sans"
-                      />
+                      <div className="relative">
+                        <input
+                          key={showConfirmPassword ? 'user-conf-pw-txt' : 'user-conf-pw-pwd'}
+                          type={showConfirmPassword ? 'text' : 'password'}
+                          autoComplete={showConfirmPassword ? 'off' : 'new-password'}
+                          placeholder="மீண்டும் கடவுச்சொல்"
+                          value={passwordData.confirmPassword}
+                          onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+                          className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 pr-9 text-white focus:outline-none focus:border-amber-400 font-sans"
+                        />
+                        <button
+                          type="button"
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-amber-400 p-1 cursor-pointer transition-colors"
+                          title={showConfirmPassword ? 'மறைக்கவும்' : 'பார்க்கவும்'}
+                        >
+                          {showConfirmPassword ? <EyeOff className="w-3.5 h-3.5 text-amber-400" /> : <Eye className="w-3.5 h-3.5 text-slate-400 hover:text-amber-400" />}
+                        </button>
+                      </div>
                     </div>
                   </div>
 

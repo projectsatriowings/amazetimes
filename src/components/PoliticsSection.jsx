@@ -1,11 +1,25 @@
 import React, { useState } from 'react';
-import { Vote, ChevronRight, Flame, Clock, Share2, Sparkles, Flag, ArrowUpRight, CheckCircle2 } from 'lucide-react';
+import {
+  Vote,
+  ChevronRight,
+  Flame,
+  Clock,
+  Sparkles,
+  ArrowUpRight,
+  CheckCircle2,
+  Share2,
+  Eye,
+  TrendingUp,
+  Landmark,
+  ShieldAlert,
+  Radio
+} from 'lucide-react';
 
 const FALLBACK_POLITICS = [
   {
     id: 'pol-lead-1',
-    title: 'சட்டமன்ற தேர்தல் 2026: அனைத்து மாவட்டங்களிலும் களப்பணியை தீவிரப்படுத்த திமுக தலைமை உத்தரவு!',
-    summary: '2026 சட்டமன்ற தேர்தலை முன்னிட்டு தொகுதி வாரியாக பூத் கமிட்டி அமைத்தல் மற்றும் அரசின் நலத்திட்டங்களை மக்களிடம் நேரடியாக கொண்டு சேர்க்கும் பணிகளை துரிதப்படுத்த மாவட்ட செயலாளர்களுக்கு முதல்வர் மு.க.ஸ்டாலின் அறிவுறுத்தல்.',
+    title: 'சட்டமன்ற தேர்தல் 2026: அனைத்து மாவட்டங்களிலும் தேர்தல் பணிகளை தீவிரப்படுத்த திமுக தலைமை உத்தரவு!',
+    summary: '2026 சட்டமன்ற தேர்தலை முன்னிட்டு தொகுதி வாரியாக பூத் கமிட்டி அமைத்தல், வாக்காளர் பட்டியல் சரிபார்ப்பு மற்றும் அரசின் சாதனை திட்டங்களை பொதுமக்களிடம் நேரடியாக கொண்டு சேர்க்கும் பணிகளை துரிதப்படுத்த மாவட்ட செயலாளர்களுக்கு திமுக தலைமை அறிவுறுத்தியுள்ளது.',
     image: 'https://images.unsplash.com/photo-1540910419892-4a36d2c3266c?auto=format&fit=crop&w=1200&q=80',
     category: 'அரசியல்',
     subCategory: 'தேர்தல் 2026 சிறப்பு',
@@ -17,7 +31,7 @@ const FALLBACK_POLITICS = [
   {
     id: 'pol-side-1',
     title: 'கூட்டணி வியூகம் & தொகுதிப் பங்கீடு: முக்கிய நிர்வாகிகளுடன் எடப்பாடி பழனிசாமி தீவிர ஆலோசனை',
-    summary: 'அதிமுக தலைமையகத்தில் கட்சியின் மூத்த நிர்வாகிகள் மற்றும் மாவட்ட செயலாளர்களுடன் தேர்தல் கூட்டணி மற்றும் பிரச்சார வியூகம் குறித்து ஆலோசனை நடைபெற்றது.',
+    summary: 'அதிமுக தலைமையகத்தில் கட்சியின் மூத்த நிர்வாகிகள் மற்றும் மாவட்ட செயலாளர்களுடன் தேர்தல் கூட்டணி மற்றும் பிரச்சார வியூகம் குறித்து தீவிர ஆலோசனை நடைபெற்றது.',
     image: 'https://images.unsplash.com/photo-1529107386315-e1a2ed48a620?auto=format&fit=crop&w=600&q=80',
     category: 'அரசியல்',
     subCategory: 'அதிமுக & கூட்டணிக் களம்',
@@ -75,11 +89,18 @@ const QUICK_TAGS = [
   'சட்டமன்றம்'
 ];
 
+const PARTY_PULSE_ITEMS = [
+  { party: 'திமுக', text: 'மாநிலம் முழுவதும் 234 தொகுதிகளிலும் கள ஆய்வுக் குழுக்கள் தீவிரப் பணி', color: 'border-red-500/50 bg-red-500/10 text-red-300' },
+  { party: 'அதிமுக', text: 'கூட்டணிக் கட்சிகளுடன் முதல் கட்ட பேச்சுவார்த்தை விரைவில் தொடக்கம்', color: 'border-emerald-500/50 bg-emerald-500/10 text-emerald-300' },
+  { party: 'தவெக', text: 'விஜய்யின் தமிழக சுற்றுப்பயண திட்டம் மற்றும் மாவட்ட மாநாடுகள் தயார்', color: 'border-yellow-500/50 bg-yellow-500/10 text-yellow-300' },
+  { party: 'பாஜக', text: 'மத்திய அரசின் திட்டங்களை விளக்கி தமிழகம் தழுவிய பொதுக்கூட்டங்கள்', color: 'border-orange-500/50 bg-orange-500/10 text-orange-300' }
+];
+
 export const PoliticsSection = ({ articles = [], onOpenArticle, onSelectCategory }) => {
   const [selectedTag, setSelectedTag] = useState('அனைத்து அரசியல்');
 
-  // Filter politics articles from props or use rich defaults
-  const politicsArticles = (articles || []).filter((art) => {
+  // Filter political articles from live props
+  const livePolitics = (articles || []).filter((art) => {
     const c = String(art.category || art.category_name || art.cat || '').toLowerCase();
     const sc = String(art.subCategory || art.sub_category || '').toLowerCase();
     const t = String(art.title || '').toLowerCase();
@@ -92,22 +113,43 @@ export const PoliticsSection = ({ articles = [], onOpenArticle, onSelectCategory
       t.includes('முதல்வர்') ||
       t.includes('திமுக') ||
       t.includes('அதிமுக') ||
-      t.includes('சட்டமன்ற')
+      t.includes('சட்டமன்ற') ||
+      t.includes('அமைச்சர்') ||
+      t.includes('பாஜக') ||
+      t.includes('தவெக')
     );
   });
 
-  const displayList = politicsArticles.length > 0 ? politicsArticles : FALLBACK_POLITICS;
+  // CRITICAL FIX: Merge live articles with fallbacks so the right column is NEVER half-empty!
+  // Deduplicate by title to ensure clean, distinct news
+  const mergedList = [...livePolitics];
+  const existingTitles = new Set(livePolitics.map((a) => (a.title || '').trim().toLowerCase()));
+
+  for (const fallback of FALLBACK_POLITICS) {
+    if (mergedList.length >= 5) break;
+    const fbTitle = (fallback.title || '').trim().toLowerCase();
+    if (!existingTitles.has(fbTitle)) {
+      mergedList.push(fallback);
+      existingTitles.add(fbTitle);
+    }
+  }
 
   // Filter by tag if selected
-  const filteredList = displayList.filter((item) => {
-    if (selectedTag === 'அனைத்து அரசியல்') return true;
-    const text = `${item.title || ''} ${item.summary || ''} ${item.subCategory || ''} ${item.tag || ''}`.toLowerCase();
-    return text.includes(selectedTag.toLowerCase());
-  });
+  let currentDisplay = mergedList;
+  if (selectedTag !== 'அனைத்து அரசியல்') {
+    const filtered = mergedList.filter((item) => {
+      const text = `${item.title || ''} ${item.summary || ''} ${item.subCategory || ''} ${item.tag || ''}`.toLowerCase();
+      return text.includes(selectedTag.toLowerCase());
+    });
+    // If filtered items are fewer than 3, keep them at top and pad with rest so design never breaks
+    if (filtered.length > 0) {
+      const remaining = mergedList.filter((item) => !filtered.includes(item));
+      currentDisplay = [...filtered, ...remaining];
+    }
+  }
 
-  const currentItems = filteredList.length > 0 ? filteredList : displayList;
-  const leadStory = currentItems[0] || displayList[0];
-  const sideStories = currentItems.slice(1, 5).length > 0 ? currentItems.slice(1, 5) : displayList.slice(1, 5);
+  const leadStory = currentDisplay[0] || FALLBACK_POLITICS[0];
+  const sideStories = currentDisplay.slice(1, 5);
 
   const handleArticleClick = (art) => {
     if (onOpenArticle) {
@@ -118,42 +160,42 @@ export const PoliticsSection = ({ articles = [], onOpenArticle, onSelectCategory
   };
 
   return (
-    <section className="bg-gradient-to-br from-[#0a0f1d] via-[#111827] to-[#0a1122] rounded-3xl p-5 sm:p-7 border-2 border-red-600/30 shadow-2xl space-y-6 text-white font-tamil relative overflow-hidden">
+    <section className="bg-gradient-to-br from-[#070d1d] via-[#0f172a] to-[#071026] rounded-3xl p-4 sm:p-6 lg:p-7 border-2 border-red-500/30 shadow-2xl space-y-6 text-white font-tamil relative overflow-hidden">
       {/* Glow Effects */}
-      <div className="absolute -top-24 -right-24 w-80 h-80 bg-red-600/15 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute -bottom-24 -left-24 w-80 h-80 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute -top-24 -right-24 w-96 h-96 bg-red-600/15 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
 
-      {/* Header */}
+      {/* 1. Header Bar */}
       <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-4">
         <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <span className="bg-gradient-to-r from-red-600 to-amber-600 text-white font-black text-[10px] uppercase px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-md">
-              <Flame className="w-3 h-3 animate-pulse" /> HOT ELECTION PULSE
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="bg-gradient-to-r from-red-600 to-amber-600 text-white font-black text-[10px] uppercase px-3 py-1 rounded-full flex items-center gap-1.5 shadow-md">
+              <Flame className="w-3.5 h-3.5 animate-pulse" /> ELECTION 2026 SPECIAL
             </span>
             <span className="text-amber-400 font-bold text-xs flex items-center gap-1">
               <Sparkles className="w-3.5 h-3.5" /> தமிழ்நாடு அரசியல் களம்
             </span>
           </div>
           <h2 className="text-xl sm:text-2xl lg:text-3xl font-black text-white flex items-center gap-2">
-            <Vote className="w-6 h-6 sm:w-7 sm:h-7 text-red-500" />
+            <Vote className="w-7 h-7 text-red-500 shrink-0" />
             <span>அரசியல் களம் & தேர்தல் 2026 சிறப்புப் பார்வை</span>
           </h2>
-          <p className="text-xs text-slate-300">
-            தமிழகத்தின் தேர்தல் களம், கூட்டணிக் கணக்குகள், கட்சி அறிக்கைகள் மற்றும் பிரத்யேக களப் பார்வைகள்
+          <p className="text-xs text-slate-300 max-w-2xl">
+            தமிழகத்தின் அனல் பறக்கும் தேர்தல் களம், கூட்டணிக் கணக்குகள், கட்சி அறிக்கைகள் மற்றும் பிரத்யேக களப் பார்வைகள்
           </p>
         </div>
 
         {/* View All Button */}
         <button
           onClick={() => onSelectCategory && onSelectCategory('politics')}
-          className="self-start md:self-auto bg-slate-900/90 hover:bg-red-600 text-white border border-red-500/40 hover:border-red-500 font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-1.5 transition-all cursor-pointer group shadow-lg shrink-0"
+          className="self-start md:self-auto bg-slate-900 hover:bg-red-600 text-white border border-red-500/40 hover:border-red-500 font-bold px-4 py-2.5 rounded-xl text-xs flex items-center gap-2 transition-all cursor-pointer group shadow-lg shrink-0"
         >
           <span>அனைத்து அரசியல் செய்திகள்</span>
           <ArrowUpRight className="w-4 h-4 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
         </button>
       </div>
 
-      {/* Quick Tag Pills */}
+      {/* 2. Quick Filter Tags */}
       <div className="relative z-10 flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none text-xs">
         {QUICK_TAGS.map((tag) => {
           const isActive = selectedTag === tag;
@@ -161,10 +203,10 @@ export const PoliticsSection = ({ articles = [], onOpenArticle, onSelectCategory
             <button
               key={tag}
               onClick={() => setSelectedTag(tag)}
-              className={`px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition cursor-pointer flex items-center gap-1 shrink-0 ${
+              className={`px-3.5 py-1.5 rounded-xl font-bold whitespace-nowrap transition cursor-pointer flex items-center gap-1.5 shrink-0 ${
                 isActive
                   ? 'bg-gradient-to-r from-red-600 to-amber-600 text-white shadow-md shadow-red-600/30'
-                  : 'bg-slate-900/80 text-slate-300 hover:text-white hover:bg-slate-800 border border-slate-800'
+                  : 'bg-slate-900/90 text-slate-300 hover:text-white hover:bg-slate-800 border border-slate-800'
               }`}
             >
               {isActive && <CheckCircle2 className="w-3 h-3 text-white" />}
@@ -174,48 +216,56 @@ export const PoliticsSection = ({ articles = [], onOpenArticle, onSelectCategory
         })}
       </div>
 
-      {/* Main Grid: 1 Hero Lead Card (Left) + 4 Side Cards (Right) */}
-      <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-5">
-        {/* Left Column: Lead Story */}
-        <div className="lg:col-span-7">
+      {/* 3. Balanced News Grid (Hero Lead on Left + 4 Full Side Cards on Right) */}
+      <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+        {/* Left Column: Hero Lead Story (Span 7) */}
+        <div className="lg:col-span-7 flex flex-col">
           <div
             onClick={() => handleArticleClick(leadStory)}
-            className="group relative bg-[#060b18] rounded-2xl border border-red-500/30 hover:border-red-500/70 overflow-hidden shadow-xl cursor-pointer transition-all duration-300 h-full flex flex-col justify-between"
+            className="group relative bg-[#050b18] rounded-2xl border border-red-500/30 hover:border-red-500/70 overflow-hidden shadow-xl cursor-pointer transition-all duration-300 flex-1 flex flex-col justify-between"
           >
-            <div className="relative h-64 sm:h-72 lg:h-80 w-full overflow-hidden">
+            {/* Top Image Banner */}
+            <div className="relative aspect-[16/9] w-full overflow-hidden bg-slate-950">
               <img
                 src={leadStory.image || leadStory.cover_image_url || 'https://images.unsplash.com/photo-1540910419892-4a36d2c3266c?auto=format&fit=crop&w=1200&q=80'}
                 alt={leadStory.title}
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#060b18] via-[#060b18]/40 to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#050b18] via-[#050b18]/50 to-transparent" />
               <div className="absolute top-3 left-3 flex items-center gap-2">
-                <span className="bg-red-600 text-white text-[11px] font-black px-2.5 py-1 rounded-lg uppercase shadow">
-                  முக்கிய அரசியல் செய்தி
+                <span className="bg-red-600 text-white text-[11px] font-black px-3 py-1 rounded-lg uppercase shadow-md flex items-center gap-1">
+                  <Flame className="w-3 h-3 text-white" /> முதன்மை அரசியல் செய்தி
                 </span>
                 {leadStory.subCategory && (
-                  <span className="bg-black/70 backdrop-blur-md text-amber-300 border border-amber-500/30 text-[10px] font-bold px-2 py-0.5 rounded-lg">
+                  <span className="bg-black/75 backdrop-blur-md text-amber-300 border border-amber-500/30 text-[10px] font-bold px-2.5 py-0.5 rounded-lg">
                     {leadStory.subCategory}
                   </span>
                 )}
               </div>
             </div>
 
+            {/* Content Body */}
             <div className="p-5 sm:p-6 space-y-3 flex-1 flex flex-col justify-between">
               <div className="space-y-2">
-                <h3 className="text-lg sm:text-xl font-black text-white group-hover:text-red-400 transition-colors leading-snug">
+                <h3 className="text-lg sm:text-xl font-black text-white group-hover:text-amber-400 transition-colors leading-snug">
                   {leadStory.title}
                 </h3>
                 <p className="text-slate-300 text-xs sm:text-sm line-clamp-3 leading-relaxed">
-                  {leadStory.summary || leadStory.excerpt || leadStory.body}
+                  {leadStory.summary || leadStory.desc || leadStory.excerpt || leadStory.content}
                 </p>
               </div>
 
+              {/* Meta Footer */}
               <div className="flex items-center justify-between text-xs text-slate-400 pt-3 border-t border-slate-800/80">
-                <span className="flex items-center gap-1.5 font-semibold text-slate-300">
-                  <Clock className="w-3.5 h-3.5 text-amber-400" />
-                  {leadStory.date || leadStory.published_at || 'சமீபத்தியது'}
-                </span>
+                <div className="flex items-center gap-3">
+                  <span className="flex items-center gap-1 text-slate-300 font-semibold">
+                    <Clock className="w-3.5 h-3.5 text-amber-400" />
+                    {leadStory.date || leadStory.time || 'சமீபத்தியது'}
+                  </span>
+                  {leadStory.author && (
+                    <span className="hidden sm:inline text-slate-400">• {leadStory.author}</span>
+                  )}
+                </div>
                 <span className="text-red-400 font-bold group-hover:translate-x-1 transition-transform flex items-center gap-1">
                   முழுமையாகப் படிக்க <ChevronRight className="w-4 h-4" />
                 </span>
@@ -224,41 +274,71 @@ export const PoliticsSection = ({ articles = [], onOpenArticle, onSelectCategory
           </div>
         </div>
 
-        {/* Right Column: 4 Side Cards Grid */}
-        <div className="lg:col-span-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-3.5">
+        {/* Right Column: 4 Side Stories Cards (Span 5) */}
+        <div className="lg:col-span-5 flex flex-col justify-between gap-3">
           {sideStories.map((item, idx) => (
             <div
               key={item.id || idx}
               onClick={() => handleArticleClick(item)}
-              className="group bg-[#060b18] hover:bg-[#0c1428] rounded-xl border border-slate-800 hover:border-red-500/40 p-3 sm:p-3.5 flex gap-3 transition-all cursor-pointer shadow-md"
+              className="group bg-[#050b18] hover:bg-[#0c1428] rounded-2xl border border-slate-800 hover:border-red-500/50 p-3 sm:p-3.5 flex gap-3.5 transition-all cursor-pointer shadow-md flex-1 items-center"
             >
-              <div className="relative w-24 sm:w-28 h-20 sm:h-22 rounded-lg overflow-hidden shrink-0">
+              {/* Thumbnail */}
+              <div className="relative w-28 sm:w-32 h-20 sm:h-22 rounded-xl overflow-hidden shrink-0 bg-slate-900 border border-slate-800">
                 <img
                   src={item.image || item.cover_image_url || 'https://images.unsplash.com/photo-1529107386315-e1a2ed48a620?auto=format&fit=crop&w=400&q=80'}
                   alt={item.title}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                 />
-                {item.tag && (
-                  <span className="absolute bottom-1 left-1 bg-red-600/90 text-[9px] font-black text-white px-1.5 py-0.2 rounded">
-                    {item.tag}
-                  </span>
-                )}
+                <span className="absolute bottom-1 left-1 bg-red-600/90 text-[9px] font-black text-white px-1.5 py-0.2 rounded shadow">
+                  {item.tag || item.subCategory || 'அரசியல்'}
+                </span>
               </div>
 
-              <div className="flex-1 flex flex-col justify-between min-w-0">
+              {/* Title & Info */}
+              <div className="flex-1 flex flex-col justify-between min-w-0 h-full py-0.5">
                 <h4 className="text-xs sm:text-sm font-bold text-slate-200 group-hover:text-amber-400 transition-colors line-clamp-2 leading-snug">
                   {item.title}
                 </h4>
-                <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1">
+                <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1 border-t border-slate-800/40">
                   <span className="flex items-center gap-1">
                     <Clock className="w-3 h-3 text-slate-500" />
-                    {item.date || 'இன்று'}
+                    {item.date || item.time || 'இன்று'}
                   </span>
                   <span className="text-red-400 font-bold flex items-center text-[11px] group-hover:translate-x-0.5 transition-transform">
                     வாசிக்க →
                   </span>
                 </div>
               </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* 4. Bottom Election Pulse & Party Ticker Bar */}
+      <div className="relative z-10 pt-2 border-t border-slate-800/80">
+        <div className="flex items-center justify-between gap-3 mb-2.5">
+          <span className="text-xs font-black text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+            <Radio className="w-3.5 h-3.5 text-red-500 animate-pulse" />
+            2026 தேர்தல் களம் & கட்சிப் பார்வைகள்
+          </span>
+          <span className="text-[11px] text-slate-400 font-semibold hidden sm:inline">
+            நேரலை அரசியல் கள நிலவரம்
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 text-xs">
+          {PARTY_PULSE_ITEMS.map((pulse, idx) => (
+            <div
+              key={idx}
+              onClick={() => setSelectedTag(pulse.party)}
+              className={`p-2.5 rounded-xl border transition-all cursor-pointer hover:scale-[1.02] flex items-start gap-2 ${pulse.color}`}
+            >
+              <span className="bg-black/50 font-black px-1.5 py-0.5 rounded text-[10px] shrink-0">
+                {pulse.party}
+              </span>
+              <p className="line-clamp-2 text-[11px] leading-snug font-medium text-slate-200">
+                {pulse.text}
+              </p>
             </div>
           ))}
         </div>

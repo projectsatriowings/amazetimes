@@ -428,11 +428,9 @@ export default function App() {
           setBackendArticles(cached.articles);
           setIsLoadingNews(false);
         }
-      } else if (resetPage) {
-        // Show clean skeleton and immediately clear mismatched category data
+      } else if (resetPage && !backendLeadArticle && backendArticles.length === 0) {
+        // Only show skeleton on cold start when no articles exist at all
         setIsLoadingNews(true);
-        setBackendLeadArticle(null);
-        setBackendArticles([]);
       }
 
       const pageToFetch = resetPage ? 1 : currentPage;
@@ -514,8 +512,38 @@ export default function App() {
         // Update category cache for future 0ms instant loading
         categoryArticlesCache.set(category, { lead, articles: cards });
 
-        // Cache homepage articles in sessionStorage for 0ms instant display next session
+        // Pre-populate category caches from homepage 50-article pool for instant 0ms switching
         if (category === 'all') {
+          const categorySynonymsMap = {
+            tamilnadu: ['தமிழ்நாடு', 'tamilnadu', 'சென்னை', 'மதுரை', 'கோவை', 'திருச்சி', 'சேலம்', 'மாவட்டம்'],
+            districts: ['தமிழ்நாடு', 'tamilnadu', 'சென்னை', 'மதுரை', 'கோவை', 'திருச்சி', 'சேலம்', 'மாவட்டம்'],
+            politics: ['அரசியல்', 'politics', 'தேர்தல்', 'political', 'சட்டமன்ற', 'திமுக', 'அதிமுக', 'தவெக', 'பாஜக', 'நாம் தமிழர்'],
+            cinema: ['சினிமா', 'cinema', 'திரைப்படம்', 'movie', 'கோலிவுட்'],
+            sports: ['விளையாட்டு', 'sports', 'கிரிக்கெட்', 'cricket', 'ஐபிஎல்'],
+            business: ['வணிகம்', 'business', 'பொருளாதாரம்', 'தங்கம்', 'பங்குச்சந்தை'],
+            india: ['தேசியம்', 'india', 'இந்தியா', 'தில்லி'],
+            world: ['உலகம்', 'world', 'சர்வதேசம்', 'அமெரிக்கா'],
+            editorial: ['தலையங்கம்', 'editorial', 'ஆசிரியர்'],
+            competitions: ['போட்டிகள்', 'competitions', 'போட்டி']
+          };
+
+          Object.entries(categorySynonymsMap).forEach(([catKey, syns]) => {
+            if (!categoryArticlesCache.has(catKey)) {
+              const matched = formattedArticles.filter(art => {
+                const c = (art.category || '').toLowerCase();
+                const t = (art.title || '').toLowerCase();
+                const sub = (art.subCategory || '').toLowerCase();
+                return syns.some(s => c.includes(s) || t.includes(s) || sub.includes(s));
+              });
+              if (matched.length > 0) {
+                categoryArticlesCache.set(catKey, {
+                  lead: matched[0],
+                  articles: matched.slice(1)
+                });
+              }
+            }
+          });
+
           try {
             sessionStorage.setItem('amaze_cached_articles', JSON.stringify({ lead, articles: cards }));
           } catch (_) {}
@@ -815,10 +843,33 @@ export default function App() {
         setIsLoadingNews(false);
       }
     } else {
-      // Clear previous category stale articles immediately so wrong category never shows!
-      setBackendLeadArticle(null);
-      setBackendArticles([]);
-      setIsLoadingNews(true);
+      // Stale-While-Revalidate: Instant filter from existing loaded articles (0ms)
+      const allLoaded = [backendLeadArticle, ...backendArticles].filter(Boolean);
+      const categorySynonymsMap = {
+        tamilnadu: ['தமிழ்நாடு', 'tamilnadu', 'சென்னை', 'மாவட்டம்'],
+        districts: ['தமிழ்நாடு', 'tamilnadu', 'சென்னை', 'மாவட்டம்'],
+        politics: ['அரசியல்', 'politics', 'தேர்தல்', 'திமுக', 'அதிமுக', 'தவெக'],
+        cinema: ['சினிமா', 'cinema', 'திரைப்படம்'],
+        sports: ['விளையாட்டு', 'sports', 'கிரிக்கெட்'],
+        business: ['வணிகம்', 'business', 'தங்கம்'],
+        india: ['தேசியம்', 'india', 'இந்தியா'],
+        world: ['உலகம்', 'world'],
+        editorial: ['தலையங்கம்', 'editorial'],
+        competitions: ['போட்டிகள்', 'competitions']
+      };
+      const syns = categorySynonymsMap[catId] || [catId];
+      const instantMatches = allLoaded.filter(art => {
+        const c = (art.category || '').toLowerCase();
+        const t = (art.title || '').toLowerCase();
+        return syns.some(s => c.includes(s) || t.includes(s));
+      });
+
+      if (instantMatches.length > 0) {
+        setBackendLeadArticle(instantMatches[0]);
+        setBackendArticles(instantMatches.slice(1));
+        setIsLoadingNews(false);
+      }
+      // Never blank out screen into empty arrays! Keep current display active while fetching!
     }
 
     if (currentPath !== '/') {

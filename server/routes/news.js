@@ -217,7 +217,13 @@ router.get('/', optionalAuth, async (req, res) => {
         'கல்வி': ['கல்வி', 'கல்வி & வேலைவாய்ப்பு', 'education', 'jobs'],
 
         tech: ['தொழில்நுட்பம்', 'tech', 'technology'],
-        'தொழில்நுட்பம்': ['தொழில்நுட்பம்', 'tech', 'technology']
+        'தொழில்நுட்பம்': ['தொழில்நுட்பம்', 'tech', 'technology'],
+
+        politics: ['அரசியல்', 'politics', 'தேர்தல்', 'political', 'சட்டமன்ற'],
+        'அரசியல்': ['அரசியல்', 'politics', 'தேர்தல்', 'political', 'சட்டமன்ற'],
+
+        competitions: ['போட்டிகள்', 'competitions', 'போட்டி'],
+        'போட்டிகள்': ['போட்டிகள்', 'competitions', 'போட்டி']
       };
 
       const matchedList = CATEGORY_SYNONYMS[catNorm] || CATEGORY_SYNONYMS[category] || [category];

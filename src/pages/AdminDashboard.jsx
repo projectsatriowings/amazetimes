@@ -1945,8 +1945,9 @@ export const AdminDashboard = () => {
                       </div>
                       <div className="relative">
                         <input
+                          key={showCurrentPassword ? 'curr-pw-plain' : 'curr-pw-hidden'}
                           type={showCurrentPassword ? 'text' : 'password'}
-                          autoComplete="current-password"
+                          autoComplete={showCurrentPassword ? 'off' : 'current-password'}
                           placeholder="பழைய கடவுச்சொல் (விரும்பினால் மட்டும் உள்ளிடவும்)"
                           value={passwordForm.currentPassword}
                           onInput={(e) => setPasswordForm(prev => ({ ...prev, currentPassword: e.target.value }))}
@@ -1955,11 +1956,12 @@ export const AdminDashboard = () => {
                         />
                         <button
                           type="button"
+                          onMouseDown={(e) => e.preventDefault()}
                           onClick={() => setShowCurrentPassword(!showCurrentPassword)}
                           className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-amber-400 p-1 cursor-pointer transition-colors"
-                          title={showCurrentPassword ? 'மறைக்கவும்' : 'பார்க்கவும்'}
+                          title={showCurrentPassword ? 'மறைக்கவும் (Hide Password)' : 'பார்க்கவும் (Show Password)'}
                         >
-                          {showCurrentPassword ? <EyeOff className="w-4 h-4 text-amber-400" /> : <Eye className="w-4 h-4" />}
+                          {showCurrentPassword ? <EyeOff className="w-4 h-4 text-amber-400" /> : <Eye className="w-4 h-4 text-slate-400 hover:text-amber-400" />}
                         </button>
                       </div>
                       <p className="text-[11px] text-slate-400 font-tamil mt-1">
@@ -1982,8 +1984,9 @@ export const AdminDashboard = () => {
 
                       <div className="relative">
                         <input
+                          key={showNewPassword ? 'new-pw-plain' : 'new-pw-hidden'}
                           type={showNewPassword ? 'text' : 'password'}
-                          autoComplete="new-password"
+                          autoComplete={showNewPassword ? 'off' : 'new-password'}
                           required
                           placeholder={passwordMode === 'passcode' ? '6-இலக்க எண் (எ.கா. 849201)' : 'புதிய கடவுச்சொல்லை உள்ளிடவும்'}
                           value={passwordForm.newPassword}
@@ -1993,11 +1996,12 @@ export const AdminDashboard = () => {
                         />
                         <button
                           type="button"
+                          onMouseDown={(e) => e.preventDefault()}
                           onClick={() => setShowNewPassword(!showNewPassword)}
                           className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-amber-400 p-1 cursor-pointer transition-colors"
-                          title={showNewPassword ? 'மறைக்கவும்' : 'பார்க்கவும்'}
+                          title={showNewPassword ? 'மறைக்கவும் (Hide Password)' : 'பார்க்கவும் (Show Password)'}
                         >
-                          {showNewPassword ? <EyeOff className="w-4 h-4 text-amber-400" /> : <Eye className="w-4 h-4" />}
+                          {showNewPassword ? <EyeOff className="w-4 h-4 text-amber-400" /> : <Eye className="w-4 h-4 text-slate-400 hover:text-amber-400" />}
                         </button>
                       </div>
 
@@ -2021,8 +2025,9 @@ export const AdminDashboard = () => {
                       </label>
                       <div className="relative">
                         <input
+                          key={showConfirmPassword ? 'confirm-pw-plain' : 'confirm-pw-hidden'}
                           type={showConfirmPassword ? 'text' : 'password'}
-                          autoComplete="new-password"
+                          autoComplete={showConfirmPassword ? 'off' : 'new-password'}
                           required
                           placeholder={passwordMode === 'passcode' ? 'பாஸ்கோடை மீண்டும் உள்ளிடவும்' : 'கடவுச்சொல்லை மீண்டும் உள்ளிடவும்'}
                           value={passwordForm.confirmPassword}
@@ -2032,11 +2037,12 @@ export const AdminDashboard = () => {
                         />
                         <button
                           type="button"
+                          onMouseDown={(e) => e.preventDefault()}
                           onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                           className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-amber-400 p-1 cursor-pointer transition-colors"
-                          title={showConfirmPassword ? 'மறைக்கவும்' : 'பார்க்கவும்'}
+                          title={showConfirmPassword ? 'மறைக்கவும் (Hide Password)' : 'பார்க்கவும் (Show Password)'}
                         >
-                          {showConfirmPassword ? <EyeOff className="w-4 h-4 text-amber-400" /> : <Eye className="w-4 h-4" />}
+                          {showConfirmPassword ? <EyeOff className="w-4 h-4 text-amber-400" /> : <Eye className="w-4 h-4 text-slate-400 hover:text-amber-400" />}
                         </button>
                       </div>
 
@@ -2800,7 +2806,9 @@ export const AdminDashboard = () => {
                         </label>
                         <div className="relative">
                           <input
+                            key={showResetPasswordEye ? 'reset-pw-plain' : 'reset-pw-hidden'}
                             type={showResetPasswordEye ? 'text' : 'password'}
+                            autoComplete={showResetPasswordEye ? 'off' : 'new-password'}
                             required
                             placeholder={resetPasswordForm.isPasscode ? '6-இலக்க எண் (எ.கா. 482019)' : 'குறைந்தது 6 எழுத்துகள்'}
                             value={resetPasswordForm.newPassword}
@@ -2810,11 +2818,12 @@ export const AdminDashboard = () => {
                           />
                           <button
                             type="button"
+                            onMouseDown={(e) => e.preventDefault()}
                             onClick={() => setShowResetPasswordEye(!showResetPasswordEye)}
                             className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-amber-400 p-1 cursor-pointer transition-colors"
-                            title={showResetPasswordEye ? 'மறைக்கவும்' : 'பார்க்கவும்'}
+                            title={showResetPasswordEye ? 'மறைக்கவும் (Hide Password)' : 'பார்க்கவும் (Show Password)'}
                           >
-                            {showResetPasswordEye ? <EyeOff className="w-4 h-4 text-amber-400" /> : <Eye className="w-4 h-4" />}
+                            {showResetPasswordEye ? <EyeOff className="w-4 h-4 text-amber-400" /> : <Eye className="w-4 h-4 text-slate-400 hover:text-amber-400" />}
                           </button>
                         </div>
                       </div>
