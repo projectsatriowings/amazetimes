@@ -91,3 +91,4 @@ export const fetchRealtimeWeather = async (forceRefresh = false) => {
     return cachedWeatherData || FALLBACK_WEATHER;
   }
 };
+

@@ -240,91 +240,79 @@ export default function Header({
   return (
     <>
       {/* 1. TOP UTILITY STRIP */}
-      <div className="bg-[#091538] text-slate-100 text-xs py-1.5 px-2.5 sm:px-4 border-b border-white/10 shadow-sm transition-colors w-full max-w-full relative z-50">
-        <div className="max-w-[1400px] mx-auto flex items-center justify-between gap-1.5 sm:gap-3 flex-nowrap min-w-0">
+      <div className="bg-[#091538] text-slate-100 text-xs py-1.5 px-2.5 sm:px-4 border-b border-white/10 shadow-sm transition-colors w-full relative z-50">
+        <div className="max-w-[1440px] mx-auto flex items-center justify-between gap-2 overflow-x-auto no-scrollbar min-w-0">
           
-          {/* Left: Tamil Panchangam Date, Clock, Registration & Weather */}
-          <div className="flex items-center gap-2 sm:gap-2.5 text-slate-300 text-[11px] min-w-0 shrink">
-            {/* Government Verified Badge (Desktop & Tablet) */}
-            <span className="hidden sm:inline-flex items-center gap-1.5 font-bold text-amber-300 bg-white/10 px-2 py-0.5 rounded-lg border border-white/15 shrink-0 whitespace-nowrap">
-              <ShieldCheck className="w-3.5 h-3.5 text-amber-300 shrink-0" />
-              <span>மத்திய அரசு பதிவு: 2023/88656</span>
-            </span>
-
-            {/* Mobile Compact Date */}
-            <span className="inline-flex sm:hidden items-center gap-1 font-bold text-amber-300 text-[10px] whitespace-nowrap shrink-0">
-              <Calendar className="w-3 h-3 text-amber-400 shrink-0" />
-              <span>{panchangamDate || 'அமேஸ் டைம்ஸ்'}</span>
-            </span>
-
-            <span className="hidden sm:inline text-white/20 shrink-0">|</span>
-
-            {/* Tamil Date & Panchangam (Desktop) */}
-            <span className="hidden md:inline-flex items-center gap-1.5 font-medium text-slate-200 whitespace-nowrap shrink-0">
+          {/* Left: Tamil Date, Clock & Real-time Weather */}
+          <div className="flex items-center gap-2 text-slate-300 text-[11px] shrink-0">
+            {/* Tamil Date & Day */}
+            <div className="inline-flex items-center gap-1.5 font-medium text-slate-200 whitespace-nowrap shrink-0">
               <Calendar className="w-3.5 h-3.5 text-amber-400 shrink-0" />
               <span>{currentTamilDate}</span>
               {panchangamDate && (
-                <span className="text-amber-300 font-bold">({panchangamDate})</span>
+                <span className="hidden xl:inline text-amber-300 font-bold">({panchangamDate})</span>
               )}
-            </span>
-
-            <span className="hidden lg:inline text-white/20 shrink-0">|</span>
+            </div>
 
             {/* Running Clock */}
             {currentTamilTime && (
-              <span className="hidden lg:inline-flex items-center gap-1.5 text-slate-300 font-mono text-[11px] whitespace-nowrap shrink-0">
-                <Clock className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                <span>{currentTamilTime}</span>
-              </span>
+              <>
+                <span className="hidden lg:inline text-white/20 shrink-0">|</span>
+                <div className="hidden lg:inline-flex items-center gap-1.5 text-slate-300 font-mono text-[11px] whitespace-nowrap shrink-0">
+                  <Clock className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                  <span>{currentTamilTime}</span>
+                </div>
+              </>
             )}
 
-            <span className="hidden xl:inline text-white/20 shrink-0">|</span>
-
             {/* Real-time Weather Trigger Pill */}
+            <span className="hidden md:inline text-white/20 shrink-0">|</span>
             <button
               type="button"
               onClick={() => setIsWeatherModalOpen(true)}
-              className="hidden xl:inline-flex items-center gap-1.5 bg-white/5 hover:bg-white/10 px-2.5 py-0.5 rounded-lg border border-white/10 hover:border-amber-400/40 text-[11px] font-semibold text-slate-200 hover:text-amber-300 transition-all cursor-pointer whitespace-nowrap shrink-0 shadow-sm group"
-              title="தமிழக நேரலை வானிலை நிலவரத்தை விரிவாகப் பார்க்க கிளிக் செய்யவும்"
+              className="hidden md:inline-flex items-center gap-1.5 bg-white/10 hover:bg-white/20 px-2.5 py-0.5 rounded-lg border border-white/15 hover:border-amber-400/40 text-[11px] font-semibold text-slate-200 hover:text-amber-300 transition-all cursor-pointer whitespace-nowrap shrink-0 shadow-sm group"
+              title="தமிழகத்தின் முக்கிய நகரங்களின் நேரலை வானிலை நிலவரத்தைக் காண கிளிக் செய்யவும்"
             >
               <CloudSun className="w-3.5 h-3.5 text-amber-400 group-hover:scale-110 transition-transform shrink-0" />
-              <span>சென்னை:</span>
+              <span>வானிலை:</span>
               <span className="text-amber-300 font-black font-mono">
-                {weatherCities.find(c => c.id === 'chennai')?.temp ?? 30}°C
+                {weatherCities.find(c => c.id === 'chennai')?.temp ?? 31}°C
               </span>
-              <span className="text-white/20">•</span>
-              <span>மதுரை:</span>
-              <span className="text-amber-300 font-black font-mono">
-                {weatherCities.find(c => c.id === 'madurai')?.temp ?? 31}°C
-              </span>
-              <span className="bg-amber-400/20 text-amber-300 text-[10px] font-extrabold px-1.5 py-0.2 rounded border border-amber-400/30 group-hover:bg-amber-400 group-hover:text-slate-950 transition-colors ml-1">
-                வானிலை ↗
+              <span className="bg-amber-400/20 text-amber-300 text-[10px] font-extrabold px-1.5 py-0.2 rounded border border-amber-400/30 group-hover:bg-amber-400 group-hover:text-slate-950 transition-colors ml-0.5">
+                விவரம் ↗
               </span>
             </button>
+
+            {/* Government Verified Badge (Large Desktop Only) */}
+            <span className="hidden 2xl:inline text-white/20 shrink-0">|</span>
+            <span className="hidden 2xl:inline-flex items-center gap-1.5 font-bold text-amber-300 bg-white/10 px-2 py-0.5 rounded-lg border border-white/15 shrink-0 whitespace-nowrap text-[10px]">
+              <ShieldCheck className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+              <span>மத்திய அரசு பதிவு: 2023/88656</span>
+            </span>
           </div>
 
           {/* Right: Gold Rate Ticker with Calculator Button + Accessibility & Google User Auth */}
-          <div className="flex items-center gap-1.5 sm:gap-2.5 text-xs shrink-0 ml-auto">
+          <div className="flex items-center gap-1.5 sm:gap-2 text-xs shrink-0 ml-auto">
             
             {/* Live Gold Rate + Calculator Trigger */}
-            <div className="flex items-center gap-1 sm:gap-1.5 bg-amber-500/20 text-amber-300 px-1.5 sm:px-2.5 py-0.5 rounded-lg border border-amber-400/30 text-[10px] sm:text-[11px] font-bold shrink-0">
+            <div className="flex items-center gap-1 sm:gap-1.5 bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-lg border border-amber-400/30 text-[10px] sm:text-[11px] font-bold shrink-0">
               <Coins className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-300 shrink-0" />
               <span className="hidden sm:inline">தங்கம்:</span>
               <span className="text-white font-black whitespace-nowrap">{headerGoldRate}</span>
               <button
                 onClick={onOpenGoldCalculator}
-                className="bg-[#0e2a7a] hover:bg-[#0a1f5c] text-amber-300 border border-amber-400/40 px-1.5 sm:px-2 py-0.5 rounded text-[9px] sm:text-[10px] font-extrabold transition-all cursor-pointer shadow-sm flex items-center gap-0.5"
+                className="hidden sm:flex bg-[#0e2a7a] hover:bg-[#0a1f5c] text-amber-300 border border-amber-400/40 px-1.5 py-0.5 rounded text-[9px] sm:text-[10px] font-extrabold transition-all cursor-pointer shadow-sm items-center gap-0.5 ml-0.5"
                 title="தங்கம் விலை கணக்கீட்டுக் கருவி"
               >
                 <Calculator className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-amber-300" />
-                <span className="hidden xs:inline">கணக்கிடு</span>
+                <span>கணக்கிடு</span>
               </button>
             </div>
 
-            <span className="hidden sm:inline text-white/20">|</span>
+            <span className="hidden xl:inline text-white/20 shrink-0">|</span>
 
             {/* Font Size Adjuster */}
-            <div className="hidden sm:flex items-center bg-white/10 rounded-lg px-2 py-0.5 gap-1 border border-white/20 text-[11px] text-slate-200" title="எழுத்து அளவு">
+            <div className="hidden xl:flex items-center bg-white/10 rounded-lg px-2 py-0.5 gap-1 border border-white/20 text-[11px] text-slate-200 shrink-0" title="எழுத்து அளவு">
               <button onClick={() => onChangeFontSize('font-size-sm')} className={`hover:text-amber-300 font-bold px-1 cursor-pointer ${fontSizeClass === 'font-size-sm' ? 'text-amber-300' : ''}`}>A-</button>
               <button onClick={() => onChangeFontSize('font-size-md')} className={`hover:text-amber-300 font-bold px-1 cursor-pointer ${fontSizeClass === 'font-size-md' || !fontSizeClass ? 'text-amber-300' : ''}`}>A</button>
               <button onClick={() => onChangeFontSize('font-size-lg')} className={`hover:text-amber-300 font-bold px-1 cursor-pointer ${fontSizeClass === 'font-size-lg' ? 'text-amber-300' : ''}`}>A+</button>

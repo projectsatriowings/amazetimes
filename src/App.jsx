@@ -503,6 +503,15 @@ export default function App() {
         setBackendArticles([]);
         setHasMoreArticles(false);
         categoryArticlesCache.set(category, { lead: null, articles: [] });
+      } else if (!artRes?.success) {
+        // Network or DB pooler reconnecting: restore cached articles so page never blanks out
+        if (categoryArticlesCache.has(category)) {
+          const cached = categoryArticlesCache.get(category);
+          if (cached && (cached.lead || (cached.articles && cached.articles.length > 0))) {
+            setBackendLeadArticle(cached.lead);
+            setBackendArticles(cached.articles);
+          }
+        }
       }
 
       if (tickerRes?.success) setBackendTickers(tickerRes.tickers);

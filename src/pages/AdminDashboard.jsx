@@ -103,6 +103,7 @@ import {
   Upload,
   Filter,
   RefreshCw,
+  RefreshCcw,
   Quote,
   Trophy,
   GraduationCap,
@@ -1907,28 +1908,38 @@ export const AdminDashboard = () => {
 
                   <form onSubmit={handleChangePassword} className="space-y-4 text-xs sm:text-sm font-sans">
                     
-                    {/* Current Password */}
+                    {/* Current Password (Optional for Admin) */}
                     <div>
-                      <label className="block text-slate-300 font-bold mb-1.5 font-tamil">
-                        தற்போதைய கடவுச்சொல் (Current Password)
-                      </label>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="text-slate-300 font-bold font-tamil">
+                          தற்போதைய கடவுச்சொல் (Current Password)
+                        </label>
+                        <span className="text-[10px] text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                          நிர்வாகிக்கு இது கட்டாயமில்லை
+                        </span>
+                      </div>
                       <div className="relative">
                         <input
                           type={showCurrentPassword ? 'text' : 'password'}
                           autoComplete="current-password"
-                          placeholder="••••••••••••"
+                          placeholder="பழைய கடவுச்சொல் (விரும்பினால் மட்டும் உள்ளிடவும்)"
                           value={passwordForm.currentPassword}
-                          onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
+                          onInput={(e) => setPasswordForm(prev => ({ ...prev, currentPassword: e.target.value }))}
+                          onChange={(e) => setPasswordForm(prev => ({ ...prev, currentPassword: e.target.value }))}
                           className="w-full bg-[#050915] border border-slate-700 focus:border-amber-500 rounded-xl px-4 pr-11 py-3 text-white focus:outline-none font-mono text-xs sm:text-sm"
                         />
                         <button
                           type="button"
                           onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-amber-400 p-1 cursor-pointer"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-amber-400 p-1 cursor-pointer transition-colors"
+                          title={showCurrentPassword ? 'மறைக்கவும்' : 'பார்க்கவும்'}
                         >
-                          {showCurrentPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          {showCurrentPassword ? <EyeOff className="w-4 h-4 text-amber-400" /> : <Eye className="w-4 h-4" />}
                         </button>
                       </div>
+                      <p className="text-[11px] text-slate-400 font-tamil mt-1">
+                        💡 குறிப்பு: பழைய கடவுச்சொல் நினைவில் இல்லாவிட்டாலும் பரவாயில்லை! நேரடியாக கீழே புதிய கடவுச்சொல் / PIN அமைத்துக் கொள்ளலாம்.
+                      </p>
                     </div>
 
                     {/* New Password / Passcode */}
@@ -1949,17 +1960,19 @@ export const AdminDashboard = () => {
                           type={showNewPassword ? 'text' : 'password'}
                           autoComplete="new-password"
                           required
-                          placeholder={passwordMode === 'passcode' ? '6-இலக்க எண் (எ.கா. 849201)' : 'புதிய வலுவான கடவுச்சொல்'}
+                          placeholder={passwordMode === 'passcode' ? '6-இலக்க எண் (எ.கா. 849201)' : 'புதிய கடவுச்சொல்லை உள்ளிடவும்'}
                           value={passwordForm.newPassword}
-                          onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
+                          onInput={(e) => setPasswordForm(prev => ({ ...prev, newPassword: e.target.value }))}
+                          onChange={(e) => setPasswordForm(prev => ({ ...prev, newPassword: e.target.value }))}
                           className="w-full bg-[#050915] border border-slate-700 focus:border-amber-500 rounded-xl px-4 pr-11 py-3 text-white focus:outline-none font-mono text-xs sm:text-sm tracking-wider"
                         />
                         <button
                           type="button"
                           onClick={() => setShowNewPassword(!showNewPassword)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-amber-400 p-1 cursor-pointer"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-amber-400 p-1 cursor-pointer transition-colors"
+                          title={showNewPassword ? 'மறைக்கவும்' : 'பார்க்கவும்'}
                         >
-                          {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          {showNewPassword ? <EyeOff className="w-4 h-4 text-amber-400" /> : <Eye className="w-4 h-4" />}
                         </button>
                       </div>
 
@@ -1988,15 +2001,17 @@ export const AdminDashboard = () => {
                           required
                           placeholder={passwordMode === 'passcode' ? 'பாஸ்கோடை மீண்டும் உள்ளிடவும்' : 'கடவுச்சொல்லை மீண்டும் உள்ளிடவும்'}
                           value={passwordForm.confirmPassword}
-                          onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
+                          onInput={(e) => setPasswordForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                          onChange={(e) => setPasswordForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
                           className="w-full bg-[#050915] border border-slate-700 focus:border-amber-500 rounded-xl px-4 pr-11 py-3 text-white focus:outline-none font-mono text-xs sm:text-sm tracking-wider"
                         />
                         <button
                           type="button"
                           onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-amber-400 p-1 cursor-pointer"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-amber-400 p-1 cursor-pointer transition-colors"
+                          title={showConfirmPassword ? 'மறைக்கவும்' : 'பார்க்கவும்'}
                         >
-                          {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          {showConfirmPassword ? <EyeOff className="w-4 h-4 text-amber-400" /> : <Eye className="w-4 h-4" />}
                         </button>
                       </div>
 
@@ -2754,15 +2769,17 @@ export const AdminDashboard = () => {
                             required
                             placeholder={resetPasswordForm.isPasscode ? '6-இலக்க எண் (எ.கா. 482019)' : 'குறைந்தது 6 எழுத்துகள்'}
                             value={resetPasswordForm.newPassword}
+                            onInput={(e) => setResetPasswordForm({ ...resetPasswordForm, newPassword: e.target.value })}
                             onChange={(e) => setResetPasswordForm({ ...resetPasswordForm, newPassword: e.target.value })}
                             className="w-full bg-[#050915] border border-slate-700 focus:border-amber-500 rounded-xl px-4 pr-11 py-2.5 text-white focus:outline-none font-mono text-xs sm:text-sm"
                           />
                           <button
                             type="button"
                             onClick={() => setShowResetPasswordEye(!showResetPasswordEye)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-amber-400 p-1 cursor-pointer"
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-amber-400 p-1 cursor-pointer transition-colors"
+                            title={showResetPasswordEye ? 'மறைக்கவும்' : 'பார்க்கவும்'}
                           >
-                            {showResetPasswordEye ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            {showResetPasswordEye ? <EyeOff className="w-4 h-4 text-amber-400" /> : <Eye className="w-4 h-4" />}
                           </button>
                         </div>
                       </div>
