@@ -156,6 +156,8 @@ export const AdminDashboard = () => {
   const [showNewsModal, setShowNewsModal] = useState(false);
   const [editingArticle, setEditingArticle] = useState(null);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [isPublishingNews, setIsPublishingNews] = useState(false);
+  const publishLockRef = React.useRef(false);
 
   const [newsForm, setNewsForm] = useState({
     title: '',
@@ -3148,9 +3150,21 @@ export const AdminDashboard = () => {
 
               <button
                 type="submit"
-                className="w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-extrabold py-3.5 rounded-xl uppercase tracking-wider shadow-lg shadow-red-600/30 cursor-pointer transition"
+                disabled={isPublishingNews}
+                className={`w-full bg-gradient-to-r from-red-600 to-red-700 text-white font-extrabold py-3.5 rounded-xl uppercase tracking-wider shadow-lg shadow-red-600/30 transition flex items-center justify-center gap-2 ${
+                  isPublishingNews
+                    ? 'opacity-70 cursor-not-allowed pointer-events-none'
+                    : 'hover:from-red-700 hover:to-red-800 cursor-pointer'
+                }`}
               >
-                சேமி / வெளியிடு (Publish Article)
+                {isPublishingNews ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    <span>செய்தி சேமிக்கப்படுகிறது... (Publishing...)</span>
+                  </>
+                ) : (
+                  <span>சேமி / வெளியிடு (Publish Article)</span>
+                )}
               </button>
             </form>
           </div>

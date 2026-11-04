@@ -288,7 +288,7 @@ export default function App() {
     } else if (p.startsWith('/category/')) {
       const cat = p.replace('/category/', '').trim();
       if (cat) setActiveCategory(cat);
-    } else if (['/cinema', '/sports', '/tamilnadu', '/districts', '/business', '/india', '/world', '/magazine'].includes(p)) {
+    } else if (['/cinema', '/sports', '/tamilnadu', '/districts', '/business', '/india', '/world', '/magazine', '/editorial', '/thalaiyangam', '/spiritual', '/aanmeegam', '/blogs', '/valaipathivugal'].includes(p)) {
       setActiveCategory(p.replace('/', ''));
     }
   }, [currentPath]);
@@ -1041,6 +1041,7 @@ export default function App() {
             onLoginSuccess={handleLoginSuccess}
             onNavigateHome={() => navigateTo('/')}
             onToast={addToast}
+            onOpenEPaper={() => setIsEPaperOpen(true)}
           />
           <Toast toasts={toasts} onRemoveToast={removeToast} />
         </div>
@@ -1172,7 +1173,7 @@ export default function App() {
           )
         ) : (activeCategory === 'editorial' || currentPath === '/editorial' || currentPath === '/thalaiyangam') ? (
           <EditorialView
-            articles={backendArticles.length > 0 ? backendArticles : (currentFallback.cards || [])}
+            articles={backendArticles.length > 0 ? backendArticles : (displayCards.length > 0 ? displayCards : [])}
             onOpenArticle={openArticleModal}
             onSpeak={speakTamilText}
             onBookmark={handleBookmark}

@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
+  PenTool,
+  ArrowRight,
   ArrowLeft,
   Calendar,
   Clock,
@@ -47,7 +49,8 @@ export default function NewsDetailPage({
   isBookmarked = false,
   onToggleLike,
   isLiked = false,
-  onToast = () => {}
+  onToast = () => {},
+  onOpenEPaper = () => {}
 }) {
   const [scrollProgress, setScrollProgress] = useState(0);
   const [copied, setCopied] = useState(false);
@@ -680,6 +683,114 @@ export default function NewsDetailPage({
 
             {/* STICKY BOTTOM CONTAINER: Pins dynamically as user scrolls down long articles */}
             <div className="sticky top-20 space-y-5">
+            {/* MONTHLY MAGAZINE (மாத இதழ்) PROMINENT WIDGET */}
+            <div className="bg-gradient-to-br from-[#071330] via-[#0d2258] to-[#143282] text-white rounded-3xl p-5 border border-amber-400/30 shadow-xl space-y-4 relative overflow-hidden group">
+              <div className="absolute -right-12 -top-12 w-36 h-36 rounded-full bg-amber-400/20 blur-2xl pointer-events-none"></div>
+
+              <div className="flex items-center justify-between border-b border-white/10 pb-2.5">
+                <div className="flex items-center gap-1.5 text-xs font-black text-amber-300 uppercase tracking-wider">
+                  <BookOpen className="w-4 h-4 text-amber-400" />
+                  <span>அமேஸ் டைம்ஸ் மாத இதழ்</span>
+                </div>
+                <span className="bg-amber-400 text-slate-950 text-[10px] font-black px-2 py-0.5 rounded-full shadow-xs">
+                  புதிய மலர்!
+                </span>
+              </div>
+
+              <div className="flex items-center gap-3.5">
+                {/* 3D Magazine Cover Mockup */}
+                <div 
+                  onClick={() => onOpenEPaper ? onOpenEPaper() : onNavigate('/magazine')}
+                  className="w-20 aspect-[3/4] rounded-xl overflow-hidden shadow-lg border-2 border-amber-400/40 shrink-0 cursor-pointer group-hover:scale-105 transition-transform duration-300 relative bg-slate-900"
+                >
+                  <img
+                    src="/Amaze times.webp"
+                    alt="அமேஸ் டைம்ஸ் மாத இதழ்"
+                    className="w-full h-full object-cover"
+                    onError={(e) => { e.target.src = '/og-image.webp'; }}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex items-end p-1">
+                    <span className="text-[8px] font-bold text-amber-300 leading-tight">நவம்பர் 2026</span>
+                  </div>
+                </div>
+
+                {/* Magazine Details */}
+                <div className="space-y-1 min-w-0 flex-1">
+                  <h4 className="font-black text-sm text-white group-hover:text-amber-300 transition-colors leading-snug">
+                    அமேஸ் டைம்ஸ் பிரத்யேக சிறப்பு மாத இதழ்
+                  </h4>
+                  <p className="text-[11px] text-slate-300 leading-relaxed line-clamp-2">
+                    அரசியல், சமூகம், சினிமா & தொழில் நுட்பம் - 64 வண்ணப் பக்கங்கள்.
+                  </p>
+                  <div className="flex items-center gap-2 text-[10px] text-amber-300/90 font-semibold pt-0.5">
+                    <span>64 பக்கங்கள்</span>
+                    <span>•</span>
+                    <span>முழு டிஜிட்டல் இதழ்</span>
+                  </div>
+                </div>
+              </div>
+
+              <button
+                onClick={() => onOpenEPaper ? onOpenEPaper() : onNavigate('/magazine')}
+                className="w-full bg-gradient-to-r from-amber-400 to-yellow-400 hover:from-amber-300 hover:to-yellow-300 text-slate-950 font-black text-xs py-2.5 rounded-xl shadow-md transition-all cursor-pointer flex items-center justify-center gap-1.5"
+              >
+                <BookOpen className="w-3.5 h-3.5" />
+                <span>மாத இதழை வாசிக்க (Read Monthly Magazine)</span>
+                <ExternalLink className="w-3 h-3 ml-0.5" />
+              </button>
+            </div>
+
+            {/* THALAIYANGAM (தலையங்கம் / EDITORIAL) NAVIGATION WIDGET */}
+            <div className="bg-white dark:bg-[#0c1427] rounded-3xl p-5 border border-slate-200 dark:border-slate-800/90 shadow-sm space-y-3.5 group">
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2.5">
+                <div className="flex items-center gap-2 text-xs font-black text-[#0e2a7a] dark:text-amber-400">
+                  <PenTool className="w-4 h-4 text-red-600" />
+                  <span>ஆசிரியர் தலையங்கம் (Editorial)</span>
+                </div>
+                <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full">
+                  தினசரி பார்வை
+                </span>
+              </div>
+
+              {/* Daily Thirukkural Quote Card */}
+              <div className="bg-amber-500/10 dark:bg-amber-500/5 rounded-2xl p-3 border border-amber-500/20 space-y-1">
+                <span className="text-[10px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-wider block">
+                  📜 இன்றைய குறள் சிந்தனை
+                </span>
+                <p className="text-xs font-semibold text-slate-800 dark:text-slate-200 italic leading-relaxed">
+                  "எப்பொருள் யார்யார்வாய்க் கேட்பினும் அப்பொருள் மெய்ப்பொருள் காண்ப தறிவு."
+                </p>
+              </div>
+
+              {/* Featured Column Preview */}
+              <div 
+                onClick={() => onNavigate('/thalaiyangam')}
+                className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800/80 cursor-pointer transition space-y-1 border border-slate-100 dark:border-slate-800"
+              >
+                <span className="text-[10px] font-bold text-red-600 dark:text-red-400 uppercase">தலையங்க கட்டுரை</span>
+                <h4 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white group-hover:text-red-600 dark:group-hover:text-amber-400 transition-colors line-clamp-2 leading-snug">
+                  உள்கட்டமைப்பு திட்டங்களும் மாநிலங்களின் நிதி தன்னாட்சியும் - அமேஸ் டைம்ஸ் தலையங்கம்
+                </h4>
+                <div className="flex items-center justify-between text-[10px] text-slate-400 pt-1">
+                  <span>க. சுப்பிரமணியன் (முதன்மை ஆசிரியர்)</span>
+                  <span className="text-[#0e2a7a] dark:text-amber-400 font-bold flex items-center gap-0.5">
+                    <span>முழு கட்டுரை</span>
+                    <ChevronRight className="w-3 h-3" />
+                  </span>
+                </div>
+              </div>
+
+              {/* Navigation Button */}
+              <button
+                onClick={() => onNavigate('/thalaiyangam')}
+                className="w-full bg-[#0e2a7a] hover:bg-[#0a1f5c] text-white font-bold text-xs py-2.5 rounded-xl shadow transition cursor-pointer flex items-center justify-center gap-1.5"
+              >
+                <PenTool className="w-3.5 h-3.5" />
+                <span>தலையங்கம் பகுதிக்குச் செல்க (Thalaiyangam)</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
 
               {/* 3. Live Climate Radar & Gold Rate Mini-Hub */}
               <div className="bg-gradient-to-br from-[#071330] via-[#0b1e4c] to-[#0e2a7a] text-white rounded-3xl p-5 border border-white/10 shadow-md space-y-3.5">

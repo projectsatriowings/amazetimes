@@ -524,8 +524,21 @@ router.post('/', authenticate, requireReporterOrAdmin, async (req, res) => {
       status = 'published'
     } = req.body;
 
-    if (!title || !title.trim()) {
+        if (!title || !title.trim()) {
       return res.status(400).json({ success: false, message: 'செய்தித் தலைப்பு கட்டாயமானது' });
+    }
+
+    // Anti-duplicate protection: If identical article was published within 15 seconds, return it
+    const duplicateCheck = await query(
+      `SELECT * FROM news WHERE TRIM(LOWER(title)) = TRIM(LOWER($1)) AND category = $2 AND created_at > NOW() - INTERVAL '15 seconds' LIMIT 1;`,
+      [title.trim(), category]
+    );
+    if (duplicateCheck.rows.length > 0) {
+      return res.status(200).json({
+        success: true,
+        data: formatNewsRow(duplicateCheck.rows[0]),
+        message: 'செய்தி ஏற்கனவே சேமிக்கப்பட்டது (Duplicate Prevented)'
+      });
     }
 
     const cleanImage = ensureHttpsUrl(mainImage || image || '/Amaze times.jpg');

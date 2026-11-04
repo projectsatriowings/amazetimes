@@ -90,6 +90,7 @@ export default function ReporterDashboard() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (submitting) return;
     if (!formData.title.trim()) {
       alert('செய்தித் தலைப்பை உள்ளிடவும்');
       return;
