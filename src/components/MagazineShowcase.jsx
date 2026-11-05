@@ -1,7 +1,7 @@
 import React from 'react';
 import { BookOpen, Download, Lock, Sparkles, User } from 'lucide-react';
 
-export default function MagazineShowcase({ onOpenEPaper, onToast, readerUser = null, onOpenAuth }) {
+export default function MagazineShowcase({ onOpenEPaper, onOpenMagazine, onToast, readerUser = null, onOpenAuth }) {
   return (
     <section className="bg-gradient-to-r from-[#0a1945] via-[#0e2a7a] to-[#0a1945] rounded-3xl p-4 sm:p-8 text-white shadow-xl relative overflow-hidden border border-amber-400/20 w-full max-w-full">
       {/* Background Decorative Rings */}
@@ -18,7 +18,8 @@ export default function MagazineShowcase({ onOpenEPaper, onToast, readerUser = n
               if (onOpenAuth) onOpenAuth();
               return;
             }
-            onOpenEPaper();
+            if (onOpenMagazine) onOpenMagazine();
+            else if (onOpenEPaper) onOpenEPaper();
           }}>
             <div className="w-40 sm:w-52 aspect-[3/4] bg-white rounded-2xl shadow-2xl overflow-hidden ring-4 ring-amber-400/40 transform group-hover:-translate-y-2 transition-transform duration-300 relative">
               <img
@@ -94,7 +95,8 @@ export default function MagazineShowcase({ onOpenEPaper, onToast, readerUser = n
                   if (onOpenAuth) onOpenAuth();
                   return;
                 }
-                onOpenEPaper();
+                if (onOpenMagazine) onOpenMagazine();
+            else if (onOpenEPaper) onOpenEPaper();
               }}
               className="bg-red-600 hover:bg-red-700 text-white font-extrabold text-xs sm:text-sm px-5 py-2.5 rounded-xl shadow-lg shadow-red-600/30 transition-all flex items-center gap-2 cursor-pointer hover:scale-105 active:scale-95"
             >

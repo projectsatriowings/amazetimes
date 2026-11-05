@@ -3,7 +3,7 @@ import { BookOpen, Download, Calendar, Sparkles, ChevronRight, FileText } from '
 import { api } from '../services/api';
 import MagazineShowcase from './MagazineShowcase';
 
-export default function MagazineHubSection({ onOpenEPaper, onToast, readerUser = null, onOpenAuth }) {
+export default function MagazineHubSection({ onOpenEPaper, onOpenMagazine, onToast, readerUser = null, onOpenAuth }) {
   const [magazines, setMagazines] = useState([]);
   const [selectedYear, setSelectedYear] = useState('2026');
   const years = ['2026', '2025', '2024', '2023', '2021'];
@@ -25,7 +25,7 @@ export default function MagazineHubSection({ onOpenEPaper, onToast, readerUser =
   return (
     <div className="space-y-6 w-full max-w-[1400px] mx-auto px-2.5 sm:px-4 my-6">
       {/* Primary Showcase Card */}
-      <MagazineShowcase onOpenEPaper={onOpenEPaper} onToast={onToast} readerUser={readerUser} onOpenAuth={onOpenAuth} />
+      <MagazineShowcase onOpenEPaper={onOpenEPaper} onOpenMagazine={onOpenMagazine} onToast={onToast} readerUser={readerUser} onOpenAuth={onOpenAuth} />
 
       {/* Year Archive Filter & Magazine Grid */}
       <div className="bg-[#0b1325] rounded-3xl p-5 sm:p-6 border border-gray-800 shadow-xl space-y-4">
@@ -93,7 +93,8 @@ export default function MagazineHubSection({ onOpenEPaper, onToast, readerUser =
                           if (onOpenAuth) onOpenAuth();
                           return;
                         }
-                        onOpenEPaper();
+                        if (onOpenMagazine) onOpenMagazine();
+                        else if (onOpenEPaper) onOpenEPaper();
                       }}
                       className="flex-1 py-1 px-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500 text-amber-300 hover:text-slate-950 text-[10px] font-bold text-center transition"
                     >

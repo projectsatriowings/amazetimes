@@ -16,6 +16,7 @@ import BlogsView from './components/BlogsView';
 import Footer from './components/Footer';
 import ArticleModal from './components/ArticleModal';
 import EPaperModal from './components/EPaperModal';
+import AmazeTimesViewerModal from './components/amazetimes/AmazeTimesViewerModal';
 import LiveTVModal from './components/LiveTVModal';
 import BookmarksDrawer from './components/BookmarksDrawer';
 import DemoGuideModal from './components/DemoGuideModal';
@@ -385,6 +386,17 @@ export default function App() {
   const [activeDetailArticle, setActiveDetailArticle] = useState(null);
   const [isLoadingDetailArticle, setIsLoadingDetailArticle] = useState(false);
   const [isEPaperOpen, setIsEPaperOpen] = useState(false);
+  const [viewerPublicationType, setViewerPublicationType] = useState('enewspaper');
+
+  const openEPaper = () => {
+    setViewerPublicationType('enewspaper');
+    setIsEPaperOpen(true);
+  };
+
+  const openMagazine = () => {
+    setViewerPublicationType('magazine');
+    setIsEPaperOpen(true);
+  };
   const [isLiveTVOpen, setIsLiveTVOpen] = useState(false);
   const [isDemoGuideOpen, setIsDemoGuideOpen] = useState(false);
   const [isBookmarksOpen, setIsBookmarksOpen] = useState(false);
@@ -1428,9 +1440,10 @@ export default function App() {
 
                 {activeCategory === 'magazine' && (
                   <div className="space-y-6">
-                    <MagazineShowcase onOpenEPaper={() => setIsEPaperOpen(true)} onToast={addToast} readerUser={readerUser} onOpenAuth={() => setIsUserAuthOpen(true)} />
+                    <MagazineShowcase onOpenEPaper={openEPaper} onOpenMagazine={openMagazine} onToast={addToast} readerUser={readerUser} onOpenAuth={() => setIsUserAuthOpen(true)} />
                     <MagazineHubSection
-                      onOpenEPaper={() => setIsEPaperOpen(true)}
+                      onOpenEPaper={openEPaper}
+                      onOpenMagazine={openMagazine}
                       onToast={addToast}
                       readerUser={readerUser}
                       onOpenAuth={() => setIsUserAuthOpen(true)}
@@ -1474,7 +1487,8 @@ export default function App() {
                     <GovernmentBirthdaySection onToast={addToast} />
                     <SpecialDaysFestivalCard onToast={addToast} />
                     <MagazineHubSection
-                      onOpenEPaper={() => setIsEPaperOpen(true)}
+                      onOpenEPaper={openEPaper}
+                      onOpenMagazine={openMagazine}
                       onToast={addToast}
                       readerUser={readerUser}
                       onOpenAuth={() => setIsUserAuthOpen(true)}
@@ -1643,12 +1657,14 @@ export default function App() {
         isLiked={likedArticles.some(a => String(a.id) === String(activeModalArticle?.id))}
       />
 
-      <EPaperModal
+      {/* Amaze Times Digital Magazine & E-Newspaper Interactive Flipbook Reader */}
+      <AmazeTimesViewerModal
         isOpen={isEPaperOpen}
         onClose={() => setIsEPaperOpen(false)}
-        onToast={addToast}
+        initialPublication={viewerPublicationType}
         readerUser={readerUser}
         onOpenAuth={() => setIsUserAuthOpen(true)}
+        onToast={addToast}
       />
 
       <LiveTVModal

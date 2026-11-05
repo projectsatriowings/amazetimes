@@ -216,3 +216,75 @@ nav, .overflow-x-auto {
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
 }
+
+/* =========================================================
+   AMAZE TIMES FLIPBOOK & VIEWER ANIMATIONS
+   ========================================================= */
+@keyframes pageCurlNext {
+  0% {
+    transform: rotateY(0deg);
+    opacity: 1;
+  }
+  50% {
+    transform: rotateY(-18deg) scale(0.98);
+    opacity: 0.85;
+  }
+  100% {
+    transform: rotateY(0deg);
+    opacity: 1;
+  }
+}
+
+@keyframes pageCurlPrev {
+  0% {
+    transform: rotateY(0deg);
+    opacity: 1;
+  }
+  50% {
+    transform: rotateY(18deg) scale(0.98);
+    opacity: 0.85;
+  }
+  100% {
+    transform: rotateY(0deg);
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes scaleUp {
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-pageCurlNext {
+  animation: pageCurlNext 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.animate-pageCurlPrev {
+  animation: pageCurlPrev 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.animate-slideUp {
+  animation: slideUp 0.25s ease-out forwards;
+}
+
+.animate-scaleUp {
+  animation: scaleUp 0.2s ease-out forwards;
+}
+
