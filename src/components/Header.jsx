@@ -245,7 +245,7 @@ export default function Header({
     <>
       {/* 1. TOP UTILITY STRIP */}
       <div className="bg-[#091538] text-slate-100 text-xs py-1.5 px-2.5 sm:px-4 border-b border-white/10 shadow-sm transition-colors w-full relative z-50">
-        <div className="max-w-[1440px] mx-auto flex items-center justify-between gap-2 overflow-x-auto no-scrollbar min-w-0">
+        <div className="max-w-[1440px] mx-auto flex items-center justify-between gap-2 overflow-x-auto md:overflow-visible no-scrollbar min-w-0">
           
           {/* Left: Tamil Date, Clock & Real-time Weather */}
           <div className="flex items-center gap-2 text-slate-300 text-[11px] shrink-0">
@@ -367,16 +367,14 @@ export default function Header({
             {/* Google Reader User Sign-In / Profile - Royal Blue with Yellow Text */}
             <div className="relative shrink-0 z-50" ref={dropdownRef}>
               {readerUser ? (
-                <div>
+                <div className="flex items-center gap-1">
+                  {/* Primary Profile Button -> Opens User Profile Portal Directly on Click */}
                   <button
                     onClick={() => {
-                      if (typeof window !== 'undefined' && window.innerWidth < 768) {
-                        if (onOpenProfileModal) onOpenProfileModal('profile');
-                      } else {
-                        setIsReaderDropdownOpen(!isReaderDropdownOpen);
-                      }
+                      if (onOpenProfileModal) onOpenProfileModal('profile');
                     }}
-                    className="flex items-center gap-1 sm:gap-1.5 bg-[#0e2a7a] hover:bg-[#0a1f5c] text-amber-300 font-extrabold text-[10px] sm:text-[11px] px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-lg border border-blue-400/40 transition-all cursor-pointer shadow-sm shrink-0"
+                    className="flex items-center gap-1.5 bg-[#0e2a7a] hover:bg-[#0a1f5c] text-amber-300 font-extrabold text-[10px] sm:text-[11px] px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-lg border border-blue-400/40 transition-all cursor-pointer shadow-sm hover:scale-102 active:scale-95 shrink-0"
+                    title="முழு சுயவிவரம் மற்றும் அமைப்புகள் (Open Profile & Settings)"
                   >
                     <img
                       src={readerUser.avatar_url || readerUser.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(readerUser.full_name || readerUser.name || 'User')}&background=DC2626&color=fff&size=128&bold=true`}
@@ -384,60 +382,59 @@ export default function Header({
                       className="w-4 h-4 sm:w-5 sm:h-5 rounded-full object-cover ring-1 ring-amber-400 shrink-0"
                     />
                     <span className="font-extrabold max-w-[70px] sm:max-w-[120px] truncate">{readerUser.full_name || readerUser.name}</span>
-                    <ChevronDown className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-amber-300/80 shrink-0 hidden sm:inline" />
+                    <span className="text-[9px] bg-amber-400/20 text-amber-300 border border-amber-400/30 px-1.5 py-0.2 rounded font-sans hidden sm:inline">அமைப்புகள் ⚙️</span>
                   </button>
 
-                  {/* Dropdown Menu (Fixed/Clean on desktop) */}
+                  {/* Dropdown Chevron for Quick Shortcuts */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsReaderDropdownOpen(!isReaderDropdownOpen);
+                    }}
+                    className="p-1 hover:bg-white/10 rounded-md text-amber-300/80 hover:text-amber-300 transition cursor-pointer"
+                    title="விரைவு மெனு (Quick Menu)"
+                  >
+                    <ChevronDown className={`w-3 h-3 sm:w-3.5 sm:h-3.5 transition-transform duration-200 ${isReaderDropdownOpen ? 'rotate-180' : ''}`} />
+                  </button>
+
+                  {/* Unclipped Modern Reader Dropdown Card (Desktop & Tablet) */}
                   {isReaderDropdownOpen && (
-                    <div className="absolute right-0 top-full mt-2 w-72 max-w-[92vw] bg-white dark:bg-[#0c1427] text-slate-800 dark:text-slate-100 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 py-2 z-[9999] animate-in fade-in slide-in-from-top-1 duration-150">
-                      <div className="px-3.5 py-2.5 border-b border-slate-100 dark:border-slate-800/80">
-                        <div className="flex items-center gap-1.5">
-                          <p className="font-extrabold text-xs text-slate-900 dark:text-white truncate">
-                            {readerUser.full_name || readerUser.name}
-                          </p>
-                          <span className="bg-emerald-950/80 text-emerald-400 border border-emerald-600/60 text-[9px] font-bold px-1.5 py-0.2 rounded-full shrink-0">
-                            செயலில்
-                          </span>
+                    <div className="absolute right-0 top-full mt-2 w-80 max-w-[95vw] bg-white dark:bg-[#0c1427] text-slate-800 dark:text-slate-100 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 p-3.5 z-[9999] animate-in fade-in slide-in-from-top-1 duration-150">
+                      
+                      {/* User Header Info */}
+                      <div className="flex items-center gap-3 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/60 dark:border-slate-800">
+                        <img
+                          src={readerUser.avatar_url || readerUser.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(readerUser.full_name || readerUser.name || 'User')}&background=DC2626&color=fff&size=128&bold=true`}
+                          alt={readerUser.full_name || readerUser.name}
+                          className="w-10 h-10 rounded-xl object-cover ring-2 ring-amber-400 shrink-0"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5">
+                            <p className="font-extrabold text-xs text-slate-900 dark:text-white truncate">
+                              {readerUser.full_name || readerUser.name}
+                            </p>
+                            <span className="bg-emerald-950/80 text-emerald-400 border border-emerald-600/60 text-[9px] font-bold px-1.5 py-0.2 rounded-full shrink-0">
+                              செயலில்
+                            </span>
+                          </div>
+                          <p className="text-[10px] text-slate-500 dark:text-slate-400 font-sans truncate">{readerUser.email}</p>
                         </div>
-                        <p className="text-[10px] text-slate-500 dark:text-slate-400 font-sans truncate">{readerUser.email}</p>
                       </div>
 
-                      <div className="py-1">
-                        <button
-                          onClick={() => {
-                            setIsReaderDropdownOpen(false);
-                            if (onOpenProfileModal) onOpenProfileModal('profile');
-                          }}
-                          className="w-full px-3.5 py-2 text-left text-xs font-bold hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2.5 text-slate-700 dark:text-slate-200 cursor-pointer transition"
-                        >
-                          <User className="w-3.5 h-3.5 text-blue-500" />
-                          <span>எனது சுயவிவரம் (My Profile)</span>
-                        </button>
-
-                        <button
-                          onClick={() => {
-                            setIsReaderDropdownOpen(false);
-                            if (onOpenProfileModal) onOpenProfileModal('competitions');
-                          }}
-                          className="w-full px-3.5 py-2 text-left text-xs font-bold hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2.5 text-amber-500 cursor-pointer transition"
-                        >
-                          <Trophy className="w-3.5 h-3.5 text-amber-500" />
-                          <span>என் போட்டிகள் & சான்றிதழ்கள் 🏆</span>
-                        </button>
-
+                      {/* Quick Stats Strip */}
+                      <div className="grid grid-cols-2 gap-2 my-2.5">
                         <button
                           onClick={() => {
                             setIsReaderDropdownOpen(false);
                             if (onOpenProfileModal) onOpenProfileModal('saved');
                             else if (onOpenBookmarks) onOpenBookmarks();
                           }}
-                          className="w-full px-3.5 py-2 text-left text-xs font-bold hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-between text-slate-700 dark:text-slate-200 cursor-pointer transition"
+                          className="flex items-center justify-between p-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 text-left transition cursor-pointer"
                         >
-                          <div className="flex items-center gap-2.5">
-                            <Bookmark className="w-3.5 h-3.5 text-amber-500" />
-                            <span>சேமித்த செய்திகள்</span>
-                          </div>
-                          <span className="bg-amber-400 text-slate-950 font-black text-[10px] px-1.5 py-0.2 rounded-full font-mono">
+                          <span className="text-[10px] font-bold text-amber-500 flex items-center gap-1">
+                            <Bookmark className="w-3 h-3" /> சேமித்தவை
+                          </span>
+                          <span className="text-[10px] font-mono font-black text-amber-500 bg-amber-500/20 px-1.5 py-0.2 rounded-full">
                             {savedBookmarksCount}
                           </span>
                         </button>
@@ -447,15 +444,42 @@ export default function Header({
                             setIsReaderDropdownOpen(false);
                             if (onOpenProfileModal) onOpenProfileModal('liked');
                           }}
-                          className="w-full px-3.5 py-2 text-left text-xs font-bold hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-between text-slate-700 dark:text-slate-200 cursor-pointer transition"
+                          className="flex items-center justify-between p-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-left transition cursor-pointer"
                         >
-                          <div className="flex items-center gap-2.5">
-                            <Heart className="w-3.5 h-3.5 text-rose-500" />
-                            <span>விருப்பமான செய்திகள்</span>
-                          </div>
-                          <span className="bg-rose-500 text-white font-black text-[10px] px-1.5 py-0.2 rounded-full font-mono">
+                          <span className="text-[10px] font-bold text-rose-500 flex items-center gap-1">
+                            <Heart className="w-3 h-3" /> விருப்பங்கள்
+                          </span>
+                          <span className="text-[10px] font-mono font-black text-rose-500 bg-rose-500/20 px-1.5 py-0.2 rounded-full">
                             {likedArticlesCount}
                           </span>
+                        </button>
+                      </div>
+
+                      {/* Primary Action Button: Open Full Profile Portal */}
+                      <button
+                        onClick={() => {
+                          setIsReaderDropdownOpen(false);
+                          if (onOpenProfileModal) onOpenProfileModal('profile');
+                        }}
+                        className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-blue-700 via-indigo-600 to-blue-700 hover:from-blue-600 hover:to-indigo-500 text-white font-extrabold text-xs shadow-md flex items-center justify-center gap-2 transition cursor-pointer mb-2 group"
+                      >
+                        <User className="w-4 h-4 text-amber-300 group-hover:scale-110 transition-transform" />
+                        <span>முழு சுயவிவரம் & அமைப்புகள் போர்டல் ⚙️</span>
+                      </button>
+
+                      {/* Quick Navigation Items */}
+                      <div className="space-y-0.5 border-t border-slate-100 dark:border-slate-800/80 pt-2">
+                        <button
+                          onClick={() => {
+                            setIsReaderDropdownOpen(false);
+                            if (onOpenProfileModal) onOpenProfileModal('competitions');
+                          }}
+                          className="w-full px-3 py-2 text-left text-xs font-bold hover:bg-slate-100 dark:hover:bg-slate-800/80 rounded-xl flex items-center justify-between text-amber-600 dark:text-amber-400 cursor-pointer transition"
+                        >
+                          <span className="flex items-center gap-2">
+                            <Trophy className="w-3.5 h-3.5" /> என் போட்டிகள் & சான்றிதழ்கள்
+                          </span>
+                          <span className="text-[9px] bg-amber-400 text-slate-950 font-black px-1.5 py-0.2 rounded-full">🏆</span>
                         </button>
 
                         <button
@@ -463,10 +487,10 @@ export default function Header({
                             setIsReaderDropdownOpen(false);
                             if (onOpenProfileModal) onOpenProfileModal('history');
                           }}
-                          className="w-full px-3.5 py-2 text-left text-xs font-bold hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2.5 text-slate-700 dark:text-slate-200 cursor-pointer transition"
+                          className="w-full px-3 py-2 text-left text-xs font-bold hover:bg-slate-100 dark:hover:bg-slate-800/80 rounded-xl flex items-center gap-2 text-slate-700 dark:text-slate-300 cursor-pointer transition"
                         >
                           <Clock className="w-3.5 h-3.5 text-indigo-400" />
-                          <span>படித்த வரலாறு (History)</span>
+                          <span>வாசிப்பு வரலாறு (Reading History)</span>
                         </button>
 
                         <button
@@ -474,25 +498,27 @@ export default function Header({
                             setIsReaderDropdownOpen(false);
                             if (onOpenProfileModal) onOpenProfileModal('settings');
                           }}
-                          className="w-full px-3.5 py-2 text-left text-xs font-bold hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2.5 text-slate-700 dark:text-slate-200 cursor-pointer transition"
+                          className="w-full px-3 py-2 text-left text-xs font-bold hover:bg-slate-100 dark:hover:bg-slate-800/80 rounded-xl flex items-center gap-2 text-slate-700 dark:text-slate-300 cursor-pointer transition"
                         >
                           <Sliders className="w-3.5 h-3.5 text-emerald-400" />
-                          <span>செயலி அமைப்புகள் (Settings)</span>
+                          <span>செயலி அமைப்புகள் (App Settings)</span>
                         </button>
                       </div>
 
-                      <div className="border-t border-slate-100 dark:border-slate-800/80 my-1"></div>
+                      {/* Logout Button */}
+                      <div className="border-t border-slate-100 dark:border-slate-800/80 mt-2 pt-2">
+                        <button
+                          onClick={() => {
+                            setIsReaderDropdownOpen(false);
+                            if (onReaderLogout) onReaderLogout();
+                          }}
+                          className="w-full px-3 py-2 text-left text-xs font-bold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-xl flex items-center gap-2 cursor-pointer transition"
+                        >
+                          <LogOut className="w-3.5 h-3.5 text-red-500" />
+                          <span>வெளியேறு (Logout)</span>
+                        </button>
+                      </div>
 
-                      <button
-                        onClick={() => {
-                          setIsReaderDropdownOpen(false);
-                          if (onReaderLogout) onReaderLogout();
-                        }}
-                        className="w-full px-3.5 py-2 text-left text-xs font-bold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 flex items-center gap-2.5 cursor-pointer transition"
-                      >
-                        <LogOut className="w-3.5 h-3.5 text-red-500" />
-                        <span>வெளியேறு (Logout)</span>
-                      </button>
                     </div>
                   )}
                 </div>
