@@ -369,7 +369,13 @@ export default function Header({
               {readerUser ? (
                 <div>
                   <button
-                    onClick={() => setIsReaderDropdownOpen(!isReaderDropdownOpen)}
+                    onClick={() => {
+                      if (typeof window !== 'undefined' && window.innerWidth < 768) {
+                        if (onOpenProfileModal) onOpenProfileModal('profile');
+                      } else {
+                        setIsReaderDropdownOpen(!isReaderDropdownOpen);
+                      }
+                    }}
                     className="flex items-center gap-1 sm:gap-1.5 bg-[#0e2a7a] hover:bg-[#0a1f5c] text-amber-300 font-extrabold text-[10px] sm:text-[11px] px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-lg border border-blue-400/40 transition-all cursor-pointer shadow-sm shrink-0"
                   >
                     <img
@@ -378,12 +384,12 @@ export default function Header({
                       className="w-4 h-4 sm:w-5 sm:h-5 rounded-full object-cover ring-1 ring-amber-400 shrink-0"
                     />
                     <span className="font-extrabold max-w-[70px] sm:max-w-[120px] truncate">{readerUser.full_name || readerUser.name}</span>
-                    <ChevronDown className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-amber-300/80 shrink-0" />
+                    <ChevronDown className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-amber-300/80 shrink-0 hidden sm:inline" />
                   </button>
 
-                  {/* Dropdown Menu */}
+                  {/* Dropdown Menu (Fixed/Clean on desktop) */}
                   {isReaderDropdownOpen && (
-                    <div className="absolute right-0 top-full mt-2 w-64 bg-white dark:bg-[#0c1427] text-slate-800 dark:text-slate-100 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 py-2 z-[9999] animate-in fade-in slide-in-from-top-1 duration-150">
+                    <div className="absolute right-0 top-full mt-2 w-72 max-w-[92vw] bg-white dark:bg-[#0c1427] text-slate-800 dark:text-slate-100 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 py-2 z-[9999] animate-in fade-in slide-in-from-top-1 duration-150">
                       <div className="px-3.5 py-2.5 border-b border-slate-100 dark:border-slate-800/80">
                         <div className="flex items-center gap-1.5">
                           <p className="font-extrabold text-xs text-slate-900 dark:text-white truncate">
@@ -406,6 +412,17 @@ export default function Header({
                         >
                           <User className="w-3.5 h-3.5 text-blue-500" />
                           <span>எனது சுயவிவரம் (My Profile)</span>
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            setIsReaderDropdownOpen(false);
+                            if (onOpenProfileModal) onOpenProfileModal('competitions');
+                          }}
+                          className="w-full px-3.5 py-2 text-left text-xs font-bold hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2.5 text-amber-500 cursor-pointer transition"
+                        >
+                          <Trophy className="w-3.5 h-3.5 text-amber-500" />
+                          <span>என் போட்டிகள் & சான்றிதழ்கள் 🏆</span>
                         </button>
 
                         <button
@@ -455,12 +472,12 @@ export default function Header({
                         <button
                           onClick={() => {
                             setIsReaderDropdownOpen(false);
-                            if (onOpenProfileModal) onOpenProfileModal('preferences');
+                            if (onOpenProfileModal) onOpenProfileModal('settings');
                           }}
                           className="w-full px-3.5 py-2 text-left text-xs font-bold hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2.5 text-slate-700 dark:text-slate-200 cursor-pointer transition"
                         >
                           <Sliders className="w-3.5 h-3.5 text-emerald-400" />
-                          <span>வாசகர் விருப்பங்கள்</span>
+                          <span>செயலி அமைப்புகள் (Settings)</span>
                         </button>
                       </div>
 

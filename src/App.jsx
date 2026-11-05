@@ -59,6 +59,7 @@ import { AdminDashboard } from './pages/AdminDashboard';
 import { AdminErrorBoundary } from './components/admin/AdminErrorBoundary';
 import UserAuthModal from './components/modals/UserAuthModal';
 import UserProfileModal from './components/modals/UserProfileModal';
+import MobileAppBottomNav from './components/MobileAppBottomNav';
 
 import { api, getCurrentUser, setCurrentUser as persistCurrentUser, setToken, getReaderUser, setReaderUser } from './services/api';
 import { shortsStories as fallbackShorts } from './data/newsData';
@@ -1798,6 +1799,19 @@ export default function App() {
 
       {/* Breaking News Push Notification Permission Prompt */}
       <PushNotificationPrompt />
+
+      {/* Native App-Style Mobile Bottom Navigation Bar */}
+      <MobileAppBottomNav
+        currentPath={currentPath}
+        activeCategory={activeCategory}
+        onSelectCategory={handleSelectCategory}
+        onNavigate={navigateTo}
+        onOpenBookmarks={() => setIsBookmarksOpen(true)}
+        savedBookmarksCount={savedBookmarks.length}
+        readerUser={readerUser}
+        onOpenProfileModal={handleOpenProfileModal}
+        onOpenUserAuth={() => setIsUserAuthOpen(true)}
+      />
 
       {/* Dynamic Toast Container */}
       <Toast toasts={toasts} onRemoveToast={removeToast} />
