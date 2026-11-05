@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Newspaper, X, Download, ZoomIn, ZoomOut, Calendar, ChevronLeft, ChevronRight, Lock, Eye } from 'lucide-react';
+import { Newspaper, X, Download, ZoomIn, ZoomOut, Calendar, ChevronLeft, ChevronRight, Lock, Eye, User, Sparkles, ShieldCheck } from 'lucide-react';
 import { api } from '../services/api';
 
-export default function EPaperModal({ isOpen, onClose, onToast }) {
+export default function EPaperModal({ isOpen, onClose, onToast, readerUser = null, onOpenAuth }) {
   if (!isOpen) return null;
 
   const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().split('T')[0]);
@@ -26,6 +26,11 @@ export default function EPaperModal({ isOpen, onClose, onToast }) {
   const handleZoomOut = () => setZoomScale(prev => Math.max(prev - 0.25, 0.75));
 
   const handleDownload = () => {
+    if (!readerUser) {
+      if (onToast) onToast('இ-பேப்பர் முழு PDF பதிவிறக்கம் செய்ய வாசகராக உள்நுழையவும்!', 'info');
+      if (onOpenAuth) onOpenAuth();
+      return;
+    }
     if (onToast) onToast('இ-பேப்பர் முழுமையான பதிப்பு (14 MB) பதிவிறக்கம் தொடங்குகிறது...');
     const link = document.createElement('a');
     link.href = '/Amaze times.jpg';
@@ -126,7 +131,14 @@ export default function EPaperModal({ isOpen, onClose, onToast }) {
               பக்கம் <span className="text-red-600 dark:text-amber-400">{currentPage}</span> / {totalPages}
             </span>
             <button
-              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+              onClick={() => {
+                if (!readerUser) {
+                  if (onToast) onToast('அனைத்து 16 பக்கங்களை வாசிக்க வாசகராக உள்நுழையவும்!', 'info');
+                  if (onOpenAuth) onOpenAuth();
+                  return;
+                }
+                setCurrentPage(prev => Math.min(prev + 1, totalPages));
+              }}
               disabled={currentPage === totalPages}
               className="p-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 disabled:opacity-40 cursor-pointer"
             >
@@ -137,16 +149,56 @@ export default function EPaperModal({ isOpen, onClose, onToast }) {
           {/* Download Button */}
           <button
             onClick={handleDownload}
-            className="bg-red-600 hover:bg-red-700 text-white font-black text-xs px-3.5 py-1.5 rounded-xl shadow-xs flex items-center gap-1.5 transition-all cursor-pointer"
+            className={`font-black text-xs px-3.5 py-1.5 rounded-xl shadow-xs flex items-center gap-1.5 transition-all cursor-pointer ${
+              readerUser
+                ? 'bg-red-600 hover:bg-red-700 text-white'
+                : 'bg-amber-500 hover:bg-amber-400 text-slate-950'
+            }`}
           >
-            <Download className="w-3.5 h-3.5" />
-            <span>PDF பதிவிறக்கம் (14 MB)</span>
+            {readerUser ? <Download className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
+            <span>{readerUser ? 'PDF பதிவிறக்கம் (14 MB)' : '🔒 PDF பெற உள்நுழைக'}</span>
           </button>
 
         </div>
 
         {/* Newspaper Page Canvas Viewer (Zoomable with DRM Protection) */}
-        <div className="flex-1 overflow-auto p-4 sm:p-6 bg-slate-200 dark:bg-slate-950 flex justify-center items-start">
+        <div className="flex-1 overflow-auto p-4 sm:p-6 bg-slate-200 dark:bg-slate-950 flex justify-center items-start relative">
+          {/* Guest VIP Gate Overlay */}
+          {!readerUser && (
+            <div className="absolute inset-0 z-30 bg-slate-950/75 backdrop-blur-md flex flex-col items-center justify-center p-4 text-center">
+              <div className="max-w-md w-full bg-gradient-to-b from-[#0c1633] to-[#070b18] p-6 sm:p-8 rounded-3xl border-2 border-amber-400/40 shadow-2xl space-y-4 text-white animate-in zoom-in-95 duration-200">
+                <div className="w-16 h-16 rounded-3xl bg-gradient-to-tr from-amber-500 to-amber-300 text-slate-950 flex items-center justify-center mx-auto shadow-lg shadow-amber-500/20">
+                  <Lock className="w-8 h-8 text-slate-950" />
+                </div>
+                <div>
+                  <span className="bg-amber-400 text-slate-950 text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                    பதிவு செய்த வாசகர் சேவை
+                  </span>
+                  <h4 className="text-xl sm:text-2xl font-black text-white mt-2">
+                    தினசரி டிஜிட்டல் நாளிதழ் (E-Paper)
+                  </h4>
+                  <p className="text-xs sm:text-sm text-slate-300 mt-2 leading-relaxed">
+                    அனைத்து 16 பக்கங்கள், முந்தைய பதிப்புகள் & முழுமையான அச்சு நாளிதழ் PDF பதிவிறக்கம் செய்ய அமேஸ் டைம்ஸில் இலவசமாக உள்நுழையவும்.
+                  </p>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-[11px] font-semibold text-slate-300 bg-slate-900/60 p-3 rounded-2xl border border-slate-800 text-left">
+                  <div className="flex items-center gap-1.5"><span className="text-amber-400 font-bold">✓</span> 16 முழு வண்ணப் பக்கங்கள்</div>
+                  <div className="flex items-center gap-1.5"><span className="text-amber-400 font-bold">✓</span> ஆஃப்லைன் PDF பதிவிறக்கம்</div>
+                  <div className="flex items-center gap-1.5"><span className="text-amber-400 font-bold">✓</span> காப்பக நாளிதழ்கள்</div>
+                  <div className="flex items-center gap-1.5"><span className="text-amber-400 font-bold">✓</span> மொபைல் & டேப்லெட் ரீடர்</div>
+                </div>
+                <button
+                  onClick={() => {
+                    if (onOpenAuth) onOpenAuth();
+                  }}
+                  className="w-full py-3 px-4 rounded-2xl bg-gradient-to-r from-red-600 via-rose-600 to-red-600 hover:from-red-500 hover:to-rose-500 text-white font-black text-sm shadow-xl shadow-red-600/30 flex items-center justify-center gap-2 transition hover:scale-102 active:scale-95 cursor-pointer"
+                >
+                  <User className="w-4 h-4" />
+                  <span>இலவசமாக உள்நுழையவும் (Sign in to Read)</span>
+                </button>
+              </div>
+            </div>
+          )}
           <div 
             className="transition-transform duration-200 origin-top shadow-2xl rounded-2xl overflow-hidden bg-white max-w-3xl w-full border border-slate-300"
             style={{ transform: `scale(${zoomScale})` }}

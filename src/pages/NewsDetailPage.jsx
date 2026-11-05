@@ -34,7 +34,10 @@ import {
   BarChart3,
   CheckCircle2,
   Wind,
-  Droplets
+  Droplets,
+  Lock,
+  User,
+  Send
 } from 'lucide-react';
 import VoiceReaderPlayer from '../components/VoiceReaderPlayer';
 import { generateArticleUrl, getCategoryKey } from '../utils/slugUtils';
@@ -50,7 +53,9 @@ export default function NewsDetailPage({
   onToggleLike,
   isLiked = false,
   onToast = () => {},
-  onOpenEPaper = () => {}
+  onOpenEPaper = () => {},
+  readerUser = null,
+  onOpenAuth = () => {}
 }) {
   const [scrollProgress, setScrollProgress] = useState(0);
   const [copied, setCopied] = useState(false);
@@ -96,6 +101,79 @@ export default function NewsDetailPage({
     }
     return { fire: 0, insight: 0, heart: 0, surprise: 0, sad: 0 };
   });
+
+  // Reader Interactive Comments Forum
+  const [comments, setComments] = useState(() => {
+    try {
+      const saved = localStorage.getItem(`comments_${article?.id}`);
+      if (saved) return JSON.parse(saved);
+    } catch (_) {}
+    return [
+      {
+        id: '1',
+        name: 'கார்த்திகேயன் M',
+        avatar: '',
+        text: 'மிகவும் அவசியமான செய்தி! அமேஸ் டைம்ஸின் துல்லியமான தகவல்களுக்கு வாழ்த்துகள்.',
+        time: '15 நிமிடங்களுக்கு முன்',
+        likes: 12,
+        isLiked: false
+      },
+      {
+        id: '2',
+        name: 'பிரியா சுந்தர்',
+        avatar: '',
+        text: 'இந்த திட்டத்தால் இளைஞர்களுக்கு நல்ல வேலைவாய்ப்பு கிடைக்கும் என நம்புகிறேன்.',
+        time: '1 மணி நேரத்திற்கு முன்',
+        likes: 8,
+        isLiked: false
+      }
+    ];
+  });
+  const [newCommentText, setNewCommentText] = useState('');
+
+  const handleAddComment = (e) => {
+    e.preventDefault();
+    if (!newCommentText.trim()) return;
+    if (!readerUser) {
+      if (onToast) onToast('கருத்துக்களைப் பகிர அமேஸ் டைம்ஸ் வாசகராக உள்நுழையவும்!', 'info');
+      if (onOpenAuth) onOpenAuth();
+      return;
+    }
+    const commentObj = {
+      id: String(Date.now()),
+      name: readerUser.full_name || readerUser.name || 'அன்பு வாசகர்',
+      avatar: readerUser.avatar_url || readerUser.avatar || '',
+      text: newCommentText.trim(),
+      time: 'சற்று முன்',
+      likes: 1,
+      isLiked: true
+    };
+    const updated = [commentObj, ...comments];
+    setComments(updated);
+    try {
+      localStorage.setItem(`comments_${article?.id}`, JSON.stringify(updated));
+    } catch (_) {}
+    setNewCommentText('');
+    if (onToast) onToast('உங்கள் கருத்து வெற்றிகரமாக பகிரப்பட்டது! +5 வாசகர் புள்ளிகள்.', 'success');
+  };
+
+  const handleLikeComment = (commentId) => {
+    if (!readerUser) {
+      if (onToast) onToast('கருத்தை விரும்ப அமேஸ் டைம்ஸ் வாசகராக உள்நுழையவும்!', 'info');
+      if (onOpenAuth) onOpenAuth();
+      return;
+    }
+    setComments(prev => prev.map(c => {
+      if (c.id === commentId) {
+        return {
+          ...c,
+          likes: c.isLiked ? c.likes - 1 : c.likes + 1,
+          isLiked: !c.isLiked
+        };
+      }
+      return c;
+    }));
+  };
 
   // Real views and likes count states synced with database
   const [realViews, setRealViews] = useState(
@@ -245,6 +323,11 @@ export default function NewsDetailPage({
   };
 
   const handleReaction = async (type) => {
+    if (!readerUser) {
+      if (onToast) onToast('உங்கள் உணர்வைப் பதிவு செய்ய அமேஸ் டைம்ஸ் வாசகராக உள்நுழையவும்!', 'info');
+      if (onOpenAuth) onOpenAuth();
+      return;
+    }
     if (!article?.id) return;
     const prevActive = activeReaction;
     const isTogglingOff = (prevActive === type);
@@ -292,6 +375,11 @@ export default function NewsDetailPage({
   };
 
   const handleVotePoll = (choice) => {
+    if (!readerUser) {
+      if (onToast) onToast('கருத்துக் கணிப்பில் வாக்களிக்க வாசகராக உள்நுழையவும்!', 'info');
+      if (onOpenAuth) onOpenAuth();
+      return;
+    }
     if (pollVoted) return;
     setPollCounts(prev => ({
       ...prev,
@@ -659,6 +747,135 @@ export default function NewsDetailPage({
                 <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
                   நம்பகமான, நடுநிலையான மற்றும் துல்லியமான செய்திகளை 24 மணி நேரமும் உடனுக்குடன் வழங்கிவரும் அமேஸ் டைம்ஸ் ஆசிரியர் குழு. மத்திய அரசு பதிவு எண்: 2023/88656.
                 </p>
+              </div>
+            </div>
+
+            {/* 6. READER COMMUNITY COMMENTS & DISCUSSION FORUM */}
+            <div className="bg-white dark:bg-[#0c1427] rounded-3xl p-5 sm:p-6 border border-slate-200 dark:border-slate-800 shadow-md space-y-5">
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800/80 pb-3">
+                <div className="flex items-center gap-2.5">
+                  <span className="p-2 bg-red-600/10 text-red-600 rounded-xl">
+                    <MessageCircle className="w-5 h-5" />
+                  </span>
+                  <div>
+                    <h3 className="font-title font-black text-base text-slate-900 dark:text-white">
+                      வாசகர் கருத்துக்களம் (Reader Comments)
+                    </h3>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                      உங்கள் கருத்துக்களை நாகரிகமாகப் பகிர்ந்து உரையாடுங்கள்
+                    </p>
+                  </div>
+                </div>
+                <span className="bg-red-600 text-white font-black text-xs px-2.5 py-0.5 rounded-full font-mono">
+                  {comments.length}
+                </span>
+              </div>
+
+              {/* Add Comment Input Box */}
+              {readerUser ? (
+                <form onSubmit={handleAddComment} className="space-y-3">
+                  <div className="flex items-start gap-3">
+                    <img
+                      src={readerUser.avatar_url || readerUser.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(readerUser.full_name || readerUser.name || 'User')}&background=0E2A7A&color=fff&size=128&bold=true`}
+                      alt={readerUser.full_name || readerUser.name}
+                      className="w-10 h-10 rounded-full object-cover ring-2 ring-amber-400 shrink-0 mt-1"
+                    />
+                    <div className="flex-1 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-slate-900 dark:text-white">
+                          {readerUser.full_name || readerUser.name}
+                        </span>
+                        <span className="text-[9px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.2 rounded font-bold">
+                          உள்நுழைந்த வாசகர் ✓
+                        </span>
+                      </div>
+                      <textarea
+                        value={newCommentText}
+                        onChange={(e) => setNewCommentText(e.target.value)}
+                        placeholder="இச்செய்தி குறித்த உங்கள் ஆரோக்கியமான கருத்தை எழுதுங்கள்..."
+                        rows={3}
+                        className="w-full bg-slate-50 dark:bg-slate-900/80 border border-slate-300 dark:border-slate-700 rounded-2xl p-3 text-xs sm:text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none font-body"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between sm:pl-13">
+                    <span className="text-[10px] text-slate-400">கருத்துப் பதிவிற்கு +5 வாசகர் புள்ளிகள்</span>
+                    <button
+                      type="submit"
+                      disabled={!newCommentText.trim()}
+                      className="bg-red-600 hover:bg-red-700 disabled:opacity-40 text-white font-extrabold text-xs px-5 py-2 rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-sm hover:scale-105 active:scale-95"
+                    >
+                      <Send className="w-3.5 h-3.5" />
+                      <span>கருத்து அனுப்பு</span>
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-500/10 via-red-500/10 to-amber-500/10 border border-amber-500/30 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-amber-400 text-slate-950 flex items-center justify-center font-bold shrink-0">
+                      <Lock className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">
+                        கருத்துக்களைப் பகிர அமேஸ் டைம்ஸ் வாசகராக உள்நுழையவும்!
+                      </h4>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                        சக வாசகர்களுடன் விவாதிக்க மற்றும் உரையாட Google மூலம் உடனடியாக உள்நுழையுங்கள்.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={onOpenAuth}
+                    className="bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs px-4 py-2 rounded-xl shadow transition shrink-0 cursor-pointer hover:scale-105 active:scale-95"
+                  >
+                    இலவசமாக உள்நுழைக
+                  </button>
+                </div>
+              )}
+
+              {/* Comments List */}
+              <div className="space-y-3 pt-2">
+                {comments.map((c) => (
+                  <div
+                    key={c.id}
+                    className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800 space-y-2 transition hover:border-slate-300 dark:hover:border-slate-700"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-full bg-[#0e2a7a] text-amber-300 font-bold text-xs flex items-center justify-center shadow-xs overflow-hidden">
+                          {c.avatar ? (
+                            <img src={c.avatar} alt={c.name} className="w-full h-full object-cover" />
+                          ) : (
+                            c.name?.[0] || 'வ'
+                          )}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-bold text-xs text-slate-900 dark:text-white">{c.name}</span>
+                            <span className="text-[9px] bg-blue-500/10 text-blue-400 border border-blue-400/20 px-1 py-0.2 rounded font-sans">வாசகர்</span>
+                          </div>
+                          <span className="text-[10px] text-slate-400">{c.time}</span>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => handleLikeComment(c.id)}
+                        className={`flex items-center gap-1 text-[11px] font-bold px-2 py-1 rounded-lg border transition cursor-pointer ${
+                          c.isLiked
+                            ? 'bg-rose-500/20 text-rose-500 border-rose-500/30'
+                            : 'text-slate-400 hover:text-slate-200 bg-slate-100 dark:bg-slate-800 border-transparent'
+                        }`}
+                        title="கருத்தை விரும்பு"
+                      >
+                        <Heart className={`w-3.5 h-3.5 ${c.isLiked ? 'fill-rose-500 text-rose-500' : ''}`} />
+                        <span>{c.likes}</span>
+                      </button>
+                    </div>
+                    <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed font-body sm:pl-10.5">
+                      {c.text}
+                    </p>
+                  </div>
+                ))}
               </div>
             </div>
 

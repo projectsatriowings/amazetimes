@@ -28,7 +28,9 @@ import {
   MapPin,
   Bell,
   Download,
-  Share2
+  Share2,
+  ChevronRight,
+  Send
 } from 'lucide-react';
 import { api, setToken, setReaderUser } from '../../services/api';
 
@@ -147,6 +149,64 @@ export default function UserProfileModal({
     }
   };
 
+  // Reader Club Tier & Engagement Engine
+  const readerPoints = 50 + (savedBookmarks.length * 10) + (likedArticles.length * 10) + (readingHistory.length * 5) + (userApplications.length * 50);
+  const getReaderTier = (pts) => {
+    if (pts >= 300) return { name: 'முதன்மை வாசகர் (Champion)', badge: '🥇', level: 'VIP Tier 4', color: 'text-amber-400 bg-amber-500/20 border-amber-400/40' };
+    if (pts >= 150) return { name: 'செயல்மிகு வாசகர் (Gold)', badge: '🥈', level: 'Tier 3', color: 'text-emerald-400 bg-emerald-500/20 border-emerald-400/40' };
+    if (pts >= 80) return { name: 'தொடர் வாசகர் (Active)', badge: '🥉', level: 'Tier 2', color: 'text-blue-400 bg-blue-500/20 border-blue-400/40' };
+    return { name: 'புதிய வாசகர் (Member)', badge: '🌟', level: 'Tier 1', color: 'text-indigo-400 bg-indigo-500/20 border-indigo-400/40' };
+  };
+  const tier = getReaderTier(readerPoints);
+
+  // Reader Submissions State (Citizen Journalist)
+  const [submissions, setSubmissions] = useState(() => {
+    try {
+      const saved = localStorage.getItem(`user_submissions_${readerUser?.id || readerUser?.email}`);
+      if (saved) return JSON.parse(saved);
+    } catch (_) {}
+    return [
+      {
+        id: 'sub-1',
+        title: 'நமது ஊர் ஏரிகளை காப்போம் - விழிப்புணர்வு பார்வை',
+        category: 'தலையங்கம் பார்வை',
+        status: 'under_review',
+        date: 'நேற்று',
+        content: 'கிராமப்புற நீர்நிலைகள் பாதுகாப்பு குறித்து வாசகர் பார்வை.'
+      }
+    ];
+  });
+  const [subForm, setSubForm] = useState({ title: '', category: 'சிறுகதை', content: '' });
+  const [submittingArticle, setSubmittingArticle] = useState(false);
+
+  const handleArticleSubmit = async (e) => {
+    e.preventDefault();
+    if (!subForm.title.trim() || !subForm.content.trim()) return;
+    setSubmittingArticle(true);
+    try {
+      const newSub = {
+        id: `sub-${Date.now()}`,
+        title: subForm.title.trim(),
+        category: subForm.category,
+        content: subForm.content.trim(),
+        author: readerUser.full_name || readerUser.name,
+        email: readerUser.email,
+        date: 'இன்று',
+        status: 'under_review'
+      };
+      const updated = [newSub, ...submissions];
+      setSubmissions(updated);
+      try {
+        localStorage.setItem(`user_submissions_${readerUser?.id || readerUser?.email}`, JSON.stringify(updated));
+      } catch (_) {}
+      setSubForm({ title: '', category: 'சிறுகதை', content: '' });
+      if (onToast) onToast('உங்கள் படைப்பு வெற்றிகரமாக சமர்ப்பிக்கப்பட்டது! ஆசிரியர் குழு பரிசீலித்து வெளியிடும்.', 'success');
+    } catch (_) {}
+    finally {
+      setSubmittingArticle(false);
+    }
+  };
+
   if (!isOpen || !readerUser) return null;
 
   // Handle Profile Update
@@ -250,9 +310,14 @@ export default function UserProfileModal({
               </span>
             </div>
             <p className="text-[11px] sm:text-xs text-slate-400 font-sans truncate">{readerUser.email}</p>
-            <div className="flex items-center gap-2 mt-0.5">
+            <div className="flex items-center gap-2 mt-0.5 flex-wrap">
               <span className="inline-block bg-[#0e2a7a]/80 text-amber-300 text-[10px] font-bold px-2 py-0.2 rounded border border-amber-400/30">
                 {readerUser.role === 'admin' ? 'முதன்மை நிர்வாகி' : readerUser.role === 'reporter' ? 'செய்தியாளர்' : 'பதிவு செய்த வாசகர்'}
+              </span>
+              <span className={`text-[10px] font-black px-2 py-0.2 rounded-full border flex items-center gap-1 ${tier.color}`}>
+                <span>{tier.badge}</span>
+                <span>{tier.name}</span>
+                <span className="font-mono">({readerPoints} pts)</span>
               </span>
               {profileData.preferredDistrict && (
                 <span className="text-[10px] text-slate-300 flex items-center gap-0.5">
@@ -337,6 +402,19 @@ export default function UserProfileModal({
           >
             <Clock className="w-3.5 h-3.5 text-emerald-400" />
             <span>வரலாறு ({readingHistory.length})</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('submissions')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold transition whitespace-nowrap cursor-pointer ${
+              activeTab === 'submissions'
+                ? 'bg-[#0e2a7a] text-amber-300 border border-amber-400/50 shadow-md'
+                : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+            }`}
+          >
+            <PenTool className="w-3.5 h-3.5 text-amber-400" />
+            <span>என் படைப்புகள் ({submissions.length})</span>
           </button>
 
           <button
@@ -691,6 +769,131 @@ export default function UserProfileModal({
                   ))}
                 </div>
               )}
+            </div>
+          )}
+
+          {/* ============================================================== */}
+          {/* TAB: CITIZEN WRITER & MY SUBMISSIONS                           */}
+          {/* ============================================================== */}
+          {activeTab === 'submissions' && (
+            <div className="space-y-5 animate-in fade-in duration-200">
+              
+              {/* Writer Header Banner */}
+              <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-500/15 via-blue-500/10 to-indigo-500/15 border border-amber-400/30 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-400 to-amber-600 text-slate-950 flex items-center justify-center font-bold shadow-md shrink-0">
+                    <PenTool className="w-5 h-5 text-slate-950" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-black text-white">
+                      அமேஸ் டைம்ஸ் வாசகர் எழுத்து மேடை (Citizen Journalism)
+                    </h4>
+                    <p className="text-[11px] text-slate-300">
+                      உங்கள் சிறுகதைகள், கவிதைகள், தலையங்கப் பார்வைகளை நேரடியாக ஆசிரியருக்கு அனுப்புங்கள்.
+                    </p>
+                  </div>
+                </div>
+                <span className="text-[10px] font-black bg-amber-400 text-slate-950 px-2 py-0.5 rounded-full shrink-0">
+                  +50 புள்ளிகள்
+                </span>
+              </div>
+
+              {/* Submission Form */}
+              <form onSubmit={handleArticleSubmit} className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 sm:p-5 space-y-4">
+                <h4 className="text-xs font-black text-amber-300 uppercase tracking-wide flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>புதிய படைப்பைச் சமர்ப்பிக்க:</span>
+                </h4>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-slate-300">படைப்பின் தலைப்பு *</label>
+                    <input
+                      type="text"
+                      required
+                      value={subForm.title}
+                      onChange={(e) => setSubForm(prev => ({ ...prev, title: e.target.value }))}
+                      placeholder="எ.கா: ஊருக்குள் ஒரு புதிய வெளிச்சம்"
+                      className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-amber-400"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-slate-300">பிரிவு *</label>
+                    <select
+                      value={subForm.category}
+                      onChange={(e) => setSubForm(prev => ({ ...prev, category: e.target.value }))}
+                      className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-amber-400"
+                    >
+                      <option value="சிறுகதை">சிறுகதை (Short Story)</option>
+                      <option value="கவிதை">கவிதை (Poem)</option>
+                      <option value="தலையங்கம் பார்வை">தலையங்கம் பார்வை (Editorial View)</option>
+                      <option value="உள்ளூர் செய்தி">உள்ளூர் செய்தி / சமூகப் பிரச்சனை</option>
+                      <option value="கட்டுரை">பொதுக் கட்டுரை</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[11px] font-bold text-slate-300">படைப்பின் முழு விவரம் *</label>
+                  <textarea
+                    required
+                    rows={4}
+                    value={subForm.content}
+                    onChange={(e) => setSubForm(prev => ({ ...prev, content: e.target.value }))}
+                    placeholder="உங்கள் கதை, கவிதை அல்லது கருத்துக்களை தெளிவாக இங்கே எழுதவும்..."
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-amber-400 resize-none font-body leading-relaxed"
+                  />
+                </div>
+
+                <div className="flex items-center justify-between pt-1">
+                  <span className="text-[10px] text-slate-400">ஆசிரியர் குழு சரிபார்த்து 'வலைப்பதிவுகள்' அல்லது 'தலையங்கம்' பகுதியில் வெளியிடும்.</span>
+                  <button
+                    type="submit"
+                    disabled={submittingArticle || !subForm.title.trim() || !subForm.content.trim()}
+                    className="bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white font-extrabold text-xs px-5 py-2.5 rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-md hover:scale-105 active:scale-95"
+                  >
+                    <Send className="w-3.5 h-3.5" />
+                    <span>{submittingArticle ? 'அனுப்பப்படுகிறது...' : 'ஆசிரியருக்கு அனுப்பு'}</span>
+                  </button>
+                </div>
+              </form>
+
+              {/* Submissions History List */}
+              <div className="space-y-3">
+                <h4 className="text-xs font-black text-slate-300 uppercase tracking-wide flex items-center justify-between">
+                  <span>என் சமர்ப்பிப்புகள் & ஆசிரியர் நிலை ({submissions.length})</span>
+                </h4>
+
+                <div className="space-y-2">
+                  {submissions.map((sub) => (
+                    <div
+                      key={sub.id}
+                      className="bg-slate-900/70 border border-slate-800 rounded-xl p-3.5 space-y-2 hover:border-slate-700 transition"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h5 className="font-bold text-xs text-white">{sub.title}</h5>
+                            <span className="text-[9px] bg-slate-800 text-amber-300 px-2 py-0.2 rounded border border-slate-700">
+                              {sub.category}
+                            </span>
+                          </div>
+                          <span className="text-[10px] text-slate-400">தேதி: {sub.date}</span>
+                        </div>
+                        <span className="bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          <span>ஆசிரியர் பரிசீலனையில் ⏳</span>
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-300 line-clamp-2 italic font-body">
+                        "{sub.content}"
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
             </div>
           )}
 

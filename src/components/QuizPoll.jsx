@@ -1,23 +1,33 @@
 import React, { useState } from 'react';
-import { HelpCircle, CheckCircle2, Vote, Sparkles, XCircle } from 'lucide-react';
+import { HelpCircle, CheckCircle2, Vote, Sparkles, XCircle, Lock } from 'lucide-react';
 
-export default function QuizPoll({ onToast }) {
+export default function QuizPoll({ onToast, readerUser = null, onOpenAuth }) {
   const [pollVoted, setPollVoted] = useState(false);
   const [votedPercent, setVotedPercent] = useState(null);
   const [quizAnswered, setQuizAnswered] = useState(false);
   const [quizCorrect, setQuizCorrect] = useState(false);
 
   const handleVote = (percent) => {
+    if (!readerUser) {
+      if (onToast) onToast('🗳️ கருத்துக் கணிப்பில் வாக்களிக்க வாசகராக உள்நுழையவும்!', 'info');
+      if (onOpenAuth) onOpenAuth();
+      return;
+    }
     setPollVoted(true);
     setVotedPercent(percent);
-    onToast('வாக்களித்ததற்கு நன்றி!', 'check');
+    onToast('வாக்களித்ததற்கு நன்றி! +10 வாசகர் புள்ளிகள் சேர்க்கப்பட்டது.', 'check');
   };
 
   const handleQuiz = (isCorrect) => {
+    if (!readerUser) {
+      if (onToast) onToast('🎯 வினாடி வினாவில் பங்கேற்க வாசகராக உள்நுழையவும்!', 'info');
+      if (onOpenAuth) onOpenAuth();
+      return;
+    }
     setQuizAnswered(true);
     setQuizCorrect(isCorrect);
     if (isCorrect) {
-      onToast('சரியான விடை! +10 மதிப்பெண்கள்.', 'check');
+      onToast('சரியான விடை! +10 வாசகர் புள்ளிகள் சேர்க்கப்பட்டது.', 'check');
     } else {
       onToast('தவறான விடை. மீண்டும் முயற்சிக்கவும்.', 'error');
     }

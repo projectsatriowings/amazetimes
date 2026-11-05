@@ -17,13 +17,16 @@ import {
   Sparkles,
   WifiOff,
   Radio,
-  Loader2
+  Loader2,
+  Lock,
+  User
 } from 'lucide-react';
 import {
   normalizeTamilForSpeech,
   normalizeTamilSpeech,
   chunkTamilText
 } from '../utils/tamilSpeechNormalizer';
+import { getReaderUser } from '../services/api';
 
 const API_BASE = import.meta.env.VITE_API_URL
   ? import.meta.env.VITE_API_URL.replace(/\/$/, '')
@@ -51,10 +54,14 @@ const VoiceReaderPlayer = forwardRef(function VoiceReaderPlayer(
     title = '',
     autoPlay = false,
     onPlayStateChange,
-    className = ''
+    className = '',
+    readerUser: propReaderUser,
+    onOpenAuth
   },
   ref
 ) {
+  const activeUser = propReaderUser || getReaderUser();
+
   // State
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -324,6 +331,15 @@ const VoiceReaderPlayer = forwardRef(function VoiceReaderPlayer(
 
   // Master Play handler
   const handlePlay = useCallback(() => {
+    const currentUser = propReaderUser || getReaderUser();
+    if (!currentUser) {
+      if (onOpenAuth) {
+        onOpenAuth();
+      } else if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('amaze:open_user_auth', { detail: { reason: 'ai_voice_reader' } }));
+      }
+      return;
+    }
     // Synchronously prime audio element on user tap to unlock mobile autoplay
     primeAudioOnUserGesture();
 
@@ -345,7 +361,7 @@ const VoiceReaderPlayer = forwardRef(function VoiceReaderPlayer(
     } else {
       speakWebSpeechChunk(activeChunkIndexRef.current);
     }
-  }, [engine, primeAudioOnUserGesture, playStreamAudio, speakWebSpeechChunk]);
+  }, [engine, primeAudioOnUserGesture, playStreamAudio, speakWebSpeechChunk, propReaderUser, onOpenAuth]);
 
   // Pause handler
   const handlePause = useCallback(() => {
@@ -665,7 +681,7 @@ const VoiceReaderPlayer = forwardRef(function VoiceReaderPlayer(
             onClick={handleTogglePlay}
             disabled={isLoading}
             className="px-5 py-2 rounded-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-bold text-xs flex items-center gap-2 shadow-lg shadow-amber-500/30 transition-all transform hover:scale-105 active:scale-95 cursor-pointer disabled:opacity-50"
-            title={isPlaying ? 'இடைநிறுத்து' : 'செய்தியைக் கேட்க'}
+            title={!activeUser ? 'AI குரலில் கேட்க உள்நுழையவும்' : isPlaying ? 'இடைநிறுத்து' : 'செய்தியைக் கேட்க'}
           >
             {isLoading ? (
               <Loader2 className="w-4 h-4 animate-spin text-slate-950" />
@@ -674,7 +690,7 @@ const VoiceReaderPlayer = forwardRef(function VoiceReaderPlayer(
             ) : (
               <Play className="w-4 h-4 fill-slate-950 text-slate-950 ml-0.5" />
             )}
-            <span>{isLoading ? loadingText : isPlaying ? 'நிறுத்துக' : 'கேட்க'}</span>
+            <span>{!activeUser ? 'கேட்க (உள்நுழைக)' : isLoading ? loadingText : isPlaying ? 'நிறுத்துக' : 'கேட்க'}</span>
           </button>
 
           {/* Forward 10s */}

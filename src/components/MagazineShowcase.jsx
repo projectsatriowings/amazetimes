@@ -1,7 +1,7 @@
 import React from 'react';
-import { BookOpen, Download } from 'lucide-react';
+import { BookOpen, Download, Lock, Sparkles, User } from 'lucide-react';
 
-export default function MagazineShowcase({ onOpenEPaper, onToast }) {
+export default function MagazineShowcase({ onOpenEPaper, onToast, readerUser = null, onOpenAuth }) {
   return (
     <section className="bg-gradient-to-r from-[#0a1945] via-[#0e2a7a] to-[#0a1945] rounded-3xl p-4 sm:p-8 text-white shadow-xl relative overflow-hidden border border-amber-400/20 w-full max-w-full">
       {/* Background Decorative Rings */}
@@ -12,7 +12,14 @@ export default function MagazineShowcase({ onOpenEPaper, onToast }) {
         
         {/* Left: Magazine 3D Cover Mockup */}
         <div className="md:col-span-4 flex justify-center">
-          <div className="relative group cursor-pointer" onClick={onOpenEPaper}>
+          <div className="relative group cursor-pointer" onClick={() => {
+            if (!readerUser) {
+              if (onToast) onToast('அமேஸ் டைம்ஸ் மாத இதழை வாசிக்க வாசகராக உள்நுழையவும்!', 'info');
+              if (onOpenAuth) onOpenAuth();
+              return;
+            }
+            onOpenEPaper();
+          }}>
             <div className="w-40 sm:w-52 aspect-[3/4] bg-white rounded-2xl shadow-2xl overflow-hidden ring-4 ring-amber-400/40 transform group-hover:-translate-y-2 transition-transform duration-300 relative">
               <img
                 src="/Amaze times.webp"
@@ -39,7 +46,7 @@ export default function MagazineShowcase({ onOpenEPaper, onToast }) {
 
             {/* Floating Badge */}
             <span className="absolute -top-2.5 -right-2.5 bg-amber-400 text-slate-950 text-[10px] font-black px-2.5 py-1 rounded-full shadow-lg border-2 border-white">
-              புதிய பதிப்பு!
+              {readerUser ? 'வாசகர் பதிப்பு!' : '🔒 வாசகர் வட்டம் மட்டும்'}
             </span>
           </div>
         </div>
@@ -81,15 +88,27 @@ export default function MagazineShowcase({ onOpenEPaper, onToast }) {
           {/* Action Buttons */}
           <div className="flex items-center gap-3 pt-2 flex-wrap">
             <button
-              onClick={onOpenEPaper}
+              onClick={() => {
+                if (!readerUser) {
+                  if (onToast) onToast('அமேஸ் டைம்ஸ் மாத இதழை வாசிக்க வாசகராக உள்நுழையவும்!', 'info');
+                  if (onOpenAuth) onOpenAuth();
+                  return;
+                }
+                onOpenEPaper();
+              }}
               className="bg-red-600 hover:bg-red-700 text-white font-extrabold text-xs sm:text-sm px-5 py-2.5 rounded-xl shadow-lg shadow-red-600/30 transition-all flex items-center gap-2 cursor-pointer hover:scale-105 active:scale-95"
             >
               <BookOpen className="w-4 h-4 text-white" />
-              <span>மின்-இதழை வாசிக்க (Read Now)</span>
+              <span>{readerUser ? 'மின்-இதழை வாசிக்க (Read Now)' : '🔒 வாசிக்க உள்நுழையவும்'}</span>
             </button>
 
             <button
               onClick={() => {
+                if (!readerUser) {
+                  if (onToast) onToast('மாத இதழ் PDF பதிவிறக்கம் செய்ய வாசகராக உள்நுழையவும்!', 'info');
+                  if (onOpenAuth) onOpenAuth();
+                  return;
+                }
                 if (onToast) onToast('மாத இதழ் PDF பதிவிறக்கம் தொடங்குகிறது...', 'download');
                 const link = document.createElement('a');
                 link.href = '/Amaze times.jpg';
@@ -99,7 +118,7 @@ export default function MagazineShowcase({ onOpenEPaper, onToast }) {
               className="bg-white/10 hover:bg-white/20 text-white font-bold text-xs sm:text-sm px-4 py-2.5 rounded-xl border border-white/20 transition-all flex items-center gap-1.5 cursor-pointer"
             >
               <Download className="w-4 h-4" />
-              <span>பதிவிறக்கம் (PDF)</span>
+              <span>{readerUser ? 'பதிவிறக்கம் (PDF)' : '🔒 PDF பெற உள்நுழைக'}</span>
             </button>
           </div>
 

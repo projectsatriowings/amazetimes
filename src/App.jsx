@@ -346,7 +346,12 @@ export default function App() {
   // Authentication & Admin Console State
   const [currentUser, setCurrentUser] = useState(getCurrentUser());
 
-  // Listen to 401 auth-expired event from API service
+  // Listen to 401 auth-expired event from API service & global open user auth event
+  useEffect(() => {
+    const handleOpenAuth = () => setIsUserAuthOpen(true);
+    window.addEventListener('amaze:open_user_auth', handleOpenAuth);
+    return () => window.removeEventListener('amaze:open_user_auth', handleOpenAuth);
+  }, []);
   useEffect(() => {
     const onAuthExpired = () => {
       setCurrentUser(null);
@@ -677,8 +682,13 @@ export default function App() {
     addToast('எழுத்து அளவு மாற்றப்பட்டது.', 'format_size');
   };
 
-  // Speech synthesis with normalization & sentence chunking
+  // Speech synthesis with normalization & sentence chunking (Exclusive for Logged-in Readers)
   const speakTamilText = (text) => {
+    if (!readerUser) {
+      addToast('🎙️ AI குரல் செய்தி வாசிப்பாளர் வசதியை இயக்க அமேஸ் டைம்ஸ் வாசகராக உள்நுழையவும்!', 'info');
+      setIsUserAuthOpen(true);
+      return;
+    }
     if (!text) return;
     const normalized = normalizeTamilSpeech(text);
 
@@ -1141,6 +1151,7 @@ export default function App() {
             onLoginSuccess={handleLoginSuccess}
             onNavigateHome={() => navigateTo('/')}
             onToast={addToast}
+            onOpenEPaper={() => setIsEPaperOpen(true)}
           />
           <Toast toasts={toasts} onRemoveToast={removeToast} />
         </div>
@@ -1213,6 +1224,9 @@ export default function App() {
             onToggleLike={handleToggleLike}
             isLiked={likedArticles.some(a => String(a.id) === String(activeDetailArticle?.id))}
             onToast={addToast}
+            readerUser={readerUser}
+            onOpenAuth={() => setIsUserAuthOpen(true)}
+            onOpenEPaper={() => setIsEPaperOpen(true)}
           />
         )
       ) : (
@@ -1262,6 +1276,9 @@ export default function App() {
             onBookmark={handleBookmark}
             savedBookmarks={savedBookmarks}
             onToast={addToast}
+            readerUser={readerUser}
+            onOpenAuth={() => setIsUserAuthOpen(true)}
+            onOpenEPaper={() => setIsEPaperOpen(true)}
           />
         ) : (activeCategory === 'spiritual' || currentPath === '/spiritual' || currentPath === '/aanmeegam') ? (
           /* Dedicated Aanmegam Broadsheet View */
@@ -1411,10 +1428,12 @@ export default function App() {
 
                 {activeCategory === 'magazine' && (
                   <div className="space-y-6">
-                    <MagazineShowcase onOpenEPaper={() => setIsEPaperOpen(true)} onToast={addToast} />
+                    <MagazineShowcase onOpenEPaper={() => setIsEPaperOpen(true)} onToast={addToast} readerUser={readerUser} onOpenAuth={() => setIsUserAuthOpen(true)} />
                     <MagazineHubSection
                       onOpenEPaper={() => setIsEPaperOpen(true)}
                       onToast={addToast}
+                      readerUser={readerUser}
+                      onOpenAuth={() => setIsUserAuthOpen(true)}
                     />
                   </div>
                 )}
@@ -1457,6 +1476,8 @@ export default function App() {
                     <MagazineHubSection
                       onOpenEPaper={() => setIsEPaperOpen(true)}
                       onToast={addToast}
+                      readerUser={readerUser}
+                      onOpenAuth={() => setIsUserAuthOpen(true)}
                     />
                   </>
                 )}
@@ -1485,7 +1506,7 @@ export default function App() {
                   onSpeak={speakTamilText}
                   items={backendLiveWire}
                 />
-                <AudioBrief onSpeak={speakTamilText} />
+                <AudioBrief onSpeak={speakTamilText} readerUser={readerUser} onOpenAuth={() => setIsUserAuthOpen(true)} onToast={addToast} />
               </div>
 
               {/* Col B (4 cols): Tamil Nadu Utility Hub (Daily Thirukkural & Essentials) */}
@@ -1499,7 +1520,7 @@ export default function App() {
               {/* Col C (4 cols): Zodiac Widget (12 Signs) & Reader Opinion Poll */}
               <div className="lg:col-span-4 space-y-6">
                 <ZodiacWidget onSpeak={speakTamilText} />
-                <QuizPoll onToast={addToast} />
+                <QuizPoll onToast={addToast} readerUser={readerUser} onOpenAuth={() => setIsUserAuthOpen(true)} />
               </div>
             </div>
 
@@ -1626,6 +1647,8 @@ export default function App() {
         isOpen={isEPaperOpen}
         onClose={() => setIsEPaperOpen(false)}
         onToast={addToast}
+        readerUser={readerUser}
+        onOpenAuth={() => setIsUserAuthOpen(true)}
       />
 
       <LiveTVModal

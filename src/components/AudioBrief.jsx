@@ -1,10 +1,15 @@
 import React, { useState } from 'react';
-import { Headphones, Play, Pause } from 'lucide-react';
+import { Headphones, Play, Pause, Lock } from 'lucide-react';
 
-export default function AudioBrief({ onSpeak }) {
+export default function AudioBrief({ onSpeak, readerUser = null, onOpenAuth, onToast }) {
   const [isPlaying, setIsPlaying] = useState(false);
 
   const handlePlayToggle = () => {
+    if (!readerUser) {
+      if (onToast) onToast('🎙️ AI ஆடியோ செய்தியைக் கேட்க அமேஸ் டைம்ஸ் வாசகராக உள்நுழையவும்!', 'info');
+      if (onOpenAuth) onOpenAuth();
+      return;
+    }
     setIsPlaying(!isPlaying);
     onSpeak("அமேஸ் டைம்ஸ் 3 நிமிட செய்தி ஆடியோ: தமிழக பட்ஜெட் அறிவிப்புகள், மெட்ரோ விரிவாக்கப் பணிகள் மற்றும் சர்வதேச பங்குச்சந்தை நிலவரங்கள்.");
   };
@@ -18,7 +23,7 @@ export default function AudioBrief({ onSpeak }) {
         <div>
           <div className="flex items-center gap-1.5 text-[11px] text-amber-400 font-bold">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-            <span>ஆடியோ செய்தி</span>
+            <span>ஆடியோ செய்தி {readerUser ? '• VIP வாசகர்' : '• வாசகர்களுக்கு மட்டும்'}</span>
           </div>
           <div className="text-xs font-extrabold text-white leading-snug">3 நிமிட செய்திச் சுருக்கம்</div>
         </div>
@@ -28,8 +33,17 @@ export default function AudioBrief({ onSpeak }) {
         onClick={handlePlayToggle}
         className="w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-extrabold text-xs py-2.5 rounded-xl shadow-lg shadow-red-600/30 flex items-center justify-center gap-2 cursor-pointer transition-all transform hover:scale-[1.02]"
       >
-        {isPlaying ? <Pause className="w-4 h-4 fill-white text-white" /> : <Play className="w-4 h-4 fill-white text-white" />}
-        <span>{isPlaying ? 'நிறுத்துக' : 'ஆடியோ கேட்க'}</span>
+        {!readerUser ? (
+          <>
+            <Lock className="w-4 h-4 text-amber-300" />
+            <span>🔒 ஆடியோ கேட்க (உள்நுழைக)</span>
+          </>
+        ) : (
+          <>
+            {isPlaying ? <Pause className="w-4 h-4 fill-white text-white" /> : <Play className="w-4 h-4 fill-white text-white" />}
+            <span>{isPlaying ? 'நிறுத்துக' : 'ஆடியோ கேட்க'}</span>
+          </>
+        )}
       </button>
     </div>
   );
