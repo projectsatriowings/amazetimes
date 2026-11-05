@@ -54,6 +54,7 @@ export const formatNewsRow = (r) => {
     views: parseInt(r.views_count || r.view_count || r.views || 0, 10),
     likesCount: parseInt(r.likes_count || 0, 10),
     likes_count: parseInt(r.likes_count || 0, 10),
+    reactions: (r.reactions && typeof r.reactions === 'object') ? r.reactions : { fire: 0, insight: 0, heart: 0, surprise: 0, sad: 0 },
     publishedAt: r.published_at || r.created_at,
     published_at: r.published_at || r.created_at,
     createdAt: r.created_at,
@@ -465,6 +466,118 @@ router.post('/:id/like', async (req, res) => {
     });
   } catch (err) {
     console.error('Error toggling news like:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+
+// POST /api/news/:id/reaction - Permanent unique reader reactions engine
+router.post('/:id/reaction', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { type } = req.body;
+    const allowed = ['fire', 'insight', 'heart', 'surprise', 'sad'];
+    if (!allowed.includes(type)) {
+      return res.status(400).json({ success: false, message: 'தவறான கருத்து வகை (Invalid reaction type)' });
+    }
+
+    if (!/^\d+$/.test(String(id).trim())) {
+      return res.json({
+        success: true,
+        reactions: { fire: 0, insight: 0, heart: 0, surprise: 0, sad: 0, [type]: 1 },
+        activeReaction: type
+      });
+    }
+
+    const userIdentifier = req.body.userIdentifier || req.headers['x-visitor-id'] || req.ip || 'anonymous';
+
+    // Check existing reaction by this user
+    const existingRes = await query(`
+      SELECT reaction_type FROM news_reactions
+      WHERE news_id = $1 AND user_identifier = $2;
+    `, [id, userIdentifier]);
+
+    const prevType = existingRes.rows[0]?.reaction_type || null;
+
+    if (prevType === type) {
+      // User clicked same reaction -> toggle off (remove)
+      await query(`
+        DELETE FROM news_reactions
+        WHERE news_id = $1 AND user_identifier = $2;
+      `, [id, userIdentifier]);
+
+      // Decrement count in news.reactions
+      const updateRes = await query(`
+        UPDATE news
+        SET reactions = jsonb_set(
+          COALESCE(reactions, '{"fire": 0, "insight": 0, "heart": 0, "surprise": 0, "sad": 0}'::jsonb),
+          ARRAY[$2],
+          to_jsonb(GREATEST(0, COALESCE((reactions->>$2)::int, 1) - 1))
+        )
+        WHERE id = $1
+        RETURNING reactions;
+      `, [id, type]);
+
+      const currentReactions = updateRes.rows[0]?.reactions || { fire: 0, insight: 0, heart: 0, surprise: 0, sad: 0 };
+      return res.json({
+        success: true,
+        reactions: currentReactions,
+        activeReaction: null
+      });
+    }
+
+    // Upsert new reaction into news_reactions
+    await query(`
+      INSERT INTO news_reactions (news_id, user_identifier, reaction_type)
+      VALUES ($1, $2, $3)
+      ON CONFLICT (news_id, user_identifier)
+      DO UPDATE SET reaction_type = $3, created_at = CURRENT_TIMESTAMP;
+    `, [id, userIdentifier, type]);
+
+    // Update counts: increment new type, and decrement old type if changed
+    let updateSql;
+    let params;
+
+    if (prevType) {
+      updateSql = `
+        UPDATE news
+        SET reactions = jsonb_set(
+          jsonb_set(
+            COALESCE(reactions, '{"fire": 0, "insight": 0, "heart": 0, "surprise": 0, "sad": 0}'::jsonb),
+            ARRAY[$2],
+            to_jsonb(COALESCE((reactions->>$2)::int, 0) + 1)
+          ),
+          ARRAY[$3],
+          to_jsonb(GREATEST(0, COALESCE((reactions->>$3)::int, 1) - 1))
+        )
+        WHERE id = $1
+        RETURNING reactions;
+      `;
+      params = [id, type, prevType];
+    } else {
+      updateSql = `
+        UPDATE news
+        SET reactions = jsonb_set(
+          COALESCE(reactions, '{"fire": 0, "insight": 0, "heart": 0, "surprise": 0, "sad": 0}'::jsonb),
+          ARRAY[$2],
+          to_jsonb(COALESCE((reactions->>$2)::int, 0) + 1)
+        )
+        WHERE id = $1
+        RETURNING reactions;
+      `;
+      params = [id, type];
+    }
+
+    const finalRes = await query(updateSql, params);
+    const updatedReactions = finalRes.rows[0]?.reactions || { fire: 0, insight: 0, heart: 0, surprise: 0, sad: 0 };
+
+    res.json({
+      success: true,
+      reactions: updatedReactions,
+      activeReaction: type
+    });
+  } catch (err) {
+    console.error('Error recording reaction:', err);
     res.status(500).json({ success: false, message: err.message });
   }
 });

@@ -194,8 +194,8 @@ export default function CinemaAndSports({ onOpenArticle, onSelectCategory, artic
       time: '20 நிமிடங்களுக்கு முன்',
       mainImage: 'https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?auto=format&fit=crop&w=600&q=80',
       category: 'விளையாட்டு',
-      views: 2890,
-      likes: 670
+      views: 0,
+      likes: 0
     },
     {
       id: 'fb-s-2',
@@ -203,8 +203,8 @@ export default function CinemaAndSports({ onOpenArticle, onSelectCategory, artic
       time: '1 மணி நேரத்திற்கு முன்',
       mainImage: 'https://images.unsplash.com/photo-1531415074868-036b107e775a?auto=format&fit=crop&w=600&q=80',
       category: 'விளையாட்டு',
-      views: 3120,
-      likes: 890
+      views: 0,
+      likes: 0
     },
     {
       id: 'fb-s-3',
@@ -212,8 +212,8 @@ export default function CinemaAndSports({ onOpenArticle, onSelectCategory, artic
       time: '3 மணி நேரத்திற்கு முன்',
       mainImage: 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&w=600&q=80',
       category: 'விளையாட்டு',
-      views: 1980,
-      likes: 410
+      views: 0,
+      likes: 0
     }
   ];
 
@@ -351,7 +351,7 @@ export default function CinemaAndSports({ onOpenArticle, onSelectCategory, artic
                       <span>{cinemaLead.time || 'சமீபத்தியது'}</span>
                       <span>•</span>
                       <span className="flex items-center gap-1">
-                        <Eye className="w-3 h-3" /> {getArticleViews ? getArticleViews(cinemaLead.id) : (cinemaLead.views || 1420)}
+                        <Eye className="w-3 h-3" /> {getArticleViews ? getArticleViews(cinemaLead.id) : (cinemaLead.views_count ?? cinemaLead.viewsCount ?? cinemaLead.views ?? 0)}
                       </span>
                     </div>
                   </div>
@@ -514,7 +514,7 @@ export default function CinemaAndSports({ onOpenArticle, onSelectCategory, artic
                       <span>{sportsLead.time || 'சமீபத்தியது'}</span>
                       <span>•</span>
                       <span className="flex items-center gap-1">
-                        <Eye className="w-3 h-3" /> {getArticleViews ? getArticleViews(sportsLead.id) : (sportsLead.views || 2890)}
+                        <Eye className="w-3 h-3" /> {getArticleViews ? getArticleViews(sportsLead.id) : (sportsLead.views_count ?? sportsLead.viewsCount ?? sportsLead.views ?? 0)}
                       </span>
                     </div>
                   </div>

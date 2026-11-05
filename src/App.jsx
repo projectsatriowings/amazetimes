@@ -640,7 +640,8 @@ export default function App() {
                 viewsCount: a.views_count || 0,
                 views_count: a.views_count || 0,
                 likesCount: a.likes_count || 0,
-                likes_count: a.likes_count || 0
+                likes_count: a.likes_count || 0,
+                reactions: (a.reactions && typeof a.reactions === 'object') ? a.reactions : { fire: 0, insight: 0, heart: 0, surprise: 0, sad: 0 }
               };
               setActiveDetailArticle(formatted);
             }
@@ -757,8 +758,10 @@ export default function App() {
 
   // Liked Articles Handlers with PostgreSQL persistence
   const handleToggleLike = async (article) => {
-    if (!article || !article.id) return;
-    const artId = article.id;
+    if (!article) return;
+    const artId = typeof article === 'object' ? article.id : article;
+    if (!artId) return;
+    const target = typeof article === 'object' ? article : (backendArticles.find(a => String(a.id) === String(artId)) || { id: artId });
     const exists = likedArticles.some(a => String(a.id) === String(artId));
 
     // Optimistic UI updates
@@ -769,10 +772,10 @@ export default function App() {
         addToast('விருப்பப் பட்டியலிலிருந்து நீக்கப்பட்டது.', 'favorite_border');
       } else {
         updated = [{
-          id: article.id,
-          title: article.title,
-          category: article.category || article.cat || 'செய்தி',
-          image: article.image || article.img || article.cover_image_url || '/Amaze times.jpg',
+          id: target.id,
+          title: target.title || 'செய்தி',
+          category: target.category || target.cat || 'செய்தி',
+          image: target.image || target.img || target.cover_image_url || '/Amaze times.jpg',
           likedAt: new Date().toISOString()
         }, ...prev];
         addToast('செய்திக்கு விருப்பம் தெரிவிக்கப்பட்டது! ❤️', 'favorite');
@@ -787,6 +790,7 @@ export default function App() {
         setBackendArticles(prev => prev.map(a => String(a.id) === String(artId) ? { ...a, likesCount: res.likesCount, likes_count: res.likesCount } : a));
         setBackendLeadArticle(prev => prev && String(prev.id) === String(artId) ? { ...prev, likesCount: res.likesCount, likes_count: res.likesCount } : prev);
         setActiveModalArticle(prev => prev && String(prev.id) === String(artId) ? { ...prev, likesCount: res.likesCount, likes_count: res.likesCount } : prev);
+        setActiveDetailArticle(prev => prev && String(prev.id) === String(artId) ? { ...prev, likesCount: res.likesCount, likes_count: res.likesCount } : prev);
       }
     } catch (e) {
       console.warn('Background like sync to PostgreSQL failed:', e);

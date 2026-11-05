@@ -319,6 +319,29 @@ export const api = {
     body: JSON.stringify({ userIdentifier: userIdentifier || getVisitorId() })
   }),
 
+  // Permanent Unique Reactions Engine
+  submitNewsReaction: (id, type, userIdentifier) => request(`/news/${id}/reaction`, {
+    method: 'POST',
+    body: JSON.stringify({ type, userIdentifier: userIdentifier || getVisitorId() })
+  }),
+
+  // Competition Applications Engine
+  applyCompetition: (data) => request('/competitions/apply', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  }),
+  getCompetitionApplications: (params = {}) => {
+    const q = new URLSearchParams(params).toString();
+    return request(`/competitions/applications${q ? `?${q}` : ''}`);
+  },
+  updateCompetitionApplicationStatus: (id, status, adminNotes) => request(`/competitions/applications/${id}/status`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status, adminNotes })
+  }),
+  deleteCompetitionApplication: (id) => request(`/competitions/applications/${id}`, {
+    method: 'DELETE'
+  }),
+
   // #1 Priority Make First Action
   makeNewsFirst: async (id) => {
     newsCache.clear();

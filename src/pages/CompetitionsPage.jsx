@@ -18,8 +18,20 @@ import {
   Phone,
   BookOpen,
   HelpCircle,
-  ExternalLink
+  ExternalLink,
+  MapPin
 } from 'lucide-react';
+
+const TN_DISTRICTS = [
+  'அரியலூர்', 'செங்கல்பட்டு', 'சென்னை', 'கோயம்புத்தூர்', 'கடலூர்',
+  'தருமபுரி', 'திண்டுக்கல்', 'ஈரோடு', 'கள்ளக்குறிச்சி', 'காஞ்சிபுரம்',
+  'கன்னியாகுமரி', 'கரூர்', 'கிருஷ்ணகிரி', 'மதுரை', 'மயிலாடுதுறை',
+  'நாகப்பட்டினம்', 'நாமக்கல்', 'நீலகிரி', 'பெரம்பலூர்', 'புதுக்கோட்டை',
+  'ராமநாதபுரம்', 'ராணிப்பேட்டை', 'சேலம்', 'சிவகங்கை', 'தென்காசி',
+  'தஞ்சாவூர்', 'தேனி', 'தூத்துக்குடி', 'திருச்சிராப்பள்ளி', 'திருநெல்வேலி',
+  'திருப்பத்தூர்', 'திருப்பூர்', 'திருவள்ளூர்', 'திருவண்ணாமலை', 'திருவாரூர்',
+  'வேலூர்', 'விழுப்புரம்', 'விருதுநகர்', 'பிற மாநிலங்கள் / வெளிநாடு'
+];
 
 export const CompetitionsPage = ({ onNavigate }) => {
   const { competitionsData, showToast } = useApp();
@@ -38,6 +50,7 @@ export const CompetitionsPage = ({ onNavigate }) => {
     email: '',
     phone: '',
     institution: '',
+    district: '',
     entryTitle: '',
     entryContent: '',
     entryUrl: ''
@@ -76,42 +89,55 @@ export const CompetitionsPage = ({ onNavigate }) => {
 
     setIsSubmitting(true);
     try {
-      // Save entry to reader_submissions in DB
-      let currentSubmissions = [];
+      // 1. Submit directly to Neon PostgreSQL competition_applications table
+      await api.applyCompetition({
+        competitionId: selectedCompetition?.id,
+        competitionTitle: selectedCompetition?.title,
+        applicantName: formData.participantName,
+        phone: formData.phone,
+        email: formData.email,
+        institution: formData.institution,
+        district: formData.district,
+        entryTitle: formData.entryTitle,
+        entryContent: formData.entryContent,
+        entryUrl: formData.entryUrl
+      });
+
+      // 2. Also keep fallback sync with reader_submissions content blob
       try {
+        let currentSubmissions = [];
         const res = await api.getContent('reader_submissions');
         if (res && res.found && Array.isArray(res.data)) {
           currentSubmissions = res.data;
         }
+        const newSubmission = {
+          id: `comp-sub-${Date.now()}`,
+          type: 'competition',
+          competitionId: selectedCompetition?.id,
+          competitionTitle: selectedCompetition?.title,
+          authorName: formData.participantName,
+          email: formData.email,
+          phone: formData.phone,
+          institution: formData.institution,
+          district: formData.district,
+          title: formData.entryTitle,
+          content: formData.entryContent || formData.entryUrl,
+          entryUrl: formData.entryUrl,
+          status: 'pending',
+          createdAt: new Date().toLocaleString('ta-IN')
+        };
+        await api.saveContent('reader_submissions', [newSubmission, ...currentSubmissions]);
       } catch (_) {}
 
-      const newSubmission = {
-        id: `comp-sub-${Date.now()}`,
-        type: 'competition',
-        competitionId: selectedCompetition?.id,
-        competitionTitle: selectedCompetition?.title,
-        authorName: formData.participantName,
-        email: formData.email,
-        phone: formData.phone,
-        institution: formData.institution,
-        title: formData.entryTitle,
-        content: formData.entryContent || formData.entryUrl,
-        entryUrl: formData.entryUrl,
-        status: 'pending',
-        createdAt: new Date().toLocaleString('ta-IN')
-      };
-
-      const updated = [newSubmission, ...currentSubmissions];
-      await api.saveContent('reader_submissions', updated);
-
       setApplySuccess(true);
-      if (showToast) showToast('உங்கள் பதிவு வெற்றிகரமாக சமர்ப்பிக்கப்பட்டது! வாழ்த்துகள்!');
+      if (showToast) showToast('உங்கள் படைப்பு வெற்றிகரமாகப் பதிவு செய்யப்பட்டது! வாழ்த்துகள்!');
       setTimeout(() => {
         setFormData({
           participantName: '',
           email: '',
           phone: '',
           institution: '',
+          district: '',
           entryTitle: '',
           entryContent: '',
           entryUrl: ''
@@ -140,9 +166,9 @@ export const CompetitionsPage = ({ onNavigate }) => {
               <Trophy className="w-3.5 h-3.5" />
               <span>மாநில அளவிலான திறமைத் திருவிழா 2026</span>
             </span>
-            <span className="bg-red-600/90 text-white font-bold text-xs px-2.5 py-0.5 rounded-full flex items-center gap-1">
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>மொத்தப் பரிசுத்தொகை ₹2,50,000+</span>
+            <span className="bg-emerald-600/90 text-white font-bold text-xs px-3 py-0.5 rounded-full flex items-center gap-1.5 shadow">
+              <Award className="w-3.5 h-3.5 text-amber-300" />
+              <span>மாநில சாதனையாளர் விருதுகள் & தகுதிச் சான்றிதழ்கள்</span>
             </span>
           </div>
 
@@ -151,7 +177,7 @@ export const CompetitionsPage = ({ onNavigate }) => {
           </h1>
 
           <p className="text-slate-300 text-xs sm:text-sm leading-relaxed max-w-2xl">
-            கவிதை, சிறுகதை, கட்டுரை, வினாடி வினா மற்றும் புகைப்படக் கலை! உங்கள் படைப்பாற்றலை வெளிப்படுத்தி மாநில அளவிலான ரொக்கப் பரிசுகள், வெற்றிக் கோப்பைகள் மற்றும் சான்றிதழ்களை வெல்லுங்கள்.
+            கவிதை, சிறுகதை, கட்டுரை, வினாடி வினா மற்றும் புகைப்படக் கலை! உங்கள் படைப்பாற்றலை வெளிப்படுத்தி மாநில அளவிலான கௌரவ விருதுகள், வெற்றிக் கோப்பைகள் மற்றும் பாராட்டுச் சான்றிதழ்களை வெல்லுங்கள்.
           </p>
 
           <div className="flex items-center gap-4 text-xs font-bold text-amber-300 pt-2 flex-wrap">
@@ -160,6 +186,9 @@ export const CompetitionsPage = ({ onNavigate }) => {
             </span>
             <span className="flex items-center gap-1.5 bg-black/40 px-3 py-1.5 rounded-xl border border-amber-500/30">
               <Award className="w-4 h-4 text-amber-400" /> அரசு & முன்னணி எழுத்தாளர்கள் நடுவர் குழு
+            </span>
+            <span className="flex items-center gap-1.5 bg-black/40 px-3 py-1.5 rounded-xl border border-amber-500/30">
+              <Sparkles className="w-4 h-4 text-yellow-400" /> மின்னணு தகுதிச் சான்றிதழ் (E-Certificate)
             </span>
           </div>
         </div>
@@ -205,10 +234,10 @@ export const CompetitionsPage = ({ onNavigate }) => {
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-[#0b1224] via-transparent to-transparent" />
                 
-                {/* Prize Badge */}
-                <div className="absolute top-3 right-3 bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 font-black text-xs px-3 py-1 rounded-xl shadow-lg flex items-center gap-1 border border-yellow-300">
-                  <Trophy className="w-3.5 h-3.5 text-slate-950" />
-                  <span>{item.prizeMoney}</span>
+                {/* Reward & Certificate Badge */}
+                <div className="absolute top-3 right-3 bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 font-black text-xs px-3 py-1 rounded-xl shadow-lg flex items-center gap-1.5 border border-yellow-300">
+                  <Award className="w-3.5 h-3.5 text-slate-950" />
+                  <span>{item.rewardBadge || item.prizeMoney || 'சான்றிதழ் & விருது'}</span>
                 </div>
 
                 {/* Organizer pill */}
@@ -241,6 +270,15 @@ export const CompetitionsPage = ({ onNavigate }) => {
                       <Calendar className="w-3.5 h-3.5 text-rose-400" /> கடைசி நாள்:
                     </span>
                     <strong className="text-rose-400">{item.deadline}</strong>
+                  </div>
+
+                  <div className="flex items-center justify-between text-slate-300 border-t border-slate-800/80 pt-1.5">
+                    <span className="flex items-center gap-1.5 text-amber-400">
+                      <Award className="w-3.5 h-3.5" /> பரிசு:
+                    </span>
+                    <span className="text-emerald-400 font-bold truncate max-w-[190px]">
+                      {item.rewardBadge || item.prizeMoney || 'சான்றிதழ் & விருது'}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -278,7 +316,7 @@ export const CompetitionsPage = ({ onNavigate }) => {
               </h3>
               <button
                 onClick={() => setShowDetailsModal(false)}
-                className="text-slate-400 hover:text-white p-1 rounded-lg"
+                className="text-slate-400 hover:text-white p-1 rounded-lg cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -289,7 +327,7 @@ export const CompetitionsPage = ({ onNavigate }) => {
               <p className="text-slate-300 leading-relaxed">{selectedCompetition.summary}</p>
 
               <div className="bg-slate-900/90 rounded-2xl p-4 border border-slate-800 space-y-2 text-xs">
-                <div><strong className="text-amber-400">பரிசு விபரம்:</strong> {selectedCompetition.prizeDetails || selectedCompetition.prizeMoney}</div>
+                <div><strong className="text-amber-400">விருது & சான்றிதழ் விபரம்:</strong> {selectedCompetition.prizeDetails || selectedCompetition.rewardBadge || selectedCompetition.prizeMoney}</div>
                 <div><strong className="text-amber-400">பங்கேற்பாளர் தகுதி:</strong> {selectedCompetition.eligibility}</div>
                 <div><strong className="text-amber-400">சமர்ப்பிக்கும் முறை:</strong> {selectedCompetition.venue}</div>
                 <div><strong className="text-amber-400">கடைசி நாள்:</strong> {selectedCompetition.deadline}</div>
@@ -309,7 +347,7 @@ export const CompetitionsPage = ({ onNavigate }) => {
             <div className="p-4 border-t border-slate-800 flex justify-end gap-2">
               <button
                 onClick={() => setShowDetailsModal(false)}
-                className="bg-slate-800 px-4 py-2 rounded-xl text-xs font-bold"
+                className="bg-slate-800 hover:bg-slate-700 px-4 py-2 rounded-xl text-xs font-bold cursor-pointer"
               >
                 மூடுக
               </button>
@@ -318,7 +356,7 @@ export const CompetitionsPage = ({ onNavigate }) => {
                   setShowDetailsModal(false);
                   setShowApplyModal(true);
                 }}
-                className="bg-gradient-to-r from-red-600 to-amber-600 text-white font-bold px-5 py-2 rounded-xl text-xs flex items-center gap-1.5 shadow"
+                className="bg-gradient-to-r from-red-600 to-amber-600 text-white font-bold px-5 py-2 rounded-xl text-xs flex items-center gap-1.5 shadow cursor-pointer"
               >
                 <span>இப்போதே விண்ணப்பி</span>
                 <ArrowRight className="w-4 h-4" />
@@ -334,14 +372,14 @@ export const CompetitionsPage = ({ onNavigate }) => {
           <div className="bg-[#0b1224] border-2 border-amber-500/50 rounded-3xl max-w-xl w-full max-h-[92vh] flex flex-col shadow-2xl text-white overflow-hidden">
             <div className="p-5 border-b border-slate-800 flex items-center justify-between">
               <div>
-                <span className="text-[10px] text-amber-400 font-bold uppercase tracking-wider block">விண்ணப்பப் படிவம்</span>
+                <span className="text-[10px] text-amber-400 font-bold uppercase tracking-wider block">விண்ணப்பப் படிவம் (Application Form)</span>
                 <h3 className="font-black text-white text-base sm:text-lg truncate max-w-md">
                   {selectedCompetition.title}
                 </h3>
               </div>
               <button
                 onClick={() => setShowApplyModal(false)}
-                className="text-slate-400 hover:text-white p-1 rounded-lg"
+                className="text-slate-400 hover:text-white p-1 rounded-lg cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -354,7 +392,7 @@ export const CompetitionsPage = ({ onNavigate }) => {
                 </div>
                 <h4 className="text-xl font-black text-white">உங்கள் படைப்பு பெறப்பட்டது!</h4>
                 <p className="text-xs text-slate-300 max-w-md mx-auto leading-relaxed">
-                  உங்கள் விண்ணப்பம் அமேஸ் டைம்ஸ் நடுவர் குழுவிற்கு வெற்றிகரமாக சமர்ப்பிக்கப்பட்டது. ஆய்வு முடிவுகள் பின்னர் அறிவிக்கப்படும்.
+                  உங்கள் விண்ணப்பம் அமேஸ் டைம்ஸ் நடுவர் குழுவிற்கு வெற்றிகரமாக சமர்ப்பிக்கப்பட்டது. தேர்வு முடிவுகள் மற்றும் சான்றிதழ்கள் குறித்த தகவல்கள் வாட்ஸ்அப் / மின்னஞ்சல் வாயிலாக அறிவிக்கப்படும்.
                 </p>
               </div>
             ) : (
@@ -395,15 +433,30 @@ export const CompetitionsPage = ({ onNavigate }) => {
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-slate-300 font-bold mb-1">பள்ளி / கல்லூரி / தொழில் விபரம்</label>
-                  <input
-                    type="text"
-                    placeholder="எ.கா: பாரதிதாசன் கல்லூரி, திருச்சி"
-                    value={formData.institution}
-                    onChange={(e) => setFormData({ ...formData, institution: e.target.value })}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white focus:outline-none focus:border-amber-500"
-                  />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-slate-300 font-bold mb-1">பள்ளி / கல்லூரி / நிறுவனம்</label>
+                    <input
+                      type="text"
+                      placeholder="எ.கா: பாரதிதாசன் கல்லூரி"
+                      value={formData.institution}
+                      onChange={(e) => setFormData({ ...formData, institution: e.target.value })}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white focus:outline-none focus:border-amber-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-slate-300 font-bold mb-1">மாவட்டம் (District)</label>
+                    <select
+                      value={formData.district}
+                      onChange={(e) => setFormData({ ...formData, district: e.target.value })}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white focus:outline-none focus:border-amber-500 cursor-pointer"
+                    >
+                      <option value="">மாவட்டம் தேர்ந்தெடுக்கவும்...</option>
+                      {TN_DISTRICTS.map(d => (
+                        <option key={d} value={d}>{d}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
 
                 <div>
@@ -445,14 +498,14 @@ export const CompetitionsPage = ({ onNavigate }) => {
                   <button
                     type="button"
                     onClick={() => setShowApplyModal(false)}
-                    className="bg-slate-800 px-4 py-2.5 rounded-xl text-xs font-bold"
+                    className="bg-slate-800 hover:bg-slate-700 px-4 py-2.5 rounded-xl text-xs font-bold cursor-pointer"
                   >
                     ரத்து செய்
                   </button>
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="bg-gradient-to-r from-red-600 to-amber-600 text-white font-extrabold px-6 py-2.5 rounded-xl text-xs flex items-center gap-2 shadow-lg shadow-red-600/30 disabled:opacity-50 cursor-pointer"
+                    className="bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-700 hover:to-amber-700 text-white font-extrabold px-6 py-2.5 rounded-xl text-xs flex items-center gap-2 shadow-lg shadow-red-600/30 disabled:opacity-50 cursor-pointer"
                   >
                     <Send className="w-4 h-4" />
                     <span>{isSubmitting ? 'சமர்ப்பிக்கப்படுகிறது...' : 'படைப்பைச் சமர்ப்பி'}</span>

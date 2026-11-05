@@ -1121,7 +1121,7 @@ export const AdminDashboard = () => {
                 }`}
               >
                 <Trophy className="w-4 h-4 text-amber-400" />
-                <span>மாணவர் & இளைஞர் போட்டிகள்</span>
+                <span>போட்டிகள் & விண்ணப்பங்கள் அரங்கம்</span>
               </button>
 
               <button

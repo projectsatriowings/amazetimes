@@ -26,6 +26,7 @@ import contentRoutes from './routes/content.js';
 import magazineRoutes from './routes/magazines.js';
 import ttsRoutes from './routes/ttsRoutes.js';
 import goldRoutes from './routes/gold.js';
+import competitionRoutes from './routes/competitions.js';
 import { fetchAndSyncMarketRates } from './services/marketRateService.js';
 
 import fs from 'fs';
@@ -143,6 +144,7 @@ app.use('/api/zodiac', zodiacRoutes);
 app.use('/api/content', contentRoutes);
 app.use('/api/magazines', magazineRoutes);
 app.use('/api/tts', ttsRoutes);
+app.use('/api/competitions', competitionRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

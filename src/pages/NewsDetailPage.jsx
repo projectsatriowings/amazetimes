@@ -83,16 +83,60 @@ export default function NewsDetailPage({
     }
   });
 
+  // Real reaction counts from database
   const [reactionCounts, setReactionCounts] = useState(() => {
-    const base = (article?.viewsCount || article?.views_count || 120);
-    return {
-      fire: Math.floor(base * 0.35) + 12,
-      insight: Math.floor(base * 0.22) + 8,
-      heart: Math.floor(base * 0.28) + 15,
-      surprise: Math.floor(base * 0.10) + 4,
-      sad: Math.floor(base * 0.05) + 2
-    };
+    if (article?.reactions && typeof article.reactions === 'object') {
+      return {
+        fire: Number(article.reactions.fire) || 0,
+        insight: Number(article.reactions.insight) || 0,
+        heart: Number(article.reactions.heart) || 0,
+        surprise: Number(article.reactions.surprise) || 0,
+        sad: Number(article.reactions.sad) || 0,
+      };
+    }
+    return { fire: 0, insight: 0, heart: 0, surprise: 0, sad: 0 };
   });
+
+  // Real views and likes count states synced with database
+  const [realViews, setRealViews] = useState(
+    Number(article?.views_count ?? article?.viewsCount ?? article?.viewCount ?? 0)
+  );
+  const [realLikes, setRealLikes] = useState(
+    Number(article?.likes_count ?? article?.likesCount ?? 0)
+  );
+
+  // Synchronize and record real view on mount / article ID change
+  useEffect(() => {
+    if (!article?.id) return;
+    setRealViews(Number(article.views_count ?? article.viewsCount ?? article.viewCount ?? 0));
+    setRealLikes(Number(article.likes_count ?? article.likesCount ?? 0));
+
+    if (article.reactions && typeof article.reactions === 'object') {
+      setReactionCounts({
+        fire: Number(article.reactions.fire) || 0,
+        insight: Number(article.reactions.insight) || 0,
+        heart: Number(article.reactions.heart) || 0,
+        surprise: Number(article.reactions.surprise) || 0,
+        sad: Number(article.reactions.sad) || 0,
+      });
+    }
+
+    try {
+      const stored = localStorage.getItem(`reaction_${article.id}`);
+      setActiveReaction(stored || null);
+    } catch (_) {}
+
+    // Record real view in Neon PostgreSQL
+    if (/^\d+$/.test(String(article.id).trim())) {
+      api.recordNewsView(article.id)
+        .then(res => {
+          if (res && res.success && typeof res.viewsCount === 'number') {
+            setRealViews(res.viewsCount);
+          }
+        })
+        .catch(err => console.warn('Failed to record news view in database:', err));
+    }
+  }, [article?.id]);
 
   // Track page scroll progress
   useEffect(() => {
@@ -124,7 +168,8 @@ export default function NewsDetailPage({
               summary: a.summary || a.desc || '',
               image: a.main_image || a.image || '/Amaze times.jpg',
               time: new Date(a.published_at || a.created_at || Date.now()).toLocaleDateString('ta-IN', { hour: '2-digit', minute: '2-digit' }),
-              viewsCount: a.views_count || a.viewsCount || 140
+              viewsCount: a.views_count ?? a.viewsCount ?? 0,
+              likesCount: a.likes_count ?? a.likesCount ?? 0
             })));
           }
         })
@@ -199,18 +244,51 @@ export default function NewsDetailPage({
     window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
   };
 
-  const handleReaction = (type) => {
-    if (activeReaction === type) return;
+  const handleReaction = async (type) => {
+    if (!article?.id) return;
+    const prevActive = activeReaction;
+    const isTogglingOff = (prevActive === type);
+    const newActive = isTogglingOff ? null : type;
+
+    // Optimistically update active state
+    setActiveReaction(newActive);
+    try {
+      if (newActive) {
+        localStorage.setItem(`reaction_${article.id}`, newActive);
+      } else {
+        localStorage.removeItem(`reaction_${article.id}`);
+      }
+    } catch (_) {}
+
+    // Optimistically update counts
     setReactionCounts(prev => ({
       ...prev,
-      [type]: (prev[type] || 0) + 1,
-      ...(activeReaction ? { [activeReaction]: Math.max(0, (prev[activeReaction] || 1) - 1) } : {})
+      [type]: isTogglingOff ? Math.max(0, (prev[type] || 1) - 1) : (prev[type] || 0) + 1,
+      ...(prevActive && !isTogglingOff ? { [prevActive]: Math.max(0, (prev[prevActive] || 1) - 1) } : {})
     }));
-    setActiveReaction(type);
+
+    // Sync with Neon PostgreSQL permanent reaction table
     try {
-      localStorage.setItem(`reaction_${article.id}`, type);
-    } catch (_) {}
-    onToast('உங்கள் கருத்து பதிவு செய்யப்பட்டது. நன்றி!', 'success');
+      const res = await api.submitNewsReaction(article.id, type);
+      if (res && res.success && res.reactions) {
+        setReactionCounts(res.reactions);
+        if (res.userReaction !== undefined) {
+          setActiveReaction(res.userReaction);
+        }
+      }
+    } catch (err) {
+      console.warn('Failed to record reaction on server:', err);
+    }
+
+    onToast && onToast('உங்கள் கருத்து பதிவு செய்யப்பட்டது. நன்றி!', 'success');
+  };
+
+  const handleLikeClick = () => {
+    if (!article?.id) return;
+    if (onToggleLike) {
+      onToggleLike(article);
+    }
+    setRealLikes(prev => isLiked ? Math.max(0, prev - 1) : prev + 1);
   };
 
   const handleVotePoll = (choice) => {
@@ -352,7 +430,7 @@ export default function NewsDetailPage({
                     <span>•</span>
                     <span className="flex items-center gap-1 font-mono text-emerald-500 dark:text-emerald-400 font-bold">
                       <Eye className="w-3.5 h-3.5" />
-                      <span>{views.toLocaleString('ta-IN')} பார்வைகள்</span>
+                      <span>{realViews.toLocaleString('ta-IN')} பார்வைகள்</span>
                     </span>
                   </div>
                 </div>
@@ -400,7 +478,7 @@ export default function NewsDetailPage({
 
                 {/* Like Button */}
                 <button
-                  onClick={() => onToggleLike && onToggleLike(article.id)}
+                  onClick={handleLikeClick}
                   className={`p-2.5 rounded-xl border transition cursor-pointer flex items-center gap-1.5 ${
                     isLiked
                       ? 'bg-rose-500/20 border-rose-400/50 text-rose-500'
@@ -409,7 +487,7 @@ export default function NewsDetailPage({
                   title={isLiked ? 'விருப்பத்தை நீக்க' : 'செய்திக்கு விருப்பம் தெரிவிக்க'}
                 >
                   <Heart className={`w-4 h-4 ${isLiked ? 'fill-current text-rose-500' : ''}`} />
-                  <span className="font-mono text-xs font-bold">{likes}</span>
+                  <span className="font-mono text-xs font-bold">{realLikes}</span>
                 </button>
               </div>
             </div>
@@ -628,7 +706,7 @@ export default function NewsDetailPage({
                         <div className="flex items-center gap-2 text-[10px] text-slate-400">
                           <span>{item.time || 'சமீபத்தியது'}</span>
                           <span>•</span>
-                          <span className="text-emerald-500 font-mono font-semibold">{item.viewsCount || item.views_count || 120} பார்வைகள்</span>
+                          <span className="text-emerald-500 font-mono font-semibold">{Number(item.views_count ?? item.viewsCount ?? 0).toLocaleString('ta-IN')} பார்வைகள்</span>
                         </div>
                       </div>
                     </div>
@@ -674,7 +752,7 @@ export default function NewsDetailPage({
                         <div className="flex items-center gap-2 text-[10px] text-slate-400 mt-1">
                           <span className="text-amber-600 dark:text-amber-400 font-semibold">{item.category || 'செய்தி'}</span>
                           <span>•</span>
-                          <span>{item.viewsCount || item.views_count || 150} பார்வைகள்</span>
+                          <span>{Number(item.views_count ?? item.viewsCount ?? 0).toLocaleString('ta-IN')} பார்வைகள்</span>
                         </div>
                       </div>
                     </div>
@@ -1024,7 +1102,7 @@ export default function NewsDetailPage({
                     <span>{story.time || 'இன்று'}</span>
                     <span className="flex items-center gap-1 font-mono text-emerald-500">
                       <Eye className="w-3 h-3" />
-                      <span>{story.viewsCount || story.views_count || 100}</span>
+                      <span>{Number(story.views_count ?? story.viewsCount ?? 0).toLocaleString('ta-IN')}</span>
                     </span>
                   </div>
                 </div>
