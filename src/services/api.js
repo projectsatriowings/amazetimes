@@ -566,8 +566,15 @@ export const api = {
     method: 'POST',
     body: JSON.stringify(epaperData)
   }),
+  createEpaper: (epaperData) => request('/epaper', {
+    method: 'POST',
+    body: JSON.stringify(epaperData)
+  }),
   updateEpaper: (id, data) => request(`/epaper/${id}`, { method: 'PUT', body: JSON.stringify(data) }).catch(() => ({ success: true })),
   deleteEPaper: (id) => request(`/epaper/${id}`, {
+    method: 'DELETE'
+  }),
+  deleteEpaper: (id) => request(`/epaper/${id}`, {
     method: 'DELETE'
   }),
 

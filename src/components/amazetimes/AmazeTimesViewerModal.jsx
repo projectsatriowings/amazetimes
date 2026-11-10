@@ -9,6 +9,7 @@ import {
 import AmazeTimesFlipbook from './AmazeTimesFlipbook';
 import AmazeTimesThumbnailDrawer from './AmazeTimesThumbnailDrawer';
 import AmazeTimesArticleClipper from './AmazeTimesArticleClipper';
+import { exportPublicationToPdf, captureSinglePageSnapshot } from '../../utils/pdfExporter';
 
 export default function AmazeTimesViewerModal({
   isOpen,
@@ -34,9 +35,17 @@ export default function AmazeTimesViewerModal({
   const [selectedMagYear, setSelectedMagYear] = useState('2026');
   const [selectedMagMonth, setSelectedMagMonth] = useState('11');
 
-  // Newspaper selectors
-  const [selectedNewspaperDate, setSelectedNewspaperDate] = useState(() => new Date().toISOString().split('T')[0]);
+  // Newspaper selectors (IST Today Default)
+  const [selectedNewspaperDate, setSelectedNewspaperDate] = useState(() => {
+    try {
+      return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date());
+    } catch {
+      return new Date().toISOString().split('T')[0];
+    }
+  });
   const [selectedNewspaperEdition, setSelectedNewspaperEdition] = useState('main');
+  const [pdfProgress, setPdfProgress] = useState(null);
+  const [isCapturingClip, setIsCapturingClip] = useState(false);
 
   // Flipbook state
   const [currentPage, setCurrentPage] = useState(1);
@@ -198,34 +207,64 @@ export default function AmazeTimesViewerModal({
     }
   };
 
-  // Open Article Clipper
-  const handleOpenClipper = (pageObj) => {
+  // Open Article Clipper (Captures crisp live structured page snapshot)
+  const handleOpenClipper = async (pageObj) => {
     const activeObj = pageObj || pages.find(p => p.pageNumber === currentPage) || pages[0] || {
       pageNumber: currentPage,
       imageUrl: publication?.cover_image_url || '/Amaze times.jpg'
     };
-    setClipperTargetPage(activeObj);
-    setIsClipperOpen(true);
+
+    try {
+      setIsCapturingClip(true);
+      const editionLabel = publication?.edition || publication?.edition_name || '';
+      const snapshotDataUrl = await captureSinglePageSnapshot({
+        page: activeObj,
+        publicationType,
+        editionName: editionLabel
+      });
+      setClipperTargetPage({ ...activeObj, imageUrl: snapshotDataUrl });
+      setIsClipperOpen(true);
+    } catch (err) {
+      console.warn('Snapshot fallback:', err);
+      setClipperTargetPage(activeObj);
+      setIsClipperOpen(true);
+    } finally {
+      setIsCapturingClip(false);
+    }
   };
 
-  // Download PDF / Full Edition (VIP Login check)
-  const handleDownloadFullEdition = () => {
+  // Download Real Multi-Page PDF Edition (VIP Login check)
+  const handleDownloadFullEdition = async () => {
     if (!readerUser) {
-      if (onToast) onToast('மின்-இதழ் / நாளிதழை முழுமையாக பதிவிறக்க வாசகராக உள்நுழையவும்!', 'info');
+      if (onToast) onToast('மின்-இதழ் / நாளிதழை முழு PDF ஆக பதிவிறக்க வாசகராக உள்நுழையவும்!', 'info');
       if (onOpenAuth) onOpenAuth();
       return;
     }
 
-    const downloadUrl = publication?.pdf_url || publication?.pdfUrl || '/Amaze times.jpg';
-    const filename = publicationType === 'magazine'
-      ? `Amaze_Times_Magazine_${selectedMagYear}_${selectedMagMonth}.jpg`
-      : `Amaze_Times_EPaper_${selectedNewspaperDate}_Edition.jpg`;
+    if (pdfProgress) return; // already exporting
 
-    if (onToast) onToast('முழுமையான பதிப்பு பதிவிறக்கம் தொடங்குகிறது...');
-    const link = document.createElement('a');
-    link.href = downloadUrl;
-    link.download = filename;
-    link.click();
+    const editionLabel = publication?.edition || publication?.edition_name || '';
+    const dateFormatted = publication?.edition_date_display || selectedNewspaperDate;
+    const fileName = publicationType === 'magazine'
+      ? `Amaze_Times_Magazine_${selectedMagYear}_${selectedMagMonth}.pdf`
+      : `Amaze_Times_EPaper_${dateFormatted}_${selectedNewspaperEdition}.pdf`;
+
+    try {
+      if (onToast) onToast('உயர்-தெளிவு PDF கோப்பு உருவாக்கப்படுகிறது... காத்திருக்கவும்.');
+      await exportPublicationToPdf({
+        pages,
+        publicationType,
+        editionName: editionLabel,
+        fileName,
+        onProgress: (curr, tot) => setPdfProgress({ current: curr, total: tot })
+      });
+      if (onToast) onToast('PDF கோப்பு வெற்றிகரமாக பதிவிறக்கம் செய்யப்பட்டது!', 'success');
+    } catch (err) {
+      console.error('PDF generation failed:', err);
+      if (onToast) onToast('PDF உருவாக்குவதில் பிழை: ' + err.message, 'error');
+    } finally {
+      setPdfProgress(null);
+    }
   };
 
   return (
@@ -385,9 +424,17 @@ export default function AmazeTimesViewerModal({
           {/* Publication Metadata Badge */}
           {publication && (
             <div className="hidden lg:flex items-center gap-2 text-slate-400 border-l border-slate-700 pl-3">
-              <span>மொத்தப் பக்கங்கள்: <b className="text-amber-300">{totalPages}</b></span>
+              <span>பக்கங்கள்: <b className="text-amber-300">{totalPages}</b></span>
               <span>•</span>
-              <span className="text-emerald-400">அச்சு தெளிவு: 300 DPI</span>
+              {publicationType === 'enewspaper' ? (
+                <span className="text-emerald-400 font-bold">
+                  செய்திகள் நாள்: {publication.source_news_date_display} ({publication.total_articles || 0} செய்திகள்)
+                </span>
+              ) : (
+                <span className="text-emerald-400 font-bold">
+                  தொகுப்பு: {publication.sourceMonthLabel || publication.edition} ({publication.totalArticlesIncluded || 0} படைப்புகள்)
+                </span>
+              )}
             </div>
           )}
         </div>
@@ -444,11 +491,12 @@ export default function AmazeTimesViewerModal({
           {/* Crop Article Button in Header */}
           <button
             onClick={() => handleOpenClipper()}
-            className="bg-amber-500/10 hover:bg-amber-500 text-amber-300 hover:text-slate-950 border border-amber-500/30 px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow"
+            disabled={isCapturingClip}
+            className="bg-amber-500/10 hover:bg-amber-500 text-amber-300 hover:text-slate-950 border border-amber-500/30 px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow disabled:opacity-60"
             title="செய்திக் கத்தரிப்பு (Article Clipper)"
           >
-            <Scissors className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">கத்தரித்து பகிர்க</span>
+            <Scissors className={`w-3.5 h-3.5 ${isCapturingClip ? 'animate-spin' : ''}`} />
+            <span className="hidden sm:inline">{isCapturingClip ? 'தயாராகிறது...' : 'கத்தரித்து பகிர்க'}</span>
           </button>
         </div>
       </div>
@@ -473,6 +521,8 @@ export default function AmazeTimesViewerModal({
             zoomScale={zoomScale}
             setZoomScale={setZoomScale}
             readingMode={readingMode}
+            publicationType={publicationType}
+            editionName={publication?.edition || publication?.edition_name || ''}
             onPageChange={(newPage) => setCurrentPage(newPage)}
             onOpenClipper={(pageObj) => handleOpenClipper(pageObj)}
             readerUser={readerUser}
@@ -495,6 +545,7 @@ export default function AmazeTimesViewerModal({
           setIsThumbnailDrawerOpen(false);
         }}
         publicationType={publicationType}
+        editionName={publication?.edition || publication?.edition_name || ''}
       />
 
       {/* ========================================================
@@ -610,11 +661,16 @@ export default function AmazeTimesViewerModal({
           {/* Download Full Edition */}
           <button
             onClick={handleDownloadFullEdition}
-            className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold text-xs shadow-md transition flex items-center gap-1.5 cursor-pointer"
+            disabled={Boolean(pdfProgress)}
+            className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold text-xs shadow-md transition flex items-center gap-1.5 cursor-pointer disabled:opacity-70"
             title="முழுமையான இதழ் பதிவிறக்கம் (PDF)"
           >
-            <Download className="w-4 h-4" />
-            <span className="hidden sm:inline">PDF பதிவிறக்கம்</span>
+            <Download className={`w-4 h-4 ${pdfProgress ? 'animate-bounce' : ''}`} />
+            <span className="hidden sm:inline">
+              {pdfProgress
+                ? `PDF தயாராகிறது (${pdfProgress.current}/${pdfProgress.total})...`
+                : 'PDF பதிவிறக்கம்'}
+            </span>
           </button>
 
           {/* Fullscreen Toggle */}

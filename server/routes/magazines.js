@@ -66,16 +66,19 @@ router.get('/', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const newMag = {
+      ...req.body,
       id: req.body.id || 'mag-' + Date.now(),
       title: req.body.title || 'அமேஸ் டைம்ஸ் மின்-இதழ்',
-      edition: req.body.edition || req.body.monthYear || '2026 பதிப்பு',
-      month: req.body.month || '10',
-      year: req.body.year || '2026',
+      edition: req.body.edition || req.body.issueMonth || req.body.monthYear || '2026 பதிப்பு',
+      month: String(req.body.month || '11').padStart(2, '0'),
+      year: String(req.body.year || '2026'),
       coverImage: req.body.coverImage || req.body.coverImageUrl || '/Amaze times.jpg',
       pdfUrl: req.body.pdfUrl || req.body.fileUrl || '/Amaze times.jpg',
-      pageCount: parseInt(req.body.pageCount) || 64,
-      description: req.body.description || '',
-      publishedDate: new Date().toISOString()
+      pageCount: parseInt(req.body.pageCount) || 24,
+      description: req.body.description || req.body.subtitle || '',
+      selectedArticleIds: Array.isArray(req.body.selectedArticleIds) ? req.body.selectedArticleIds : [],
+      mastheadConfig: req.body.mastheadConfig || null,
+      publishedDate: req.body.publishedDate || new Date().toISOString()
     };
 
     const currentList = await getStoredMagazines();
@@ -94,14 +97,16 @@ router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const currentList = await getStoredMagazines();
+    let updatedItem = null;
     const updated = currentList.map(item => {
       if (String(item.id) === String(id)) {
-        return { ...item, ...req.body, id: item.id };
+        updatedItem = { ...item, ...req.body, id: item.id };
+        return updatedItem;
       }
       return item;
     });
     await saveStoredMagazines(updated);
-    res.json({ success: true, message: 'இதழ் விவரம் புதுப்பிக்கப்பட்டது' });
+    res.json({ success: true, message: 'இதழ் விவரம் புதுப்பிக்கப்பட்டது', data: updatedItem });
   } catch (err) {
     console.error('Update magazine error:', err);
     res.status(500).json({ success: false, message: err.message });

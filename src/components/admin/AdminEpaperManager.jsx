@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { Newspaper, Upload, Plus, Trash2, Calendar, FileText, CheckCircle2, Lock, Sparkles, MapPin, Image as ImageIcon, Edit, X } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Newspaper, Upload, Plus, Trash2, Calendar, FileText, CheckCircle2, Lock, Sparkles, MapPin, Image as ImageIcon, Edit, X, Download, Eye, RefreshCw } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { api, getMediaUrl } from '../../services/api';
 import { getMonthYearString, getMonthLabel, getAvailableMonths } from '../../utils/monthUtils';
+import { exportPublicationToPdf } from '../../utils/pdfExporter';
+import AmazeTimesPageRenderer from '../amazetimes/AmazeTimesPageRenderer';
 
 export const AdminEpaperManager = () => {
   const { showToast } = useApp();
@@ -12,6 +14,84 @@ export const AdminEpaperManager = () => {
   const [uploadingPdf, setUploadingPdf] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
   const [editingId, setEditingId] = useState(null);
+
+  // Auto Daily E-Newspaper Compiler State (D Date compiles D-1 News)
+  const [autoDate, setAutoDate] = useState(() => {
+    try {
+      return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date());
+    } catch {
+      return new Date().toISOString().split('T')[0];
+    }
+  });
+  const [autoEdition, setAutoEdition] = useState('main');
+  const [autoData, setAutoData] = useState(null);
+  const [loadingAuto, setLoadingAuto] = useState(false);
+  const [showAutoPreview, setShowAutoPreview] = useState(false);
+  const [pdfExportProgress, setPdfExportProgress] = useState(null);
+
+  const fetchAutoCompiledEpaper = useCallback(async () => {
+    try {
+      setLoadingAuto(true);
+      const res = await fetch(`/api/amazetimes/enewspaper?date=${autoDate}&edition=${autoEdition}`);
+      const data = await res.json();
+      if (data && data.success) {
+        setAutoData(data);
+      }
+    } catch (err) {
+      console.warn('Auto epaper preview fetch error:', err);
+    } finally {
+      setLoadingAuto(false);
+    }
+  }, [autoDate, autoEdition]);
+
+  useEffect(() => {
+    fetchAutoCompiledEpaper();
+  }, [fetchAutoCompiledEpaper]);
+
+  const handleDownloadAutoPdf = async () => {
+    if (!autoData || !Array.isArray(autoData.pages) || autoData.pages.length === 0) {
+      showToast('பக்கங்கள் எதுவும் உருவாக்கப்படவில்லை');
+      return;
+    }
+    try {
+      showToast('தினசரி மின்-நாளிதழ் PDF உருவாக்கப்படுகிறது...');
+      await exportPublicationToPdf({
+        pages: autoData.pages,
+        publicationType: 'enewspaper',
+        editionName: autoData.publication?.edition_name || '',
+        fileName: `Amaze_Times_EPaper_${autoData.publication?.edition_date_display || autoDate}_${autoEdition}.pdf`,
+        onProgress: (curr, tot) => setPdfExportProgress({ current: curr, total: tot })
+      });
+      showToast('தினசரி இ-பேப்பர் PDF வெற்றிகரமாக பதிவிறக்கம் செய்யப்பட்டது!');
+    } catch (err) {
+      showToast('PDF உருவாக்குவதில் பிழை: ' + err.message);
+    } finally {
+      setPdfExportProgress(null);
+    }
+  };
+
+  const handlePublishAutoEdition = async () => {
+    if (!autoData?.publication) return;
+    try {
+      const pub = autoData.publication;
+      const res = await api.createEpaper({
+        title: pub.title,
+        edition_date: pub.edition_date,
+        pdf_url: 'auto-compiled',
+        cover_image_url: pub.cover_image_url || '/Amaze times.jpg',
+        page_count: autoData.pages?.length || 12,
+        file_size_mb: 6.5
+      });
+      if (res && res.success) {
+        showToast(`${pub.edition_date_display} பதிப்பு தளத்தில் நேரலையாக வெளியிடப்பட்டது!`);
+        fetchEpapers();
+      } else {
+        showToast(res?.message || 'வெளியிடுவதில் பிழை');
+      }
+    } catch (err) {
+      showToast('சேவையக பிழை: ' + err.message);
+    }
+  };
 
   // Form State
   const [showUploadForm, setShowUploadForm] = useState(false);
@@ -203,6 +283,142 @@ export const AdminEpaperManager = () => {
           <Plus className="w-4 h-4" />
           <span>{showUploadForm ? 'படிவத்தை மூடுக' : 'புதிய மின்-இதழ் பதிவேற்று'}</span>
         </button>
+      </div>
+
+      {/* DAILY AUTO-COMPILED E-NEWSPAPER STUDIO (D EDITION FROM D-1 NEWS) */}
+      <div className="bg-gradient-to-br from-[#0e1e42] to-[#0a132c] border border-amber-500/40 rounded-3xl p-6 shadow-2xl space-y-5">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+          <div>
+            <span className="bg-emerald-500/20 text-emerald-300 text-[11px] font-black px-2.5 py-0.5 rounded-full border border-emerald-500/30">
+              D → D-1 தானியங்கி தொகுப்பு
+            </span>
+            <h3 className="text-lg font-black text-white mt-1.5 flex items-center gap-2">
+              <FileText className="w-5 h-5 text-amber-400" />
+              <span>தினசரி மின்-நாளிதழ் PDF உருவாக்கி (Auto-Compile Daily E-Newspaper PDF)</span>
+            </h3>
+            <p className="text-xs text-slate-300 mt-1">
+              நீங்கள் தேர்ந்தெடுக்கும் <b>தேதிக்கு (எ.கா. 10-11-2026)</b> முந்தைய நாள் <b>(09-11-2026)</b> வெளியான அனைத்துச் செய்திகளையும் கட்டமைக்கப்பட்ட செய்தித்தாள் வடிவில் உடனடியாக PDF-ஆக உருவாக்குகிறது.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3">
+            <div>
+              <label className="text-[11px] font-bold text-slate-400 block mb-1">பதிப்புத் தேதி (Edition Date):</label>
+              <input
+                type="date"
+                value={autoDate}
+                onChange={(e) => setAutoDate(e.target.value)}
+                className="bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-amber-300 focus:outline-none focus:border-amber-500"
+              />
+            </div>
+
+            <div>
+              <label className="text-[11px] font-bold text-slate-400 block mb-1">மண்டலப் பதிப்பு (Edition):</label>
+              <select
+                value={autoEdition}
+                onChange={(e) => setAutoEdition(e.target.value)}
+                className="bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-white focus:outline-none focus:border-amber-500"
+              >
+                <option value="main">தமிழ்நாடு முதன்மைப் பதிப்பு</option>
+                <option value="city">சென்னை பெருநகரப் பதிப்பு</option>
+                <option value="special">வாராந்திர சிறப்பு மலர்</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {/* Live Compilation Summary */}
+        {loadingAuto ? (
+          <div className="py-6 flex items-center justify-center gap-2 text-amber-300 text-xs font-bold">
+            <RefreshCw className="w-4 h-4 animate-spin" />
+            <span>முந்தைய நாள் செய்திகள் தொகுக்கப்படுகின்றன...</span>
+          </div>
+        ) : autoData?.publication ? (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+              <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-3">
+                <span className="text-slate-400 block text-[10px]">பதிப்புத் தேதி (Issue)</span>
+                <b className="text-amber-400 text-sm font-black">{autoData.publication.edition_date_display}</b>
+              </div>
+              <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-3">
+                <span className="text-slate-400 block text-[10px]">செய்தி நாள் (D-1 Source)</span>
+                <b className="text-emerald-400 text-sm font-black">{autoData.publication.source_news_date_display}</b>
+              </div>
+              <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-3">
+                <span className="text-slate-400 block text-[10px]">தொகுக்கப்பட்ட செய்திகள்</span>
+                <b className="text-white text-sm font-black">
+                  {autoData.publication.total_articles} செய்திகள்
+                  {autoData.publication.exact_source_count > 0 && (
+                    <span className="text-[10px] text-emerald-400 ml-1">({autoData.publication.exact_source_count} D-1)</span>
+                  )}
+                </b>
+              </div>
+              <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-3">
+                <span className="text-slate-400 block text-[10px]">உருவான பக்கங்கள்</span>
+                <b className="text-sky-400 text-sm font-black">{autoData.pages?.length || 0} பக்கங்கள் (A4 Broadsheet)</b>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setShowAutoPreview(prev => !prev)}
+                className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs border border-slate-700 flex items-center gap-2 cursor-pointer transition"
+              >
+                <Eye className="w-4 h-4 text-amber-400" />
+                <span>{showAutoPreview ? 'முன்னோட்டத்தை மூடு' : 'கட்டமைக்கப்பட்ட பக்கங்களைப் பார் (Preview)'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleDownloadAutoPdf}
+                disabled={Boolean(pdfExportProgress)}
+                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs shadow-lg flex items-center gap-2 cursor-pointer transition disabled:opacity-60"
+              >
+                <Download className={`w-4 h-4 ${pdfExportProgress ? 'animate-bounce' : ''}`} />
+                <span>
+                  {pdfExportProgress
+                    ? `PDF தயாராகிறது (${pdfExportProgress.current}/${pdfExportProgress.total})...`
+                    : 'PDF-ஆக உருவாக்கிப் பதிவிறக்கு (Download PDF)'}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handlePublishAutoEdition}
+                className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs shadow-lg flex items-center gap-2 cursor-pointer transition ml-auto"
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                <span>இதை இணையதளத்தில் வெளியிடு (Publish to Site)</span>
+              </button>
+            </div>
+
+            {/* Inline Scrollable Live Broadsheet Preview */}
+            {showAutoPreview && (
+              <div className="bg-slate-950 border border-slate-800 rounded-2xl p-4 max-h-[650px] overflow-auto">
+                <div className="flex flex-wrap justify-center gap-6">
+                  {(autoData.pages || []).map((pg) => (
+                    <div key={pg.pageNumber} className="shadow-2xl border border-slate-700 rounded overflow-hidden">
+                      <div className="bg-slate-900 text-amber-300 text-[11px] font-bold px-3 py-1 flex justify-between">
+                        <span>{pg.title}</span>
+                        <span>பக்கம் {pg.pageNumber}</span>
+                      </div>
+                      <div style={{ width: '397px', height: '561px', overflow: 'hidden', position: 'relative' }}>
+                        <div style={{ transform: 'scale(0.5)', transformOrigin: 'top left', width: '794px', height: '1123px' }}>
+                          <AmazeTimesPageRenderer
+                            page={pg}
+                            publicationType="enewspaper"
+                            editionName={autoData.publication?.edition_name}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        ) : null}
       </div>
 
       {/* UPLOAD / ADD EPAPER FORM */}

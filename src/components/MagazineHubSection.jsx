@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { BookOpen, Download, Calendar, Sparkles, ChevronRight, FileText } from 'lucide-react';
+import { BookOpen, Download } from 'lucide-react';
 import { api } from '../services/api';
 import MagazineShowcase from './MagazineShowcase';
+import { exportPublicationToPdf } from '../utils/pdfExporter';
 
 export default function MagazineHubSection({ onOpenEPaper, onOpenMagazine, onToast, readerUser = null, onOpenAuth }) {
   const [magazines, setMagazines] = useState([]);
   const [selectedYear, setSelectedYear] = useState('2026');
+  const [downloadingId, setDownloadingId] = useState(null);
   const years = ['2026', '2025', '2024', '2023', '2021'];
 
   useEffect(() => {
@@ -15,10 +17,41 @@ export default function MagazineHubSection({ onOpenEPaper, onOpenMagazine, onToa
         if (res && res.success && Array.isArray(res.magazines)) {
           setMagazines(res.magazines);
         }
-      } catch (_) {}
+      } catch (_) { }
     };
     fetchMags();
   }, []);
+
+  const handleDownloadMagPdf = async (mag) => {
+    if (!readerUser) {
+      if (onToast) onToast('PDF பதிவிறக்கம் செய்ய வாசகராக உள்நுழையவும்!', 'info');
+      if (onOpenAuth) onOpenAuth();
+      return;
+    }
+    if (downloadingId) return;
+
+    try {
+      setDownloadingId(mag.id);
+      if (onToast) onToast('இதழ் PDF உருவாக்கப்படுகிறது...');
+      const yr = mag.year || '2026';
+      const mo = String(mag.month || '11').padStart(2, '0');
+      const res = await fetch(`/api/amazetimes/magazine?id=${encodeURIComponent(mag.id)}&year=${yr}&month=${mo}`);
+      const data = await res.json();
+      if (data?.success && data.pages?.length) {
+        await exportPublicationToPdf({
+          pages: data.pages,
+          publicationType: 'magazine',
+          editionName: data.publication?.edition || '',
+          fileName: `Amaze_Times_Magazine_${yr}_${mo}.pdf`
+        });
+        if (onToast) onToast('மாத இதழ் PDF வெற்றிகரமாக பதிவிறக்கம் செய்யப்பட்டது!', 'success');
+      }
+    } catch (e) {
+      if (onToast) onToast('PDF உருவாக்கத்தில் பிழை: ' + e.message, 'error');
+    } finally {
+      setDownloadingId(null);
+    }
+  };
 
   const filteredMagazines = magazines.filter(m => String(m.year) === selectedYear);
 
@@ -46,11 +79,10 @@ export default function MagazineHubSection({ onOpenEPaper, onOpenMagazine, onToa
               <button
                 key={yr}
                 onClick={() => setSelectedYear(yr)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
-                  selectedYear === yr
-                    ? 'bg-amber-500 text-slate-950 shadow-md'
-                    : 'bg-gray-800/80 text-gray-300 hover:bg-gray-700 hover:text-white'
-                }`}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${selectedYear === yr
+                  ? 'bg-amber-500 text-slate-950 shadow-md'
+                  : 'bg-gray-800/80 text-gray-300 hover:bg-gray-700 hover:text-white'
+                  }`}
               >
                 {yr}
               </button>
@@ -68,21 +100,21 @@ export default function MagazineHubSection({ onOpenEPaper, onOpenMagazine, onToa
               >
                 <div className="aspect-[3/4] rounded-xl overflow-hidden bg-gray-900 mb-2 relative">
                   <img
-                    src={mag.cover_image || mag.cover_image_url || '/Amaze times.jpg'}
+                    src={mag.coverImage || mag.cover_image || mag.cover_image_url || '/Amaze times.jpg'}
                     alt={mag.title}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     onError={(e) => { e.currentTarget.src = '/Amaze times.jpg'; }}
                   />
                   <span className="absolute top-1.5 right-1.5 bg-red-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded">
-                    {mag.month || mag.issue_month}
+                    {mag.edition || mag.month || mag.issue_month}
                   </span>
                 </div>
 
                 <div>
                   <h4 className="text-xs font-bold text-gray-200 line-clamp-1 mb-1">{mag.title}</h4>
                   <div className="text-[10px] text-gray-400 flex items-center justify-between mb-2">
-                    <span>{mag.pages_count || mag.pagesCount || 36} பக்கங்கள்</span>
-                    <span>{mag.file_size || '12 MB'}</span>
+                    <span>{mag.pages_count || mag.pagesCount || mag.pageCount || 12} பக்கங்கள்</span>
+                    <span>{mag.file_size || mag.fileSize || '8.4 MB'}</span>
                   </div>
 
                   <div className="flex items-center gap-1">
@@ -96,21 +128,18 @@ export default function MagazineHubSection({ onOpenEPaper, onOpenMagazine, onToa
                         if (onOpenMagazine) onOpenMagazine();
                         else if (onOpenEPaper) onOpenEPaper();
                       }}
-                      className="flex-1 py-1 px-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500 text-amber-300 hover:text-slate-950 text-[10px] font-bold text-center transition"
+                      className="flex-1 py-1 px-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500 text-amber-300 hover:text-slate-950 text-[10px] font-bold text-center transition cursor-pointer"
                     >
                       {readerUser ? 'வாசிக்க' : '🔒 வாசிக்க'}
                     </button>
-                    {mag.pdf_url && (
-                      <a
-                        href={mag.pdf_url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="p-1 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white transition"
-                        title="PDF பதிவிறக்க"
-                      >
-                        <Download size={12} />
-                      </a>
-                    )}
+                    <button
+                      onClick={() => handleDownloadMagPdf(mag)}
+                      disabled={Boolean(downloadingId)}
+                      className="p-1.5 rounded-lg bg-gray-800 hover:bg-amber-500 text-gray-300 hover:text-slate-950 transition cursor-pointer disabled:opacity-50"
+                      title="PDF பதிவிறக்க"
+                    >
+                      <Download size={12} className={downloadingId === mag.id ? 'animate-bounce' : ''} />
+                    </button>
                   </div>
                 </div>
               </div>
