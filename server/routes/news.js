@@ -13,6 +13,10 @@ import {
 
 const router = express.Router();
 
+// In-flight request coalescing & idempotency guard against concurrent / duplicate POSTs
+const inFlightNewsCreations = new Map();
+const recentClientRequestIds = new Map();
+
 // Helper to format an article row uniformly
 export const formatNewsRow = (r) => {
   return {
@@ -643,22 +647,49 @@ router.post('/', authenticate, requireReporterOrAdmin, async (req, res) => {
       status = 'published'
     } = req.body;
 
-        if (!title || !title.trim()) {
+    if (!title || !title.trim()) {
       return res.status(400).json({ success: false, message: 'செய்தித் தலைப்பு கட்டாயமானது' });
     }
 
-    // Anti-duplicate protection: If identical article was published within 15 seconds, return it
-    const duplicateCheck = await query(
-      `SELECT * FROM news WHERE TRIM(LOWER(title)) = TRIM(LOWER($1)) AND category = $2 AND created_at > NOW() - INTERVAL '15 seconds' LIMIT 1;`,
-      [title.trim(), category]
-    );
-    if (duplicateCheck.rows.length > 0) {
+    const clientRequestId = req.body.clientRequestId || req.headers['x-idempotency-key'] || '';
+    const normalizedTitle = title.trim().toLowerCase().replace(/\s+/g, ' ');
+    const dedupeKey = `${normalizedTitle}::${category}`;
+
+    // 1. Check completed idempotency key cache
+    if (clientRequestId && recentClientRequestIds.has(clientRequestId)) {
+      const existing = recentClientRequestIds.get(clientRequestId);
       return res.status(200).json({
         success: true,
-        data: formatNewsRow(duplicateCheck.rows[0]),
-        message: 'செய்தி ஏற்கனவே சேமிக்கப்பட்டது (Duplicate Prevented)'
+        duplicatePrevented: true,
+        data: existing,
+        news: existing,
+        message: 'செய்தி ஏற்கனவே சேமிக்கப்பட்டது (Idempotent Request)'
       });
     }
+
+    // 2. Race-free in-flight coalescing: If an identical upload is currently running, await it!
+    const existingFlight = inFlightNewsCreations.get(dedupeKey) || (clientRequestId ? inFlightNewsCreations.get(clientRequestId) : null);
+    if (existingFlight) {
+      const sharedRes = await existingFlight;
+      const sharedCreated = sharedRes?.article || sharedRes;
+      return res.status(200).json({
+        success: true,
+        duplicatePrevented: true,
+        data: sharedCreated,
+        news: sharedCreated,
+        message: 'செய்தி ஏற்கனவே சேமிக்கப்பட்டது (Concurrent Duplicate Prevented)'
+      });
+    }
+
+    const flightPromise = (async () => {
+      // 3. Database duplicate check (12 hours window for identical normalized headline + category)
+      const duplicateCheck = await query(
+        `SELECT * FROM news WHERE REGEXP_REPLACE(TRIM(LOWER(title)), '\\s+', ' ', 'g') = $1 AND category = $2 AND created_at > NOW() - INTERVAL '12 hours' LIMIT 1;`,
+        [normalizedTitle, category]
+      );
+      if (duplicateCheck.rows.length > 0) {
+        return { article: formatNewsRow(duplicateCheck.rows[0]), wasDuplicate: true };
+      }
 
     const cleanImage = ensureHttpsUrl(mainImage || image || '/Amaze times.jpg');
     const cleanSummary = summary || desc || (content ? content.substring(0, 160) + '...' : '');
@@ -712,13 +743,42 @@ router.post('/', authenticate, requireReporterOrAdmin, async (req, res) => {
       await query(`UPDATE home_builder_settings SET lead_hero_id = $1 WHERE id = 1;`, [created.id]);
     }
 
-    notifyNewsClients('created', { id: created.id });
+      notifyNewsClients('created', { id: created.id });
+      return { article: created, wasDuplicate: false };
+    })();
+
+    inFlightNewsCreations.set(dedupeKey, flightPromise);
+    if (clientRequestId) inFlightNewsCreations.set(clientRequestId, flightPromise);
+
+    let outcome;
+    try {
+      outcome = await flightPromise;
+    } finally {
+      inFlightNewsCreations.delete(dedupeKey);
+      if (clientRequestId) inFlightNewsCreations.delete(clientRequestId);
+    }
+
+    const finalArticle = outcome.article;
+    if (clientRequestId && finalArticle) {
+      recentClientRequestIds.set(clientRequestId, finalArticle);
+      setTimeout(() => recentClientRequestIds.delete(clientRequestId), 30 * 60 * 1000);
+    }
+
+    if (outcome.wasDuplicate) {
+      return res.status(200).json({
+        success: true,
+        duplicatePrevented: true,
+        data: finalArticle,
+        news: finalArticle,
+        message: 'செய்தி ஏற்கனவே சேமிக்கப்பட்டது (Duplicate Prevented)'
+      });
+    }
 
     res.status(201).json({
       success: true,
       message: 'செய்தி வெற்றிகரமாக உருவாக்கப்பட்டது',
-      data: created,
-      news: created
+      data: finalArticle,
+      news: finalArticle
     });
   } catch (err) {
     console.error('Error creating news:', err);

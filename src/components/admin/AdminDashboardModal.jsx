@@ -65,6 +65,7 @@ export default function AdminDashboardModal({
   const [formIsLead, setFormIsLead] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [isSubmittingArticle, setIsSubmittingArticle] = useState(false);
+  const submittingArticleRef = React.useRef(false);
 
   // Rejection Modal State
   const [rejectingArticleId, setRejectingArticleId] = useState(null);
@@ -378,11 +379,13 @@ export default function AdminDashboardModal({
 
   // Submit Article Form
   const handleSaveArticle = async (asDraft = false) => {
+    if (submittingArticleRef.current || isSubmittingArticle) return;
     if (!formTitle.trim() || !formContent.trim() || !formCoverImage.trim()) {
       onToast('தயவுசெய்து தலைப்பு, செய்தி மற்றும் முகப்பு படத்தை உள்ளிடவும்', 'error');
       return;
     }
 
+    submittingArticleRef.current = true;
     setIsSubmittingArticle(true);
     try {
       const payload = {
@@ -411,6 +414,7 @@ export default function AdminDashboardModal({
     } catch (err) {
       onToast(err.message || 'செய்தி சேமிப்பதில் பிழை', 'error');
     } finally {
+      submittingArticleRef.current = false;
       setIsSubmittingArticle(false);
     }
   };

@@ -29,6 +29,7 @@ export default function ReporterDashboard() {
   const [filterStatus, setFilterStatus] = useState('all');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const submitLockRef = React.useRef(false);
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
 
@@ -91,13 +92,14 @@ export default function ReporterDashboard() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (submitting) return;
+    if (submitLockRef.current || submitting) return;
     if (!formData.title.trim()) {
       alert('செய்தித் தலைப்பை உள்ளிடவும்');
       return;
     }
 
     try {
+      submitLockRef.current = true;
       setSubmitting(true);
       setErrorMsg('');
       await api.createNews({
@@ -127,6 +129,7 @@ export default function ReporterDashboard() {
       console.error('Submit news error:', err);
       alert('செய்தி அனுப்புவதில் பிழை: ' + (err.message || 'தெரியாத பிழை'));
     } finally {
+      submitLockRef.current = false;
       setSubmitting(false);
     }
   };

@@ -263,7 +263,8 @@ export const AdminDashboard = () => {
 
       const newsRes = await api.getNews({ limit: 'all', _t: Date.now() }).catch(() => null);
       const fetchedNews = (newsRes && newsRes.success && Array.isArray(newsRes.data)) ? newsRes.data : [];
-      setArticles(fetchedNews);
+      const dedupedNews = Array.from(new Map(fetchedNews.map(a => [String(a.id || a._id), a])).values());
+      setArticles(dedupedNews);
       setStats(prev => ({
         ...prev,
         totalNews: fetchedNews.length,
@@ -398,8 +399,13 @@ export const AdminDashboard = () => {
     resetEditingArticle();
   };
 
+  const submissionKeyRef = React.useRef('');
+
   // Handlers for News
   const handleOpenNewsModal = (article = null, targetCategory = null) => {
+    submissionKeyRef.current = `news_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    publishLockRef.current = false;
+    setIsPublishingNews(false);
     if (article) {
       setEditingArticle(article);
       const resolvedContent = article.content || (Array.isArray(article.paragraphs) ? article.paragraphs.join('\n\n') : (article.summary || ''));
@@ -430,15 +436,26 @@ export const AdminDashboard = () => {
 
   const handleSaveNews = async (e) => {
     e.preventDefault();
+    if (publishLockRef.current || isPublishingNews) {
+      return;
+    }
+    if (uploadingImage) {
+      showToast('படம் பதிவேற்றம் முடிந்ததும் வெளியிடவும்...');
+      return;
+    }
     if (!newsForm.title.trim() || !newsForm.summary.trim() || !newsForm.content.trim()) {
       showToast('தயவுசெய்து செய்தி தலைப்பு மற்றும் விவரங்களை நிரப்பவும்');
       return;
     }
 
+    publishLockRef.current = true;
+    setIsPublishingNews(true);
+
     try {
       let result;
       const savePayload = {
         ...newsForm,
+        clientRequestId: submissionKeyRef.current || `news_${Date.now()}`,
         subCategory: isDistrictCategory(newsForm.category) ? '' : (newsForm.subCategory || ''),
         district: isDistrictCategory(newsForm.category) ? (newsForm.district || 'all') : 'all'
       };
@@ -457,6 +474,9 @@ export const AdminDashboard = () => {
       await fetchNews();
     } catch (err) {
       showToast('செய்தி சேமிப்பில் பிழை நடந்தது');
+    } finally {
+      publishLockRef.current = false;
+      setIsPublishingNews(false);
     }
   };
 
