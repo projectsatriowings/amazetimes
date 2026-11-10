@@ -10,6 +10,12 @@ const TAMIL_MONTHS = {
   '09': 'செப்டம்பர்', '10': 'அக்டோபர்', '11': 'நவம்பர்', '12': 'டிசம்பர்'
 };
 
+const ENG_MONTHS = {
+  '01': 'January', '02': 'February', '03': 'March', '04': 'April',
+  '05': 'May', '06': 'June', '07': 'July', '08': 'August',
+  '09': 'September', '10': 'October', '11': 'November', '12': 'December'
+};
+
 function getIstDateStr(dateInput = new Date()) {
   const d = typeof dateInput === 'string' ? new Date(dateInput) : dateInput;
   const istOffset = 5.5 * 60 * 60 * 1000;
@@ -56,9 +62,7 @@ async function getMarketSnapshot() {
     if (res.rows.length > 0 && res.rows[0].data) {
       return res.rows[0].data;
     }
-  } catch (e) {
-    // ignore fallback
-  }
+  } catch (e) {}
   return {
     gold22k: '₹7,250 / கி',
     silver: '₹102.00 / கி',
@@ -68,6 +72,72 @@ async function getMarketSnapshot() {
     nifty: '24,536 ▲'
   };
 }
+
+async function getEditorialAndBlogStories() {
+  const extras = [];
+  try {
+    const res = await query(`SELECT key, data FROM site_content WHERE key IN ('editorial_articles', 'blogs')`);
+    for (const row of res.rows) {
+      const arr = Array.isArray(row.data) ? row.data : [];
+      if (row.key === 'editorial_articles') {
+        arr.slice(0, 4).forEach((item, idx) => {
+          extras.push({
+            id: item.id || `editorial-${idx}`,
+            title: item.title,
+            subtitle: '',
+            summary: cleanPlainText(item.desc || item.content),
+            paragraphs: splitParagraphs(item.content || item.desc, 1300),
+            category: 'தலையங்கம்',
+            district: '',
+            author: item.author || 'முதன்மையாசிரியர் தலையங்கக் குழு',
+            image: item.image || '/Amaze times.jpg',
+            publishedAt: item.date || new Date().toISOString(),
+            publishedDateIst: formatDateDDMMYYYY(item.date || getIstDateStr()),
+            viewsCount: 450,
+            likesCount: 65
+          });
+        });
+      } else if (row.key === 'blogs') {
+        arr.slice(0, 4).forEach((item, idx) => {
+          extras.push({
+            id: item.id || `blog-${idx}`,
+            title: item.title,
+            subtitle: item.moral || '',
+            summary: cleanPlainText(item.summary || item.content),
+            paragraphs: splitParagraphs(item.content || item.summary, 1300),
+            category: item.category || 'சிறுகதை',
+            district: '',
+            author: item.authorName || 'சிறப்பு எழுத்தாளர்',
+            image: item.mainImage || '/Amaze times.jpg',
+            publishedAt: item.createdAt || new Date().toISOString(),
+            publishedDateIst: formatDateDDMMYYYY(item.createdAt || getIstDateStr()),
+            viewsCount: 320,
+            likesCount: item.likesCount || 50
+          });
+        });
+      }
+    }
+  } catch (err) {
+    console.warn('Extra site_content articles warning:', err.message);
+  }
+  return extras;
+}
+
+const formatForPrint = (art) => ({
+  id: art.id,
+  title: art.title,
+  subtitle: art.subtitle || '',
+  summary: cleanPlainText(art.summary || art.desc),
+  paragraphs: splitParagraphs(art.content || art.summary, 1300),
+  category: art.category || 'தமிழ்நாடு',
+  district: art.district && art.district !== 'all' ? art.district : '',
+  author: art.authorName || art.author || 'அமேஸ் டைம்ஸ் செய்திக்குழு',
+  image: ensureHttpsUrl(art.mainImage || art.image || '/Amaze times.jpg'),
+  publishedAt: art.publishedAt || art.createdAt,
+  publishedDateIst: formatDateDDMMYYYY(getIstDateStr(art.publishedAt || art.createdAt)),
+  viewsCount: art.viewsCount || 0,
+  likesCount: art.likesCount || 0
+});
 
 // =========================================================================
 // SAFE IMAGE PROXY FOR CROSS-ORIGIN PDF EXPORT & CLIPPER CANVAS
@@ -104,7 +174,7 @@ router.get('/proxy-image', async (req, res) => {
 });
 
 // =========================================================================
-// DAILY E-NEWSPAPER AGGREGATOR (D EDITION CONTAINS ALL NEWS FROM D-1)
+// DAILY E-NEWSPAPER AGGREGATOR (D EDITION -> D-1 NEWS + FULL SECTION COVERAGE)
 // =========================================================================
 router.get('/enewspaper', async (req, res) => {
   try {
@@ -115,66 +185,84 @@ router.get('/enewspaper', async (req, res) => {
     const editionParam = req.query.edition || 'main';
     const sourceNewsDate = subtractOneDayStr(editionDate);
 
-    // 1. Query articles strictly published on D-1 (sourceNewsDate in IST)
+    // 1. All news published strictly on D-1 (sourceNewsDate in IST)
     const exactRes = await query(`
-      SELECT * FROM news 
-      WHERE status = 'published' 
+      SELECT * FROM news
+      WHERE status = 'published'
         AND (COALESCE(published_at, created_at) AT TIME ZONE 'Asia/Kolkata')::date = $1::date
       ORDER BY is_lead_hero DESC, is_top_story DESC, is_breaking DESC, COALESCE(views_count, 0) DESC, COALESCE(published_at, created_at) DESC
     `, [sourceNewsDate]);
 
-    let articles = exactRes.rows.map(formatNewsRow);
-    const exactSourceCount = articles.length;
-    let isFallbackUsed = false;
-    let effectiveSourceDate = sourceNewsDate;
+    const exactArticles = exactRes.rows.map(formatNewsRow).map(formatForPrint);
+    const exactSourceCount = exactArticles.length;
 
-    // 2. If exact D-1 has fewer than 4 articles (e.g. quiet day), pull recent published news up to D-1 (so broadsheet is rich & complete)
-    if (articles.length < 4) {
-      isFallbackUsed = true;
-      const fallbackRes = await query(`
-        SELECT * FROM news 
-        WHERE status = 'published' 
+    // 2. Partitioned Query up to D-1: Ensures up to 7 recent news items from EVERY SINGLE category!
+    const diverseRes = await query(`
+      WITH ranked AS (
+        SELECT *,
+               ROW_NUMBER() OVER (
+                 PARTITION BY category
+                 ORDER BY (COALESCE(published_at, created_at) AT TIME ZONE 'Asia/Kolkata')::date DESC,
+                          is_lead_hero DESC, is_top_story DESC, COALESCE(views_count, 0) DESC
+               ) as cat_rank
+        FROM news
+        WHERE status = 'published'
           AND (COALESCE(published_at, created_at) AT TIME ZONE 'Asia/Kolkata')::date <= $1::date
-        ORDER BY (COALESCE(published_at, created_at) AT TIME ZONE 'Asia/Kolkata')::date DESC,
-                 is_lead_hero DESC, is_top_story DESC, is_breaking DESC, COALESCE(views_count, 0) DESC
-        LIMIT 32
-      `, [sourceNewsDate]);
+      )
+      SELECT * FROM ranked
+      WHERE cat_rank <= 14
+      ORDER BY (COALESCE(published_at, created_at) AT TIME ZONE 'Asia/Kolkata')::date DESC,
+               is_lead_hero DESC, is_top_story DESC, COALESCE(views_count, 0) DESC
+    `, [sourceNewsDate]);
 
-      const existingIds = new Set(articles.map(a => a.id));
-      for (const row of fallbackRes.rows) {
-        if (!existingIds.has(row.id)) {
-          articles.push(formatNewsRow(row));
-        }
-      }
+    let allPool = [...exactArticles];
+    const seenIds = new Set(exactArticles.map(a => String(a.id)));
 
-      if (articles.length > 0 && exactSourceCount === 0) {
-        effectiveSourceDate = getIstDateStr(articles[0].publishedAt || articles[0].createdAt);
-      }
-
-      // If still empty (e.g. editionDate earlier than any news), pull latest published news overall
-      if (articles.length === 0) {
-        const anyRes = await query(`
-          SELECT * FROM news 
-          WHERE status = 'published' 
-          ORDER BY COALESCE(published_at, created_at) DESC 
-          LIMIT 28
-        `);
-        articles = anyRes.rows.map(formatNewsRow);
+    for (const row of diverseRes.rows) {
+      const formatted = formatForPrint(formatNewsRow(row));
+      if (!seenIds.has(String(formatted.id))) {
+        seenIds.add(String(formatted.id));
+        allPool.push(formatted);
       }
     }
 
-    // Optional edition customization: City Edition puts Chennai / Districts forward
+    // If completely empty (future/early edge case), load across whole published pool partitioned by category
+    if (allPool.length < 15) {
+      const anyRes = await query(`
+        WITH ranked AS (
+          SELECT *,
+                 ROW_NUMBER() OVER (
+                   PARTITION BY category
+                   ORDER BY COALESCE(published_at, created_at) DESC
+                 ) as cat_rank
+          FROM news WHERE status = 'published'
+        )
+        SELECT * FROM ranked WHERE cat_rank <= 8
+        ORDER BY COALESCE(published_at, created_at) DESC
+      `);
+      for (const row of anyRes.rows) {
+        const formatted = formatForPrint(formatNewsRow(row));
+        if (!seenIds.has(String(formatted.id))) {
+          seenIds.add(String(formatted.id));
+          allPool.push(formatted);
+        }
+      }
+    }
+
+    // Also include Editorials & Blogs/Stories for the Editorial Section Page
+    const editorialAndBlogs = await getEditorialAndBlogStories();
+
+    // City Edition puts Chennai/TN first, Special highlights highest views
     if (editionParam === 'city') {
-      articles.sort((a, b) => {
+      allPool.sort((a, b) => {
         const aCity = (a.district === 'சென்னை' || a.category === 'தமிழ்நாடு') ? 1 : 0;
         const bCity = (b.district === 'சென்னை' || b.category === 'தமிழ்நாடு') ? 1 : 0;
         return bCity - aCity;
       });
     } else if (editionParam === 'special') {
-      articles.sort((a, b) => (b.viewsCount || 0) - (a.viewsCount || 0));
+      allPool.sort((a, b) => (b.viewsCount || 0) - (a.viewsCount || 0));
     }
 
-    // Check saved manual/custom epaper metadata in epaper_editions
     let dbEdition = null;
     let archiveDates = [];
     try {
@@ -189,42 +277,24 @@ router.get('/enewspaper', async (req, res) => {
         LIMIT 30
       `);
       archiveDates = datesRes.rows.map(r => r.ed_date);
-    } catch (e) {
-      console.warn('Archive dates query warning:', e.message);
-    }
+    } catch (e) {}
 
     const marketRates = await getMarketSnapshot();
-
     const editionsMap = {
       main: 'தமிழ்நாடு முதன்மைப் பதிப்பு (Main Edition)',
       city: 'சென்னை பெருநகரப் பதிப்பு (City Edition)',
       special: 'சிறப்புத் தொகுப்புப் பதிப்பு (Special Issue)'
     };
-
     const currentEditionName = editionsMap[editionParam] || editionsMap.main;
 
-    // Group & build structured multi-column newspaper pages
-    const formatForPaper = (art) => ({
-      id: art.id,
-      title: art.title,
-      subtitle: art.subtitle || '',
-      summary: cleanPlainText(art.summary || art.desc),
-      paragraphs: splitParagraphs(art.content || art.summary, 950),
-      category: art.category || 'தமிழ்நாடு',
-      district: art.district && art.district !== 'all' ? art.district : '',
-      author: art.authorName || 'அமேஸ் டைம்ஸ் செய்திக்குழு',
-      image: art.mainImage || '/Amaze times.jpg',
-      publishedAt: art.publishedAt || art.createdAt,
-      publishedDateIst: formatDateDDMMYYYY(getIstDateStr(art.publishedAt || art.createdAt))
-    });
-
-    const formattedArticles = articles.map(formatForPaper);
     const pages = [];
+    const usedOnPages = new Set();
 
-    // PAGE 1: Broadsheet Front Page
-    const frontLead = formattedArticles[0] || null;
-    const frontSecondary = formattedArticles.slice(1, 5);
-    const frontBriefs = formattedArticles.slice(5, 9);
+    // PAGE 1: Broadsheet Front Page (1 Lead + 3 Secondary Bottom + 5 Briefs = 9 articles!)
+    const frontLead = allPool[0] || null;
+    const frontSecondary = allPool.slice(1, 4);
+    const frontBriefs = allPool.slice(4, 9);
+    [frontLead, ...frontSecondary, ...frontBriefs].forEach(a => a && usedOnPages.add(String(a.id)));
 
     pages.push({
       pageNumber: 1,
@@ -234,7 +304,7 @@ router.get('/enewspaper', async (req, res) => {
       editionDateFormatted: formatDateDDMMYYYY(editionDate),
       sourceNewsDateFormatted: formatDateDDMMYYYY(sourceNewsDate),
       exactSourceCount,
-      isFallbackUsed,
+      isFallbackUsed: exactSourceCount < 4,
       leadArticle: frontLead,
       secondaryArticles: frontSecondary,
       briefArticles: frontBriefs,
@@ -243,27 +313,42 @@ router.get('/enewspaper', async (req, res) => {
       thumbnail: frontLead?.image || '/Amaze times.jpg'
     });
 
-    // PAGES 2+: Categorized Broadsheet Pages (4 to 5 articles per page)
-    const remaining = formattedArticles.slice(9);
-    const sectionOrder = [
-      { key: 'tn_politics', label: 'தமிழ்நாடு & அரசியல்', cats: ['தமிழ்நாடு', 'அரசியல்', 'தமிழகம்'] },
-      { key: 'districts', label: 'மாவட்டச் செய்திகள்', cats: ['மாவட்டங்கள்', 'சென்னை', 'கோவை', 'மதுரை'] },
-      { key: 'biz_edu', label: 'வணிகம், கல்வி & தொழில்நுட்பம்', cats: ['வணிகம்', 'கல்வி', 'தொழில்நுட்பம்', 'வேலைவாய்ப்பு'] },
-      { key: 'nat_world', label: 'தேசியம் & சர்வதேசம்', cats: ['தேசியம்', 'இந்தியா', 'உலகம்'] },
-      { key: 'sports_cine', label: 'விளையாட்டு, சினிமா & ஆன்மிகம்', cats: ['விளையாட்டு', 'சினிமா', 'ஆன்மிகம்', 'தலையங்கம்'] }
+    // Helper to collect remaining stories for each category (up to 7 per page = rich full newspaper page!)
+    const pullCategoryStories = (cats, limit = 7) => {
+      const picked = [];
+      for (const a of allPool) {
+        if (picked.length >= limit) break;
+        if (!usedOnPages.has(String(a.id)) && cats.some(c => (a.category || '').includes(c))) {
+          picked.push(a);
+          usedOnPages.add(String(a.id));
+        }
+      }
+      return picked;
+    };
+
+    const sectionDefinitions = [
+      { label: 'தமிழ்நாடு முதன்மைச் செய்திகள்', cats: ['தமிழ்நாடு', 'தமிழகம்'], limit: 7 },
+      { label: 'தமிழக அரசியல் களம்', cats: ['அரசியல்'], limit: 7 },
+      { label: 'மாவட்டச் செய்திகள் (Districts)', cats: ['மாவட்ட', 'தமிழ்நாடு'], limit: 7 },
+      { label: 'தேசியம் (இந்தியா)', cats: ['தேசியம்', 'இந்தியா'], limit: 7 },
+      { label: 'சர்வதேசம் & உலக நிகழ்வுகள்', cats: ['உலகம்'], limit: 7 },
+      { label: 'வணிகம், கல்வி & தொழில்நுட்பம்', cats: ['வணிகம்', 'கல்வி', 'தொழில்நுட்பம்'], limit: 7 },
+      { label: 'விளையாட்டு அரங்கம்', cats: ['விளையாட்டு'], limit: 7 },
+      { label: 'சினிமா & கலை உலகம்', cats: ['சினிமா'], limit: 7 }
     ];
 
-    const usedIds = new Set(formattedArticles.slice(0, 9).map(a => a.id));
     let pageCounter = 2;
+    let totalRenderedArticles = [frontLead, ...frontSecondary, ...frontBriefs].filter(Boolean).length;
 
-    for (const sec of sectionOrder) {
-      const secArticles = formattedArticles.filter(
-        a => !usedIds.has(a.id) && sec.cats.some(c => (a.category || '').includes(c))
-      );
-
-      for (let i = 0; i < secArticles.length; i += 4) {
-        const chunk = secArticles.slice(i, i + 4);
-        chunk.forEach(a => usedIds.add(a.id));
+    for (const sec of sectionDefinitions) {
+      let chunk = pullCategoryStories(sec.cats, sec.limit);
+      // Ensure every category gets full coverage even if used earlier on front page
+      if (chunk.length < 3) {
+        const extraSameCat = allPool.filter(a => sec.cats.some(c => (a.category || '').includes(c)) && !chunk.includes(a));
+        chunk = [...chunk, ...extraSameCat.slice(0, sec.limit - chunk.length)];
+      }
+      if (chunk.length > 0) {
+        totalRenderedArticles += chunk.length;
         pages.push({
           pageNumber: pageCounter++,
           template: 'newspaper-section',
@@ -279,21 +364,21 @@ router.get('/enewspaper', async (req, res) => {
       }
     }
 
-    // Put any remaining uncategorized articles into clean continuation pages
-    const leftover = formattedArticles.filter(a => !usedIds.has(a.id));
-    for (let i = 0; i < leftover.length; i += 4) {
-      const chunk = leftover.slice(i, i + 4);
+    // Add Dedicated Editorial, Opinions & Literature Page!
+    if (editorialAndBlogs.length > 0) {
+      const edChunk = editorialAndBlogs.slice(0, 6);
+      totalRenderedArticles += edChunk.length;
       pages.push({
         pageNumber: pageCounter++,
         template: 'newspaper-section',
-        title: `பக்கம் ${pageCounter - 1}: சிறப்புச் செய்திகள் & தொடர்ச்சி`,
-        section: 'சிறப்புச் செய்திகள்',
+        title: `பக்கம் ${pageCounter - 1}: தலையங்கம், வலைப்பதிவு & சிறுகதை`,
+        section: 'தலையங்கம் & சிறப்புப் பார்வை',
         editionDateFormatted: formatDateDDMMYYYY(editionDate),
         sourceNewsDateFormatted: formatDateDDMMYYYY(sourceNewsDate),
-        leadArticle: chunk[0],
-        articles: chunk,
-        imageUrl: chunk[0]?.image || '/Amaze times.jpg',
-        thumbnail: chunk[0]?.image || '/Amaze times.jpg'
+        leadArticle: edChunk[0],
+        articles: edChunk,
+        imageUrl: edChunk[0]?.image || '/Amaze times.jpg',
+        thumbnail: edChunk[0]?.image || '/Amaze times.jpg'
       });
     }
 
@@ -304,10 +389,9 @@ router.get('/enewspaper', async (req, res) => {
       edition_date_display: formatDateDDMMYYYY(editionDate),
       source_news_date: sourceNewsDate,
       source_news_date_display: formatDateDDMMYYYY(sourceNewsDate),
-      effective_source_date: effectiveSourceDate,
       exact_source_count: exactSourceCount,
-      total_articles: formattedArticles.length,
-      is_fallback_used: isFallbackUsed,
+      total_articles: totalRenderedArticles,
+      is_fallback_used: exactSourceCount < 4,
       edition_name: currentEditionName,
       edition_code: editionParam,
       pdf_url: dbEdition?.pdf_url || '',
@@ -333,7 +417,7 @@ router.get('/enewspaper', async (req, res) => {
 });
 
 // =========================================================================
-// MONTHLY MAGAZINE AGGREGATOR ("அடுத்த தலைமுறை" TEMPLATE STRUCTURE + LAST MONTH TOP NEWS)
+// MONTHLY MAGAZINE AGGREGATOR (GLOSSY COVER TEMPLATE + FULL SECTION COVERAGE)
 // =========================================================================
 const DEFAULT_MASTHEAD = {
   brandTitle: 'அமேஸ் டைம்ஸ்',
@@ -355,7 +439,6 @@ router.get('/magazine/candidates', async (req, res) => {
     const year = parseInt(req.query.year || new Date().getFullYear(), 10);
     const month = parseInt(req.query.month || (new Date().getMonth() + 1), 10);
 
-    // Previous month window (or last 45 days up to current month end)
     let prevMonth = month - 1;
     let prevYear = year;
     if (prevMonth === 0) {
@@ -363,18 +446,25 @@ router.get('/magazine/candidates', async (req, res) => {
       prevYear = year - 1;
     }
 
+    // Fetch top best stories balanced across ALL categories from last month / top pool
     const r = await query(`
-      SELECT * FROM news 
-      WHERE status = 'published'
-      ORDER BY 
-        CASE WHEN EXTRACT(YEAR FROM COALESCE(published_at, created_at) AT TIME ZONE 'Asia/Kolkata') = $1 
-              AND EXTRACT(MONTH FROM COALESCE(published_at, created_at) AT TIME ZONE 'Asia/Kolkata') = $2 THEN 0 ELSE 1 END,
-        is_lead_hero DESC,
-        is_top_story DESC,
-        is_breaking DESC,
-        (COALESCE(views_count, 0) * 2 + COALESCE(likes_count, 0) * 5) DESC,
-        COALESCE(published_at, created_at) DESC
-      LIMIT 40
+      WITH ranked AS (
+        SELECT *,
+               ROW_NUMBER() OVER (
+                 PARTITION BY category
+                 ORDER BY CASE WHEN EXTRACT(YEAR FROM COALESCE(published_at, created_at) AT TIME ZONE 'Asia/Kolkata') = $1 
+                                AND EXTRACT(MONTH FROM COALESCE(published_at, created_at) AT TIME ZONE 'Asia/Kolkata') = $2 THEN 0 ELSE 1 END,
+                          is_lead_hero DESC, is_top_story DESC,
+                          (COALESCE(views_count, 0) * 2 + COALESCE(likes_count, 0) * 5) DESC,
+                          COALESCE(published_at, created_at) DESC
+               ) as cat_rank
+        FROM news WHERE status = 'published'
+      )
+      SELECT * FROM ranked WHERE cat_rank <= 6
+      ORDER BY is_lead_hero DESC, is_top_story DESC, is_breaking DESC,
+               (COALESCE(views_count, 0) * 2 + COALESCE(likes_count, 0) * 5) DESC,
+               COALESCE(published_at, created_at) DESC
+      LIMIT 48
     `, [prevYear, prevMonth]);
 
     const candidates = r.rows.map(formatNewsRow).map(a => ({
@@ -382,7 +472,7 @@ router.get('/magazine/candidates', async (req, res) => {
       title: a.title,
       category: a.category,
       summary: cleanPlainText(a.summary),
-      mainImage: a.mainImage,
+      mainImage: ensureHttpsUrl(a.mainImage),
       viewsCount: a.viewsCount,
       likesCount: a.likesCount,
       isLeadHero: a.isLeadHero,
@@ -406,18 +496,14 @@ router.get('/magazine', async (req, res) => {
     const reqMonth = req.query.month ? String(req.query.month).padStart(2, '0') : defaultMonth;
     const reqId = req.query.id;
 
-    // 1. Load stored magazines from DB
     let storedMagazines = [];
     try {
       const dbRes = await query('SELECT data FROM site_content WHERE key = $1', ['magazines']);
       if (dbRes.rows.length > 0 && Array.isArray(dbRes.rows[0].data)) {
         storedMagazines = dbRes.rows[0].data;
       }
-    } catch (e) {
-      console.warn('Magazines DB query error:', e.message);
-    }
+    } catch (e) {}
 
-    // 2. Match active magazine config
     let activeMag = null;
     if (reqId) {
       activeMag = storedMagazines.find(m => String(m.id) === String(reqId));
@@ -428,47 +514,65 @@ router.get('/magazine', async (req, res) => {
       );
     }
 
-    const tamilMonthName = TAMIL_MONTHS[reqMonth] || 'நவம்பர்';
+    const useYear = String(activeMag?.year || reqYear);
+    const useMonth = String(activeMag?.month || reqMonth).padStart(2, '0');
+    const tamilMonthName = TAMIL_MONTHS[useMonth] || 'நவம்பர்';
+    const engMonthName = ENG_MONTHS[useMonth] || 'November';
+
     if (!activeMag) {
-      activeMag = storedMagazines[0] || {
-        id: `mag-${reqYear}-${reqMonth}`,
-        title: `அமேஸ் டைம்ஸ் மாதாந்திர மலர் - ${tamilMonthName} ${reqYear}`,
-        edition: `${tamilMonthName}-${reqYear}`,
-        month: reqMonth,
-        year: reqYear,
+      activeMag = {
+        id: `mag-${useYear}-${useMonth}`,
+        title: `அமேஸ் டைம்ஸ் மாதாந்திர மலர் - ${tamilMonthName} ${useYear}`,
+        edition: `${tamilMonthName}-${useYear}`,
+        month: useMonth,
+        year: useYear,
+        volumeNo: '05',
+        issueNo: useMonth,
+        priceLabel: 'ரூ. 22/-',
         coverImage: '',
+        coverHeadline: '',
         pdfUrl: '',
-        description: `${tamilMonthName} ${reqYear} சிறப்புப் பதிப்பு — கடந்த மாதத்தின் முக்கியச் செய்திகள், புலனாய்வுக் கட்டுரைகள் மற்றும் சிறப்புப் பார்வைகள்.`
+        description: `${tamilMonthName} ${useYear} சிறப்புப் பதிப்பு — கடந்த மாதத்தின் முக்கிய அரசியல், தமிழ்நாடு, வணிகம், கல்வி, விளையாட்டு மற்றும் சிறப்புப் பார்வைகள்.`
       };
     }
 
-    const targetMonthLabel = activeMag.edition || `${TAMIL_MONTHS[String(activeMag.month || reqMonth).padStart(2, '0')] || tamilMonthName}-${activeMag.year || reqYear}`;
+    const targetMonthLabel = activeMag.edition || `${tamilMonthName}-${useYear}`;
 
-    // 3. Query important news from previous month + selected articles
-    let prevMonthNum = parseInt(activeMag.month || reqMonth, 10) - 1;
-    let prevYearNum = parseInt(activeMag.year || reqYear, 10);
+    let prevMonthNum = parseInt(useMonth, 10) - 1;
+    let prevYearNum = parseInt(useYear, 10);
     if (prevMonthNum <= 0) {
       prevMonthNum = 12;
       prevYearNum -= 1;
     }
 
+    // Partitioned Query across ALL categories ensuring 4 top stories from every section!
     const newsRes = await query(`
-      SELECT * FROM news 
-      WHERE status = 'published'
-      ORDER BY 
-        CASE WHEN EXTRACT(YEAR FROM COALESCE(published_at, created_at) AT TIME ZONE 'Asia/Kolkata') = $1 
-              AND EXTRACT(MONTH FROM COALESCE(published_at, created_at) AT TIME ZONE 'Asia/Kolkata') = $2 THEN 0 ELSE 1 END,
-        is_lead_hero DESC,
-        is_top_story DESC,
-        is_breaking DESC,
-        (COALESCE(views_count, 0) * 2 + COALESCE(likes_count, 0) * 5) DESC,
-        COALESCE(published_at, created_at) DESC
-      LIMIT 32
+      WITH ranked AS (
+        SELECT *,
+               ROW_NUMBER() OVER (
+                 PARTITION BY category
+                 ORDER BY CASE WHEN EXTRACT(YEAR FROM COALESCE(published_at, created_at) AT TIME ZONE 'Asia/Kolkata') = $1 
+                                AND EXTRACT(MONTH FROM COALESCE(published_at, created_at) AT TIME ZONE 'Asia/Kolkata') = $2 THEN 0 ELSE 1 END,
+                          is_lead_hero DESC, is_top_story DESC,
+                          (COALESCE(views_count, 0) * 2 + COALESCE(likes_count, 0) * 5) DESC,
+                          COALESCE(published_at, created_at) DESC
+               ) as cat_rank
+        FROM news WHERE status = 'published'
+      )
+      SELECT * FROM ranked WHERE cat_rank <= 4
+      ORDER BY is_lead_hero DESC, is_top_story DESC, is_breaking DESC,
+               (COALESCE(views_count, 0) * 2 + COALESCE(likes_count, 0) * 5) DESC,
+               COALESCE(published_at, created_at) DESC
+      LIMIT 40
     `, [prevYearNum, prevMonthNum]);
 
-    let rankedArticles = newsRes.rows.map(formatNewsRow);
+    let rankedArticles = newsRes.rows.map(formatNewsRow).map(formatForPrint);
 
-    // Prioritize Admin's selectedArticleIds if present
+    // Append Editorials & Short Stories for literature/opinion pages in the magazine!
+    const extraContent = await getEditorialAndBlogStories();
+    rankedArticles = [...rankedArticles, ...extraContent];
+
+    // If Admin specifically selected stories, prioritize them first
     if (Array.isArray(activeMag.selectedArticleIds) && activeMag.selectedArticleIds.length > 0) {
       const selectedSet = new Set(activeMag.selectedArticleIds.map(String));
       const picked = rankedArticles.filter(a => selectedSet.has(String(a.id)));
@@ -476,37 +580,23 @@ router.get('/magazine', async (req, res) => {
       rankedArticles = [...picked, ...rest];
     }
 
-    const bestNewsCandidates = rankedArticles.slice(0, 12).map(a => ({
+    const bestNewsCandidates = rankedArticles.slice(0, 15).map(a => ({
       id: a.id,
       title: a.title,
       category: a.category,
-      mainImage: a.mainImage,
+      mainImage: a.image,
       viewsCount: a.viewsCount
     }));
 
-    // Choose lead cover story and cover image
-    const formatForMagazine = (art) => ({
-      id: art.id,
-      title: art.title,
-      subtitle: art.subtitle || '',
-      summary: cleanPlainText(art.summary || art.desc),
-      paragraphs: splitParagraphs(art.content || art.summary, 1450),
-      category: art.category || 'சிறப்புக் கட்டுரை',
-      author: art.authorName || 'செய்தி ஆசிரியர்',
-      image: art.mainImage || '/Amaze times.jpg',
-      publishedDateIst: formatDateDDMMYYYY(getIstDateStr(art.publishedAt || art.createdAt))
-    });
-
-    const magStories = rankedArticles.map(formatForMagazine);
-    const leadStory = magStories[0] || {
+    const leadStory = rankedArticles[0] || {
       id: 'default-lead',
       title: 'தமிழகத்தின் வளர்ச்சித் திட்டங்கள் & மக்கள் பார்வை!',
       paragraphs: ['கடந்த மாதத்தின் முக்கிய நிகழ்வுகள் மற்றும் மக்கள் நலத் திட்டங்களின் விரிவான தொகுப்பு.'],
       image: '/Amaze times.jpg',
-      author: 'ஆசிரியர்'
+      author: 'ஆசிரியர்',
+      category: 'அரசியல் & சிறப்புப் பார்வை'
     };
 
-    // Custom admin cover image OR best news cover image!
     const chosenCoverImage = (activeMag.coverImage && activeMag.coverImage !== '/Amaze times.jpg')
       ? ensureHttpsUrl(activeMag.coverImage)
       : (leadStory.image || '/Amaze times.jpg');
@@ -518,12 +608,32 @@ router.get('/magazine', async (req, res) => {
 
     const pages = [];
 
-    // PAGE 1: Authentic Magazine Page 1 Template (Left Masthead Table + Right Lead Story)
+    // PAGE 1: GLOSSY FRONT COVER MATCHING UPLOADED SAMPLE FORMAT (Blue Header + Red Strip + Full Bleed Photo + Stroked Headline!)
     pages.push({
       pageNumber: 1,
-      template: 'magazine-cover-page1',
-      title: `பக்கம் 1: அட்டைப்படம் & தலையங்கம்`,
-      section: 'முகப்பு',
+      template: 'magazine-front-cover',
+      title: `பக்கம் 1: சிறப்பு அட்டைப்படம் (${targetMonthLabel})`,
+      section: 'அட்டைப்படம் (Cover)',
+      monthYearLabel: targetMonthLabel,
+      monthTamil: tamilMonthName,
+      monthEng: engMonthName,
+      year: useYear,
+      volumeNo: activeMag.volumeNo || '05',
+      issueNo: activeMag.issueNo || useMonth,
+      priceLabel: activeMag.priceLabel || 'விலை : இலவசம்',
+      coverHeadline: activeMag.coverHeadline || leadStory.title,
+      coverCategory: leadStory.category || 'சிறப்புப் பார்வை',
+      coverImage: chosenCoverImage,
+      imageUrl: chosenCoverImage,
+      thumbnail: chosenCoverImage
+    });
+
+    // PAGE 2: EDITORIAL MASTHEAD TABLE + LEAD COVER FEATURE ("அடுத்த தலைமுறை" Page 1 Layout!)
+    pages.push({
+      pageNumber: 2,
+      template: 'magazine-editorial-masthead',
+      title: `பக்கம் 2: ஆசிரியர் பக்கம் & முதன்மைக் கட்டுரை`,
+      section: 'தலையங்கம் & முகப்பு',
       monthYearLabel: targetMonthLabel,
       masthead,
       leadStory: {
@@ -534,19 +644,43 @@ router.get('/magazine', async (req, res) => {
       thumbnail: chosenCoverImage
     });
 
-    // PAGES 2..N-1: Two-Column Magazine Spread Pages (1-2 rich stories per page, Black Banner Pull-Headlines, Drop-caps!)
-    const innerStories = magStories.slice(1, 21); // up to 20 inner articles -> 10-12 crisp magazine pages
-    let pageNum = 2;
+    // PAGES 3..N: BALANCED SECTION-WISE SPREADS COVERING ALL CATEGORIES (4 stories per bucket!)
+    const innerStories = rankedArticles.slice(1);
+    let pageNum = 3;
 
-    for (let i = 0; i < innerStories.length; i += 2) {
-      const pair = innerStories.slice(i, i + 2);
-      const isLastBatch = i + 2 >= innerStories.length;
+    // Order by meaningful magazine flow: தமிழ்நாடு -> அரசியல் -> தேசியம் -> உலகம் -> வணிகம்/கல்வி -> விளையாட்டு/சினிமா -> தலையங்கம்/சிறுகதை
+    const secBuckets = [
+      { label: 'தமிழ்நாடு சிறப்புச் செய்திகள்', cats: ['தமிழ்நாடு'] },
+      { label: 'அரசியல் அலசல்', cats: ['அரசியல்'] },
+      { label: 'தேசியம் & உலகப் பார்வை', cats: ['தேசியம்', 'உலகம்'] },
+      { label: 'வணிகம், கல்வி & வளர்ச்சி', cats: ['வணிகம்', 'கல்வி'] },
+      { label: 'விளையாட்டு & சினிமா ரசனை', cats: ['விளையாட்டு', 'சினிமா'] },
+      { label: 'தலையங்கம் & சிறுகதை அரங்கம்', cats: ['தலையங்கம்', 'சிறுகதை', 'நிதி'] }
+    ];
+
+    const sortedInner = [];
+    const seenInner = new Set();
+    for (const b of secBuckets) {
+      let countForBucket = 0;
+      for (const s of innerStories) {
+        if (countForBucket >= 4) break;
+        if (!seenInner.has(String(s.id)) && b.cats.some(c => (s.category || '').includes(c))) {
+          sortedInner.push({ ...s, magazineSectionLabel: b.label });
+          seenInner.add(String(s.id));
+          countForBucket++;
+        }
+      }
+    }
+
+    for (let i = 0; i < sortedInner.length; i += 2) {
+      const pair = sortedInner.slice(i, i + 2);
+      const isLastBatch = i + 2 >= sortedInner.length;
 
       pages.push({
         pageNumber: pageNum++,
         template: isLastBatch ? 'magazine-back-page' : 'magazine-spread-page',
-        title: `பக்கம் ${pageNum - 1}: ${pair[0]?.category || 'சிறப்புக் கட்டுரை'}`,
-        section: pair[0]?.category || 'சிறப்புப் பார்வை',
+        title: `பக்கம் ${pageNum - 1}: ${pair[0]?.magazineSectionLabel || pair[0]?.category || 'சிறப்புக் கட்டுரை'}`,
+        section: pair[0]?.magazineSectionLabel || pair[0]?.category || 'சிறப்புப் பார்வை',
         monthYearLabel: targetMonthLabel,
         primaryStory: pair[0],
         secondaryStory: pair[1] || null,
@@ -556,14 +690,13 @@ router.get('/magazine', async (req, res) => {
       });
     }
 
-    // Build available editions list including default current month if not in DB
     const editionsList = storedMagazines.length > 0
       ? storedMagazines.map(m => ({
           id: m.id,
           title: m.title,
           edition: m.edition || `${m.year} - ${m.month}`,
-          month: String(m.month || '11').padStart(2, '0'),
-          year: String(m.year || '2026'),
+          month: String(m.month || useMonth).padStart(2, '0'),
+          year: String(m.year || useYear),
           coverImage: m.coverImage || chosenCoverImage,
           pageCount: pages.length,
           publishedDate: m.publishedDate
@@ -572,8 +705,8 @@ router.get('/magazine', async (req, res) => {
           id: activeMag.id,
           title: activeMag.title,
           edition: targetMonthLabel,
-          month: reqMonth,
-          year: reqYear,
+          month: useMonth,
+          year: useYear,
           coverImage: chosenCoverImage,
           pageCount: pages.length,
           publishedDate: now.toISOString()
@@ -585,9 +718,10 @@ router.get('/magazine', async (req, res) => {
         ...activeMag,
         edition: targetMonthLabel,
         coverImage: chosenCoverImage,
+        coverHeadline: activeMag.coverHeadline || leadStory.title,
         pageCount: pages.length,
         sourceMonthLabel: `${TAMIL_MONTHS[String(prevMonthNum).padStart(2, '0')]} ${prevYearNum}`,
-        totalArticlesIncluded: Math.min(magStories.length, 21)
+        totalArticlesIncluded: sortedInner.length + 1
       },
       pages,
       bestNewsCandidates,

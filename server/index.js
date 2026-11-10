@@ -112,6 +112,31 @@ app.use(express.urlencoded({ extended: true, limit: '100mb' }));
 // Static uploads directory
 const uploadsPath = path.join(__dirname, '../uploads');
 app.use('/uploads', express.static(uploadsPath));
+app.get('/uploads/:filename', async (req, res) => {
+  try {
+    const filename = path.basename(req.params.filename || '');
+    if (!filename) return res.status(404).end();
+    const remoteUrl = `https://amazetimes.com/uploads/${encodeURIComponent(filename)}`;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 8000);
+    const r = await fetch(remoteUrl, { signal: controller.signal });
+    clearTimeout(timer);
+    if (r.ok) {
+      const ct = r.headers.get('content-type') || 'image/png';
+      const buf = Buffer.from(await r.arrayBuffer());
+      res.setHeader('Content-Type', ct);
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Cache-Control', 'public, max-age=86400');
+      return res.send(buf);
+    }
+  } catch (_) {}
+  const fallbackImg = path.join(__dirname, '../public/Amaze times.jpg');
+  if (fs.existsSync(fallbackImg)) {
+    res.setHeader('Content-Type', 'image/jpeg');
+    return res.sendFile(fallbackImg);
+  }
+  return res.status(404).end();
+});
 
 // API Routes
 app.use('/api/auth', authRoutes);

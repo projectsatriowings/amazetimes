@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { BookOpen, Download } from 'lucide-react';
 import { exportPublicationToPdf } from '../utils/pdfExporter';
+import AmazeTimesPageRenderer from './amazetimes/AmazeTimesPageRenderer';
 
 export default function MagazineShowcase({ onOpenEPaper, onOpenMagazine, onToast, readerUser = null, onOpenAuth }) {
   const [latestMag, setLatestMag] = useState(null);
@@ -17,10 +18,23 @@ export default function MagazineShowcase({ onOpenEPaper, onOpenMagazine, onToast
       .catch(() => {});
   }, []);
 
-  const coverImg = latestMag?.publication?.coverImage || '/Amaze times.webp';
+  const coverPage = latestMag?.pages?.[0] || {
+    pageNumber: 1,
+    template: 'magazine-front-cover',
+    monthYearLabel: 'நவம்பர்-2026',
+    monthTamil: 'நவம்பர்',
+    monthEng: 'November',
+    year: '2026',
+    volumeNo: '05',
+    issueNo: '11',
+    priceLabel: 'ரூ. 22/-',
+    coverHeadline: 'தமிழகத்தின் வளர்ச்சித் திட்டங்கள் & மக்கள் பார்வை!',
+    coverCategory: 'மாதத்தின் சிறப்புப் பார்வை',
+    coverImage: '/Amaze times.jpg'
+  };
+
   const editionTitle = latestMag?.publication?.title || 'நவம்பர் 2026 மாதாந்திர சிறப்பிதழ்';
-  const editionTag = latestMag?.publication?.edition || 'நவம்பர் 2026 பதிப்பு';
-  const editionDesc = latestMag?.publication?.description || 'தமிழ்நாட்டின் வளர்ச்சித் திட்டங்கள், வணிக முதலீடுகள், பங்குச்சந்தை கணிப்புகள், ஆன்மிகத் திருத்தலச் சிறப்புகள் மற்றும் பிரத்யேக படைப்புகள் அடங்கிய வண்ணமயமான டிஜிட்டல் மாத இதழை உங்கள் மொபைல் மற்றும் கணினியில் வாசியுங்கள்.';
+  const editionDesc = latestMag?.publication?.description || 'தமிழ்நாட்டின் வளர்ச்சித் திட்டங்கள், அரசியல், வணிகம், கல்வி, விளையாட்டு மற்றும் சிறப்புப் பார்வைகள் அடங்கிய டிஜிட்டல் மாத இதழை உங்கள் மொபைல் மற்றும் கணினியில் வாசியுங்கள்.';
 
   const handleDownloadRealPdf = async () => {
     if (!readerUser) {
@@ -62,13 +76,12 @@ export default function MagazineShowcase({ onOpenEPaper, onOpenMagazine, onToast
 
   return (
     <section className="bg-gradient-to-r from-[#0a1945] via-[#0e2a7a] to-[#0a1945] rounded-3xl p-4 sm:p-8 text-white shadow-xl relative overflow-hidden border border-amber-400/20 w-full max-w-full">
-      {/* Background Decorative Rings */}
       <div className="absolute -right-16 -top-16 w-64 h-64 rounded-full bg-amber-400/10 blur-3xl pointer-events-none"></div>
       <div className="absolute -left-16 -bottom-16 w-64 h-64 rounded-full bg-blue-500/10 blur-3xl pointer-events-none"></div>
 
       <div className="relative z-10 grid grid-cols-1 md:grid-cols-12 gap-5 sm:gap-6 items-center">
         
-        {/* Left: Magazine 3D Cover Mockup */}
+        {/* Left: Live Magazine Cover Render matching Official Format */}
         <div className="md:col-span-4 flex justify-center">
           <div className="relative group cursor-pointer" onClick={() => {
             if (!readerUser) {
@@ -79,25 +92,9 @@ export default function MagazineShowcase({ onOpenEPaper, onOpenMagazine, onToast
             if (onOpenMagazine) onOpenMagazine();
             else if (onOpenEPaper) onOpenEPaper();
           }}>
-            <div className="w-40 sm:w-52 aspect-[3/4] bg-white rounded-2xl shadow-2xl overflow-hidden ring-4 ring-amber-400/40 transform group-hover:-translate-y-2 transition-transform duration-300 relative">
-              <img
-                src={coverImg}
-                width="320"
-                height="426"
-                loading="lazy"
-                decoding="async"
-                alt={editionTitle}
-                className="w-full h-full aspect-[3/4] object-cover"
-                onError={(e) => { e.target.src = '/Amaze times.jpg'; }}
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent flex flex-col justify-end p-3 text-left">
-                <span className="bg-red-600 text-white text-[9px] font-black px-2 py-0.5 rounded uppercase w-fit mb-1 shadow">
-                  சிறப்பு மலர்
-                </span>
-                <p className="font-title font-black text-sm text-amber-300 leading-tight line-clamp-2">
-                  அமேஸ் டைம்ஸ் டிஜிட்டல் மாத இதழ்
-                </p>
-                <span className="text-[10px] text-slate-300">{editionTag}</span>
+            <div className="w-[214px] h-[303px] bg-white rounded-xl shadow-2xl overflow-hidden ring-4 ring-amber-400/50 transform group-hover:-translate-y-2 transition-transform duration-300 relative pointer-events-none">
+              <div style={{ width: '794px', height: '1123px', transform: 'scale(0.27)', transformOrigin: 'top left' }}>
+                <AmazeTimesPageRenderer page={coverPage} publicationType="magazine" />
               </div>
             </div>
 
@@ -110,7 +107,6 @@ export default function MagazineShowcase({ onOpenEPaper, onOpenMagazine, onToast
 
         {/* Right: Editorial Information & Actions */}
         <div className="md:col-span-8 space-y-4 text-left">
-          
           <div className="space-y-2">
             <div className="inline-flex items-center gap-2 bg-amber-400/20 text-amber-300 px-3 py-1 rounded-full text-xs font-bold border border-amber-400/30">
               <BookOpen className="w-4 h-4 shrink-0" />
@@ -126,11 +122,10 @@ export default function MagazineShowcase({ onOpenEPaper, onOpenMagazine, onToast
             </p>
           </div>
 
-          {/* Highlights Checklist */}
           <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 gap-2 text-xs font-semibold text-slate-200 pt-1">
             <div className="flex items-center gap-1.5">
               <span className="text-amber-400 text-base">✓</span>
-              <span>உயர் தர வண்ணப் பக்கங்கள்</span>
+              <span>அனைத்துப் பிரிவுச் செய்திகள்</span>
             </div>
             <div className="flex items-center gap-1.5">
               <span className="text-amber-400 text-base">✓</span>
@@ -142,7 +137,6 @@ export default function MagazineShowcase({ onOpenEPaper, onOpenMagazine, onToast
             </div>
           </div>
 
-          {/* Action Buttons */}
           <div className="flex items-center gap-3 pt-2 flex-wrap">
             <button
               onClick={() => {
@@ -173,7 +167,6 @@ export default function MagazineShowcase({ onOpenEPaper, onOpenMagazine, onToast
               </span>
             </button>
           </div>
-
         </div>
 
       </div>

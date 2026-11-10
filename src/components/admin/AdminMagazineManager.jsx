@@ -92,6 +92,10 @@ export const AdminMagazineManager = () => {
     year: currentYearStr,
     issueMonth: `${MONTH_OPTIONS.find(m => m.code === currentMonthCode)?.name || 'நவம்பர்'} ${currentYearStr}`,
     coverImage: '',
+    coverHeadline: '',
+    volumeNo: '05',
+    issueNo: currentMonthCode,
+    priceLabel: 'ரூ. 22/-',
     pdfUrl: '',
     pdfFileName: '',
     fileSize: '8.4 MB',
@@ -218,6 +222,10 @@ export const AdminMagazineManager = () => {
         year: String(item.year || currentYearStr),
         issueMonth: item.issueMonth || item.edition || `${MONTH_OPTIONS.find(m => m.code === String(item.month || currentMonthCode).padStart(2, '0'))?.name || 'நவம்பர்'} ${item.year || currentYearStr}`,
         coverImage: item.coverImage || '',
+        coverHeadline: item.coverHeadline || item.title || '',
+        volumeNo: item.volumeNo || '05',
+        issueNo: item.issueNo || String(item.month || currentMonthCode).padStart(2, '0'),
+        priceLabel: item.priceLabel || 'ரூ. 22/-',
         pdfUrl: item.pdfUrl || '',
         pdfFileName: item.pdfFileName || (item.pdfUrl && item.pdfUrl !== 'auto-compiled' ? 'சேமிக்கப்பட்ட PDF கோப்பு' : ''),
         fileSize: item.fileSize || '8.4 MB',
@@ -242,6 +250,10 @@ export const AdminMagazineManager = () => {
         year: currentYearStr,
         issueMonth: `${monthTamil}-${currentYearStr}`,
         coverImage: topCover,
+        coverHeadline: loaded[0]?.title || '',
+        volumeNo: '05',
+        issueNo: currentMonthCode,
+        priceLabel: 'ரூ. 22/-',
         pdfUrl: '',
         pdfFileName: '',
         fileSize: '8.4 MB',
@@ -636,22 +648,80 @@ export const AdminMagazineManager = () => {
                   </label>
                 </div>
 
-                {/* Selected Cover Preview + Custom URL Input */}
-                <div className="flex items-center gap-4 bg-[#050915] p-3 rounded-xl border border-slate-800">
-                  <img
-                    src={getMediaUrl(form.coverImage || '/Amaze times.jpg')}
-                    alt="Chosen Cover"
-                    className="w-16 h-20 object-cover rounded-lg border-2 border-amber-400 flex-shrink-0"
-                    onError={(e) => { e.target.src = '/Amaze times.jpg'; }}
-                  />
-                  <div className="flex-1 space-y-1.5">
-                    <span className="text-emerald-400 font-bold text-xs block">✓ தேர்ந்தெடுக்கப்பட்ட அட்டைப்படம் (Page 1 Cover Image)</span>
+                {/* Selected Cover Preview + Live Format Card */}
+                <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 bg-[#050915] p-3.5 rounded-xl border border-slate-800">
+                  <div className="w-[143px] h-[202px] bg-white rounded-lg overflow-hidden border-2 border-amber-400 flex-shrink-0 shadow-xl pointer-events-none">
+                    <div style={{ width: '794px', height: '1123px', transform: 'scale(0.18)', transformOrigin: 'top left' }}>
+                      <AmazeTimesPageRenderer
+                        page={{
+                          pageNumber: 1,
+                          template: 'magazine-front-cover',
+                          monthYearLabel: form.issueMonth,
+                          monthTamil: MONTH_OPTIONS.find(m => m.code === form.month)?.name || 'நவம்பர்',
+                          monthEng: 'Issue',
+                          year: form.year,
+                          volumeNo: form.volumeNo || '05',
+                          issueNo: form.issueNo || form.month,
+                          priceLabel: form.priceLabel || 'ரூ. 22/-',
+                          coverHeadline: form.coverHeadline || form.title,
+                          coverCategory: 'சிறப்புப் பார்வை',
+                          coverImage: form.coverImage || '/Amaze times.jpg'
+                        }}
+                        publicationType="magazine"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex-1 w-full space-y-2.5">
+                    <span className="text-emerald-400 font-bold text-xs block">✓ அதிகாரப்பூர்வ அமேஸ் டைம்ஸ் அட்டைப்பட முன்னோட்டம் (Live Cover Format)</span>
+
+                    <div>
+                      <label className="text-[11px] text-slate-400 block mb-0.5">அட்டைப்படத் தலைப்பு (Cover Overlay Headline):</label>
+                      <input
+                        type="text"
+                        placeholder="அட்டைப்படத்தில் தோன்றும் முக்கியத் தலைப்பு..."
+                        value={form.coverHeadline}
+                        onChange={(e) => setForm(prev => ({ ...prev, coverHeadline: e.target.value }))}
+                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white font-bold"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-2">
+                      <div>
+                        <label className="text-[10px] text-slate-400 block mb-0.5">மலர் எண் (Vol):</label>
+                        <input
+                          type="text"
+                          value={form.volumeNo}
+                          onChange={(e) => setForm(prev => ({ ...prev, volumeNo: e.target.value }))}
+                          className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-[11px] text-white font-bold"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-slate-400 block mb-0.5">இதழ் எண் (Issue):</label>
+                        <input
+                          type="text"
+                          value={form.issueNo}
+                          onChange={(e) => setForm(prev => ({ ...prev, issueNo: e.target.value }))}
+                          className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-[11px] text-white font-bold"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-slate-400 block mb-0.5">விலை (Price):</label>
+                        <input
+                          type="text"
+                          value={form.priceLabel}
+                          onChange={(e) => setForm(prev => ({ ...prev, priceLabel: e.target.value }))}
+                          className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-[11px] text-white font-bold"
+                        />
+                      </div>
+                    </div>
+
                     <input
                       type="text"
                       placeholder="அட்டைப்பட URL முகவரி அல்லது கீழே இருந்து தேர்வு செய்க..."
                       value={form.coverImage}
                       onChange={(e) => setForm(prev => ({ ...prev, coverImage: e.target.value }))}
-                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-[11px] text-slate-200 font-mono"
+                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-[10px] text-slate-400 font-mono"
                     />
                   </div>
                 </div>
@@ -669,7 +739,11 @@ export const AdminMagazineManager = () => {
                         <button
                           key={cand.id}
                           type="button"
-                          onClick={() => setForm(prev => ({ ...prev, coverImage: cand.mainImage }))}
+                          onClick={() => setForm(prev => ({
+                            ...prev,
+                            coverImage: cand.mainImage,
+                            coverHeadline: cand.title
+                          }))}
                           className={`relative flex-shrink-0 w-28 rounded-xl overflow-hidden border-2 text-left transition cursor-pointer ${
                             isPicked
                               ? 'border-amber-400 ring-2 ring-amber-400/50 scale-[1.03]'
