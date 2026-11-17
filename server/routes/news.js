@@ -1,4 +1,6 @@
 import express from 'express';
+import fs from 'fs';
+import path from 'path';
 import { query, ensureHttpsUrl } from '../db.js';
 import { authenticate, requireReporterOrAdmin, optionalAuth } from '../middleware/auth.js';
 import {
@@ -85,6 +87,17 @@ router.get('/version', (req, res) => {
 // GET /api/news/live-stream - Server-Sent Events (SSE) stream for zero-reload updates
 router.get('/live-stream', (req, res) => {
   registerSseClient(req, res);
+});
+
+// GET /api/news/archive-307-pdf - Direct download for the 307 news compilation PDF
+router.get('/archive-307-pdf', (req, res) => {
+  const publicPdf = path.resolve('public/Amaze_Times_307_News_Articles_Complete_Compilation.pdf');
+  const rootPdf = path.resolve('Amaze_Times_307_News_Articles_Complete_Compilation.pdf');
+  const targetPdf = fs.existsSync(publicPdf) ? publicPdf : (fs.existsSync(rootPdf) ? rootPdf : null);
+  if (!targetPdf) return res.status(404).json({ success: false, error: 'PDF not found' });
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader('Content-Disposition', 'attachment; filename="Amaze_Times_307_News_Articles_Complete_Compilation.pdf"');
+  return res.sendFile(targetPdf);
 });
 
 // GET /api/news & /api/articles - List news with pagination, category/district filters, search

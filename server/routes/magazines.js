@@ -5,13 +5,25 @@ const router = express.Router();
 
 const defaultMagazinesList = [
   {
+    id: 'mag-2026-11',
+    title: 'அமேஸ் டைம்ஸ் மாதாந்திர மலர் - நவம்பர் 2026',
+    edition: 'நவம்பர் 2026',
+    month: '11',
+    year: '2026',
+    coverImage: '/magazine-cover-sample.jpg',
+    pdfUrl: '',
+    pageCount: 32,
+    description: 'தமிழ்நாட்டின் வளர்ச்சித் திட்டங்கள், வணிகம், தொழில்நுட்பம், அரசியல் மற்றும் இலக்கியச் சிறப்பிதழ்.',
+    publishedDate: '2026-11-01'
+  },
+  {
     id: 'mag-2026-10',
     title: 'அமேஸ் டைம்ஸ் மாதாந்திர மலர் - அக்டோபர் 2026',
     edition: 'அக்டோபர் 2026',
     month: '10',
     year: '2026',
-    coverImage: '/Amaze times.jpg',
-    pdfUrl: '/Amaze times.jpg',
+    coverImage: '/magazine-cover-sample.jpg',
+    pdfUrl: '',
     pageCount: 64,
     description: 'தமிழ்நாட்டின் வளர்ச்சித் திட்டங்கள், வணிகம், தொழில்நுட்பம் மற்றும் ஆன்மிகச் சிறப்பிதழ்.',
     publishedDate: '2026-10-01'
@@ -22,8 +34,11 @@ const defaultMagazinesList = [
 async function getStoredMagazines() {
   try {
     const res = await query('SELECT data FROM site_content WHERE key = $1', ['magazines']);
-    if (res.rows.length > 0 && Array.isArray(res.rows[0].data)) {
-      return res.rows[0].data;
+    if (res.rows.length > 0 && Array.isArray(res.rows[0].data) && res.rows[0].data.length > 0) {
+      return res.rows[0].data.map(m => ({
+        ...m,
+        coverImage: (!m.coverImage || m.coverImage === '/Amaze times.jpg') ? '/magazine-cover-sample.jpg' : m.coverImage
+      }));
     }
   } catch (err) {
     console.warn('Error reading magazines from DB:', err.message);
@@ -72,8 +87,10 @@ router.post('/', async (req, res) => {
       edition: req.body.edition || req.body.issueMonth || req.body.monthYear || '2026 பதிப்பு',
       month: String(req.body.month || '11').padStart(2, '0'),
       year: String(req.body.year || '2026'),
-      coverImage: req.body.coverImage || req.body.coverImageUrl || '/Amaze times.jpg',
-      pdfUrl: req.body.pdfUrl || req.body.fileUrl || '/Amaze times.jpg',
+      coverImage: (req.body.coverImage && req.body.coverImage !== '/Amaze times.jpg')
+        ? req.body.coverImage
+        : (req.body.coverImageUrl && req.body.coverImageUrl !== '/Amaze times.jpg' ? req.body.coverImageUrl : '/magazine-cover-sample.jpg'),
+      pdfUrl: req.body.pdfUrl || req.body.fileUrl || '',
       pageCount: parseInt(req.body.pageCount) || 24,
       description: req.body.description || req.body.subtitle || '',
       selectedArticleIds: Array.isArray(req.body.selectedArticleIds) ? req.body.selectedArticleIds : [],

@@ -592,14 +592,14 @@ router.get('/magazine', async (req, res) => {
       id: 'default-lead',
       title: 'தமிழகத்தின் வளர்ச்சித் திட்டங்கள் & மக்கள் பார்வை!',
       paragraphs: ['கடந்த மாதத்தின் முக்கிய நிகழ்வுகள் மற்றும் மக்கள் நலத் திட்டங்களின் விரிவான தொகுப்பு.'],
-      image: '/Amaze times.jpg',
+      image: '/magazine-cover-sample.jpg',
       author: 'ஆசிரியர்',
       category: 'அரசியல் & சிறப்புப் பார்வை'
     };
 
     const chosenCoverImage = (activeMag.coverImage && activeMag.coverImage !== '/Amaze times.jpg')
       ? ensureHttpsUrl(activeMag.coverImage)
-      : (leadStory.image || '/Amaze times.jpg');
+      : ((leadStory.image && leadStory.image !== '/Amaze times.jpg') ? leadStory.image : '/magazine-cover-sample.jpg');
 
     const masthead = {
       ...DEFAULT_MASTHEAD,
@@ -697,7 +697,7 @@ router.get('/magazine', async (req, res) => {
           edition: m.edition || `${m.year} - ${m.month}`,
           month: String(m.month || useMonth).padStart(2, '0'),
           year: String(m.year || useYear),
-          coverImage: m.coverImage || chosenCoverImage,
+          coverImage: (m.coverImage && m.coverImage !== '/Amaze times.jpg') ? m.coverImage : chosenCoverImage,
           pageCount: pages.length,
           publishedDate: m.publishedDate
         }))

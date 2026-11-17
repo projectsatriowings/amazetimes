@@ -29,8 +29,13 @@ export default function HeroSpotlight({
   onToggleLike,
   isLiked = false,
   onOpenEPaper,
+  onOpenMagazine,
   onSelectCategory
 }) {
+  const TAMIL_MONTHS = ['ஜனவரி', 'பிப்ரவரி', 'மார்ச்', 'ஏப்ரல்', 'மே', 'ஜூன்', 'ஜூலை', 'ஆகஸ்ட்', 'செப்டம்பர்', 'அக்டோபர்', 'நவம்பர்', 'டிசம்பர்'];
+  const now = new Date();
+  const currentMonthYearTamil = `${TAMIL_MONTHS[now.getMonth()] || 'நவம்பர்'} ${now.getFullYear()}`;
+
   const initialLikes = leadData?.likesCount ?? leadData?.likes_count ?? 0;
   const [likesCount, setLikesCount] = useState(initialLikes);
   const [hasLiked, setHasLiked] = useState(false);
@@ -341,13 +346,16 @@ export default function HeroSpotlight({
                 அமேஸ் டைம்ஸ் டிஜிட்டல் மாத இதழ்
               </h4>
               <p className="text-[11px] text-slate-300 mt-1 line-clamp-2">
-                அக்டோபர் 2026 பிரத்யேகச் சிறப்பிதழ்: அரசியல், இலக்கியம் & உலக நடப்புகள்.
+                {currentMonthYearTamil} பிரத்யேகச் சிறப்பிதழ்: அரசியல், இலக்கியம் & உலக நடப்புகள்.
               </p>
             </div>
 
             <button
               type="button"
-              onClick={() => onSelectCategory && onSelectCategory('magazine')}
+              onClick={() => {
+                if (onOpenMagazine) onOpenMagazine();
+                else if (onSelectCategory) onSelectCategory('magazine');
+              }}
               className="w-full bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-slate-950 font-black py-2.5 rounded-xl text-xs flex items-center justify-center gap-1.5 cursor-pointer shadow-lg transition active:scale-95"
             >
               <span>மாத இதழ் வாசிக்க</span>

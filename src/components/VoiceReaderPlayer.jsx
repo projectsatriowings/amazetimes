@@ -224,7 +224,7 @@ const VoiceReaderPlayer = forwardRef(function VoiceReaderPlayer(
     const audio = audioRef.current;
     if (audio && (!audio.src || audio.src === '')) {
       audio.src = SILENT_AUDIO_DATA_URI;
-      audio.play().catch(() => {});
+      audio.play().catch(() => { });
     }
   }, []);
 
@@ -293,7 +293,7 @@ const VoiceReaderPlayer = forwardRef(function VoiceReaderPlayer(
       setEngine('stream');
     } catch (err) {
       console.warn('[VoiceReader] Stream playback failed, attempting synthesize blob fallback:', err);
-      
+
       // Fallback 1: Try direct POST synthesize blob
       try {
         const audio = audioRef.current;
@@ -576,7 +576,7 @@ const VoiceReaderPlayer = forwardRef(function VoiceReaderPlayer(
         preload="auto"
         playsInline
         webkit-playsinline="true"
-        />
+      />
 
       {/* Top Bar: Engine info & Equalizer */}
       <div className="flex items-center justify-between pb-3 border-b border-indigo-900/60 text-xs">
@@ -589,11 +589,10 @@ const VoiceReaderPlayer = forwardRef(function VoiceReaderPlayer(
               <span className="font-title font-extrabold text-amber-300 text-xs sm:text-sm">
                 AI தமிழ் செய்தி வாசிப்பாளர்
               </span>
-              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1 ${
-                engine === 'stream'
-                  ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
-                  : 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
-              }`}>
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1 ${engine === 'stream'
+                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                : 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                }`}>
                 {engine === 'stream' ? (
                   <>
                     <Radio className="w-3 h-3 animate-pulse" />
@@ -616,9 +615,8 @@ const VoiceReaderPlayer = forwardRef(function VoiceReaderPlayer(
           {[40, 75, 100, 60, 90, 45].map((height, i) => (
             <span
               key={i}
-              className={`w-1 bg-amber-400 rounded-full transition-all duration-300 ${
-                isPlaying ? 'animate-pulse' : 'opacity-40'
-              }`}
+              className={`w-1 bg-amber-400 rounded-full transition-all duration-300 ${isPlaying ? 'animate-pulse' : 'opacity-40'
+                }`}
               style={{
                 height: isPlaying ? `${height}%` : '20%',
                 animationDelay: `${i * 120}ms`
@@ -719,11 +717,10 @@ const VoiceReaderPlayer = forwardRef(function VoiceReaderPlayer(
             <button
               key={rate}
               onClick={() => handleChangeSpeed(rate)}
-              className={`px-2 py-0.5 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
-                speed === rate
-                  ? 'bg-amber-400 text-slate-950 shadow-sm'
-                  : 'text-slate-400 hover:text-white'
-              }`}
+              className={`px-2 py-0.5 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${speed === rate
+                ? 'bg-amber-400 text-slate-950 shadow-sm'
+                : 'text-slate-400 hover:text-white'
+                }`}
             >
               {rate}x
             </button>

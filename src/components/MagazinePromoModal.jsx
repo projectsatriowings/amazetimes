@@ -1,23 +1,115 @@
 import React, { useState, useEffect } from 'react';
-import { X, BookOpen, Download, Sparkles, ArrowRight } from 'lucide-react';
+import { X, BookOpen, Sparkles, ArrowRight } from 'lucide-react';
 import { api } from '../services/api';
+import AmazeTimesPageRenderer from './amazetimes/AmazeTimesPageRenderer';
 
-export default function MagazinePromoModal({ onOpenEPaper }) {
+const TAMIL_MONTHS = {
+  '1': 'ஜனவரி', '01': 'ஜனவரி',
+  '2': 'பிப்ரவரி', '02': 'பிப்ரவரி',
+  '3': 'மார்ச்', '03': 'மார்ச்',
+  '4': 'ஏப்ரல்', '04': 'ஏப்ரல்',
+  '5': 'மே', '05': 'மே',
+  '6': 'ஜூன்', '06': 'ஜூன்',
+  '7': 'ஜூலை', '07': 'ஜூலை',
+  '8': 'ஆகஸ்ட்', '08': 'ஆகஸ்ட்',
+  '9': 'செப்டம்பர்', '09': 'செப்டம்பர்',
+  '10': 'அக்டோபர்',
+  '11': 'நவம்பர்',
+  '12': 'டிசம்பர்'
+};
+
+const ENG_MONTHS = {
+  '1': 'January', '01': 'January',
+  '2': 'February', '02': 'February',
+  '3': 'March', '03': 'March',
+  '4': 'April', '04': 'April',
+  '5': 'May', '05': 'May',
+  '6': 'June', '06': 'June',
+  '7': 'July', '07': 'July',
+  '8': 'August', '08': 'August',
+  '9': 'September', '09': 'September',
+  '10': 'October',
+  '11': 'November',
+  '12': 'December'
+};
+
+export default function MagazinePromoModal({ onOpenEPaper, onOpenMagazine }) {
   const [isOpen, setIsOpen] = useState(false);
   const [latestMag, setLatestMag] = useState(null);
+  const [coverPage, setCoverPage] = useState(null);
 
   useEffect(() => {
+    const now = new Date();
+    const currentMonthNum = String(now.getMonth() + 1).padStart(2, '0');
+    const currentYearStr = String(now.getFullYear());
+    const promoStorageKey = `amaze_mag_promo_seen_${currentYearStr}_${currentMonthNum}`;
+
     try {
-      if (sessionStorage.getItem('amaze_mag_promo_seen')) return;
+      if (sessionStorage.getItem(promoStorageKey)) return;
     } catch (_) {}
 
     const checkMagazine = async () => {
       try {
-        const res = await api.getMagazines();
-        if (res && res.success && Array.isArray(res.magazines) && res.magazines.length > 0) {
-          setLatestMag(res.magazines[0]);
-          // Soft delay for promo
-          setTimeout(() => setIsOpen(true), 4000);
+        // 1. First fetch dynamic magazine reader data (contains real glossy cover template in pages[0])
+        const res = await fetch('/api/amazetimes/magazine')
+          .then(r => r.json())
+          .catch(() => null);
+
+        if (res && res.success && res.publication) {
+          setLatestMag(res.publication);
+          if (res.pages && res.pages.length > 0 && res.pages[0].template === 'magazine-front-cover') {
+            setCoverPage(res.pages[0]);
+          } else {
+            // Build default coverPage
+            setCoverPage({
+              pageNumber: 1,
+              template: 'magazine-front-cover',
+              monthYearLabel: `${TAMIL_MONTHS[currentMonthNum] || 'நவம்பர்'} ${currentYearStr}`,
+              monthTamil: TAMIL_MONTHS[currentMonthNum] || 'நவம்பர்',
+              monthEng: ENG_MONTHS[currentMonthNum] || 'November',
+              year: currentYearStr,
+              volumeNo: '05',
+              issueNo: currentMonthNum,
+              priceLabel: 'ரூ. 22/-',
+              coverHeadline: res.publication.coverHeadline || 'இடைத்தேர்தலில் மீண்டும் தனது செல்வாக்கை நிரூபித்துக் காட்டிய முதல்வர் விஜய்!',
+              coverCategory: 'மாதத்தின் சிறப்புப் பார்வை',
+              coverImage: (res.publication.coverImage && res.publication.coverImage !== '/Amaze times.jpg')
+                ? res.publication.coverImage
+                : '/magazine-cover-sample.jpg'
+            });
+          }
+          setTimeout(() => setIsOpen(true), 2500);
+          return;
+        }
+
+        // 2. Fallback to /api/magazines
+        const magRes = await api.getMagazines();
+        if (magRes && magRes.success && Array.isArray(magRes.magazines) && magRes.magazines.length > 0) {
+          const m = magRes.magazines[0];
+          setLatestMag(m);
+          const mMonth = String(m.month || currentMonthNum).padStart(2, '0');
+          const mYear = String(m.year || currentYearStr);
+          const tamilMonth = TAMIL_MONTHS[mMonth] || 'நவம்பர்';
+          const engMonth = ENG_MONTHS[mMonth] || 'November';
+          const coverImg = (m.coverImage && m.coverImage !== '/Amaze times.jpg')
+            ? m.coverImage
+            : (m.cover_image && m.cover_image !== '/Amaze times.jpg' ? m.cover_image : '/magazine-cover-sample.jpg');
+
+          setCoverPage({
+            pageNumber: 1,
+            template: 'magazine-front-cover',
+            monthYearLabel: `${tamilMonth} ${mYear}`,
+            monthTamil: tamilMonth,
+            monthEng: engMonth,
+            year: mYear,
+            volumeNo: m.volumeNo || '05',
+            issueNo: m.issueNo || mMonth,
+            priceLabel: m.priceLabel || 'விலை : ரூ. 22/-',
+            coverHeadline: m.coverHeadline || m.title || 'இடைத்தேர்தலில் மீண்டும் தனது செல்வாக்கை நிரூபித்துக் காட்டிய முதல்வர் விஜய்!',
+            coverCategory: 'மாதத்தின் சிறப்புப் பார்வை',
+            coverImage: coverImg
+          });
+          setTimeout(() => setIsOpen(true), 2500);
         }
       } catch (_) {}
     };
@@ -28,67 +120,108 @@ export default function MagazinePromoModal({ onOpenEPaper }) {
   const handleDismiss = () => {
     setIsOpen(false);
     try {
-      sessionStorage.setItem('amaze_mag_promo_seen', 'true');
+      const now = new Date();
+      const currentMonthNum = String(now.getMonth() + 1).padStart(2, '0');
+      const currentYearStr = String(now.getFullYear());
+      sessionStorage.setItem(`amaze_mag_promo_seen_${currentYearStr}_${currentMonthNum}`, 'true');
     } catch (_) {}
   };
 
   const handleRead = () => {
     handleDismiss();
-    if (onOpenEPaper) onOpenEPaper();
+    if (onOpenMagazine) {
+      onOpenMagazine();
+    } else if (onOpenEPaper) {
+      onOpenEPaper();
+    }
   };
 
-  if (!isOpen || !latestMag) return null;
+  if (!isOpen) return null;
+
+  const now = new Date();
+  const currentMonthNum = String(now.getMonth() + 1).padStart(2, '0');
+  const currentYearStr = String(now.getFullYear());
+
+  const monthCode = String(latestMag?.month || currentMonthNum).padStart(2, '0');
+  const displayMonthTamil = TAMIL_MONTHS[monthCode] || 'நவம்பர்';
+  const displayYear = latestMag?.year || currentYearStr;
+  const displayEdition = `${displayMonthTamil} ${displayYear}`;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in font-tamil">
-      <div className="bg-gradient-to-b from-[#0c1630] via-[#091024] to-[#060a16] border border-amber-500/50 rounded-3xl max-w-md w-full overflow-hidden shadow-2xl p-6 relative text-white space-y-4">
+      <div className="bg-gradient-to-b from-[#0c1630] via-[#091024] to-[#060a16] border border-amber-500/50 rounded-3xl max-w-sm sm:max-w-md w-full overflow-hidden shadow-2xl p-5 sm:p-6 relative text-white space-y-4">
         {/* Close Button */}
         <button
           onClick={handleDismiss}
-          className="absolute top-4 right-4 p-1.5 rounded-full bg-white/10 hover:bg-white/20 text-gray-300 hover:text-white transition"
+          aria-label="Close"
+          className="absolute top-4 right-4 p-1.5 rounded-full bg-white/10 hover:bg-white/20 text-gray-300 hover:text-white transition cursor-pointer z-20"
         >
           <X size={18} />
         </button>
 
         {/* Promo Header */}
-        <div className="text-center space-y-1">
+        <div className="text-center space-y-1.5 pt-1">
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
-            <Sparkles size={12} /> புதிய பதிப்பு வெளியானது!
+            <Sparkles size={12} /> {displayEdition} புதிய பதிப்பு வெளியானது!
           </span>
-          <h2 className="text-lg sm:text-xl font-extrabold text-white">
-            {latestMag.title || 'அமேஸ் டைம்ஸ் மாதாந்திர சிறப்பிதழ்'}
+          <h2 className="text-lg sm:text-xl font-extrabold text-white leading-tight">
+            {latestMag?.title || `அமேஸ் டைம்ஸ் மாதாந்திர மலர் - ${displayEdition}`}
           </h2>
-          <p className="text-xs text-amber-400 font-semibold">
-            {latestMag.month || latestMag.issue_month} {latestMag.year || '2026'}
+          <p className="text-xs text-amber-400 font-bold tracking-wide">
+            {displayEdition} பிரத்யேக டிஜிட்டல் சிறப்பிதழ்
           </p>
         </div>
 
-        {/* Cover Mockup */}
-        <div className="flex justify-center py-2">
-          <div className="w-40 aspect-[3/4] rounded-2xl overflow-hidden shadow-2xl border-2 border-amber-400/60 ring-4 ring-amber-400/20">
-            <img
-              src={latestMag.cover_image || latestMag.cover_image_url || '/Amaze times.jpg'}
-              alt={latestMag.title}
-              className="w-full h-full object-cover"
-              onError={(e) => { e.currentTarget.src = '/Amaze times.jpg'; }}
-            />
+        {/* Live Magazine Cover Render Mockup */}
+        <div className="flex justify-center py-1">
+          <div
+            onClick={handleRead}
+            className="group cursor-pointer relative transition-transform duration-300 hover:scale-[1.03] active:scale-[0.98]"
+            title="இதழை வாசிக்க கிளிக் செய்யவும்"
+          >
+            <div className="w-[180px] h-[255px] bg-slate-900 rounded-2xl shadow-2xl overflow-hidden ring-4 ring-amber-400/40 border border-amber-400/60 relative pointer-events-none">
+              {coverPage ? (
+                <div style={{ width: '794px', height: '1123px', transform: 'scale(0.227)', transformOrigin: 'top left' }}>
+                  <AmazeTimesPageRenderer page={coverPage} publicationType="magazine" />
+                </div>
+              ) : (
+                <img
+                  src={
+                    (latestMag?.coverImage && latestMag.coverImage !== '/Amaze times.jpg')
+                      ? latestMag.coverImage
+                      : '/magazine-cover-sample.jpg'
+                  }
+                  alt={latestMag?.title || 'அமேஸ் டைம்ஸ் மாத இதழ்'}
+                  className="w-full h-full object-cover"
+                  onError={(e) => { e.currentTarget.src = '/magazine-cover-sample.jpg'; }}
+                />
+              )}
+            </div>
+
+            {/* Floating Live Badge */}
+            <span className="absolute -top-2 -right-2 bg-gradient-to-r from-red-600 to-rose-600 text-white text-[10px] font-black px-2.5 py-0.5 rounded-full shadow-lg border-2 border-white">
+              மாத இதழ்
+            </span>
+
+            {/* Subtle gloss hover reflex */}
+            <div className="absolute inset-0 rounded-2xl bg-gradient-to-tr from-transparent via-white/10 to-transparent pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity" />
           </div>
         </div>
 
         {/* Action Button */}
-        <div className="space-y-2 pt-2">
+        <div className="space-y-2 pt-1">
           <button
             onClick={handleRead}
-            className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-500 via-rose-500 to-yellow-500 hover:brightness-110 text-slate-950 font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-amber-950/50 transition"
+            className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-500 via-rose-500 to-yellow-500 hover:brightness-110 text-slate-950 font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-amber-950/50 transition cursor-pointer active:scale-95"
           >
             <BookOpen size={16} />
-            <span>இப்போது இலவசமாக வாசிக்க</span>
+            <span>இப்போது இலவசமாக வாசிக்க ({displayEdition})</span>
             <ArrowRight size={16} />
           </button>
 
           <button
             onClick={handleDismiss}
-            className="w-full py-1.5 text-center text-xs text-gray-400 hover:text-white transition"
+            className="w-full py-1.5 text-center text-xs text-gray-400 hover:text-white transition cursor-pointer"
           >
             பின்னர் வாசிக்கிறேன்
           </button>

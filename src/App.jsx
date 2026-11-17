@@ -1394,6 +1394,7 @@ export default function App() {
                     onToggleLike={handleToggleLike}
                     isLiked={likedArticles.some(a => String(a.id) === String(leadData?.id))}
                     onOpenEPaper={() => setIsEPaperOpen(true)}
+                    onOpenMagazine={openMagazine}
                     onSelectCategory={handleSelectCategory}
                   />
                 )}
@@ -1827,7 +1828,8 @@ export default function App() {
       />
 
       <MagazinePromoModal
-        onOpenEPaper={() => setIsEPaperOpen(true)}
+        onOpenMagazine={openMagazine}
+        onOpenEPaper={openMagazine}
       />
 
       <VideoPlayerModal

@@ -30,3 +30,7 @@ lerna-debug.log*
 .idea/
 .DS_Store
 Thumbs.db
+
+# Temporary image caches
+public/news_images_307/
+public/news_images_pdf/
