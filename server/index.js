@@ -29,6 +29,7 @@ import goldRoutes from './routes/gold.js';
 import competitionRoutes from './routes/competitions.js';
 import amazetimesReaderRoutes from './routes/amazetimesReader.js';
 import { fetchAndSyncMarketRates } from './services/marketRateService.js';
+import { renderSeoHtml, buildArticleHref } from './services/seoRenderer.js';
 
 import fs from 'fs';
 import { query, closeDb } from './db.js';
@@ -77,7 +78,7 @@ app.use(compression());
 app.use(cors());
 
 // Canonical URL & HTTPS 301 Permanent Redirection Middleware (SEO High Issue)
-app.use((req, res, next) => {
+app.use(async (req, res, next) => {
   const host = req.headers.host || '';
   const isWww = host.startsWith('www.');
   const proto = req.headers['x-forwarded-proto'] || req.protocol;
@@ -97,12 +98,30 @@ app.use((req, res, next) => {
 });
 
 // Security & HSTS Headers (Resolves Strict-Transport-Security Test)
-app.use((req, res, next) => {
+app.use(async (req, res, next) => {
   res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'SAMEORIGIN');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  const cspDirectives = [
+    "default-src 'self'",
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com https://accounts.google.com https://pagead2.googlesyndication.com https://www.youtube.com",
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    "img-src 'self' data: blob: https: http:",
+    "font-src 'self' data: https://fonts.gstatic.com https://fonts.googleapis.com",
+    "connect-src 'self' https: wss: http://localhost:* http://127.0.0.1:*",
+    "media-src 'self' data: blob: https: http:",
+    "frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://www.instagram.com https://www.facebook.com https://platform.twitter.com https://accounts.google.com",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "frame-ancestors 'self'"
+  ];
+  if (process.env.NODE_ENV === 'production') {
+    cspDirectives.push('upgrade-insecure-requests');
+  }
+  res.setHeader('Content-Security-Policy', cspDirectives.join('; '));
   next();
 });
 
@@ -215,17 +234,17 @@ app.get('/sitemap.xml', async (req, res) => {
     xml += `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:news="http://www.google.com/schemas/sitemap-news/0.9">\n`;
 
     // Core Categories
-    const categories = ['tamilnadu', 'districts', 'business', 'cinema', 'sports', 'spiritual', 'editorial', 'magazine'];
+    const categories = ['tamilnadu', 'politics', 'districts', 'business', 'cinema', 'sports', 'india', 'world', 'spiritual', 'editorial', 'epaper', 'magazine'];
     xml += `  <url>\n    <loc>${baseUrl}/</loc>\n    <lastmod>${now}</lastmod>\n    <changefreq>always</changefreq>\n    <priority>1.0</priority>\n  </url>\n`;
 
     categories.forEach(cat => {
-      xml += `  <url>\n    <loc>${baseUrl}/?category=${cat}</loc>\n    <lastmod>${now}</lastmod>\n    <changefreq>hourly</changefreq>\n    <priority>0.85</priority>\n  </url>\n`;
+      xml += `  <url>\n    <loc>${baseUrl}/category/${cat}</loc>\n    <lastmod>${now}</lastmod>\n    <changefreq>hourly</changefreq>\n    <priority>0.85</priority>\n  </url>\n`;
     });
 
     if (result && result.rows) {
       result.rows.forEach(article => {
         const lastMod = article.published_at ? new Date(article.published_at).toISOString() : now;
-        xml += `  <url>\n    <loc>${baseUrl}/?article=${article.id}</loc>\n    <lastmod>${lastMod}</lastmod>\n    <changefreq>daily</changefreq>\n    <priority>0.8</priority>\n  </url>\n`;
+        xml += `  <url>\n    <loc>${baseUrl}${buildArticleHref(article)}</loc>\n    <lastmod>${lastMod}</lastmod>\n    <changefreq>daily</changefreq>\n    <priority>0.8</priority>\n  </url>\n`;
       });
     }
 
@@ -309,8 +328,8 @@ const staticCacheOptions = {
   }
 };
 
-app.use(express.static(publicPath, staticCacheOptions));
-app.use(express.static(distPath, staticCacheOptions));
+app.use(express.static(publicPath, { ...staticCacheOptions, index: false }));
+app.use(express.static(distPath, { ...staticCacheOptions, index: false }));
 
 // Valid known frontend routes (including categories and parameters)
 const validStaticRoutes = new Set([
@@ -332,7 +351,7 @@ const validStaticRoutes = new Set([
 ]);
 
 // SPA Routing & Custom 404 Status Handler (Eliminates Soft 404 Error)
-app.use((req, res, next) => {
+app.use(async (req, res, next) => {
   if (req.method !== 'GET') return next();
   if (req.path.startsWith('/api') || req.path.startsWith('/uploads') || req.path.startsWith('/assets')) {
     return next();
@@ -351,15 +370,31 @@ app.use((req, res, next) => {
     cleanPath.startsWith('/spiritual') ||
     cleanPath.startsWith('/aanmeegam') ||
     cleanPath.startsWith('/category') ||
+    cleanPath.startsWith('/epaper') ||
+    cleanPath.startsWith('/magazine') ||
     cleanPath.startsWith('/news') ||
     cleanPath.startsWith('/article');
 
   if (isKnownRoute) {
-    const indexPath = path.join(distPath, 'index.html');
+    const indexPath = fs.existsSync(path.join(distPath, 'index.html'))
+      ? path.join(distPath, 'index.html')
+      : path.join(__dirname, '../index.html');
+    try {
+      const rawHtml = fs.readFileSync(indexPath, 'utf-8');
+      const seoHtml = await renderSeoHtml(req, rawHtml);
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');
+      return res.send(seoHtml);
+    } catch (seoErr) {
+      console.warn('⚠️ [SEO SSR] Fallback to static index.html:', seoErr.message);
+      return res.sendFile(indexPath);
+    }
+    if (false) {
     if (fs.existsSync(indexPath)) {
       return res.sendFile(indexPath);
     }
     return res.sendFile(path.join(__dirname, '../index.html'));
+    }
   }
 
   // Truly Unknown / Missing URL: Respond with genuine HTTP 404 and branded custom 404 template

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, BookOpen, Sparkles, ArrowRight } from 'lucide-react';
 import { api } from '../services/api';
 import AmazeTimesPageRenderer from './amazetimes/AmazeTimesPageRenderer';
@@ -33,34 +33,95 @@ const ENG_MONTHS = {
   '12': 'December'
 };
 
-export default function MagazinePromoModal({ onOpenEPaper, onOpenMagazine }) {
+// Keep dismissed state for the current SPA page load only (fresh reload shows the magazine promo cleanly)
+let dismissedInCurrentLoad = false;
+
+function buildInstantCoverFromNews(newsList, currentMonthNum, currentYearStr) {
+  const tamilMonth = TAMIL_MONTHS[currentMonthNum] || 'நவம்பர்';
+  const engMonth = ENG_MONTHS[currentMonthNum] || 'November';
+
+  const validStories = Array.isArray(newsList)
+    ? newsList.filter(a => {
+        const img = a?.mainImage || a?.main_image || a?.image || '';
+        return typeof img === 'string' && img.trim() && img.trim() !== '/Amaze times.jpg';
+      })
+    : [];
+
+  const lead =
+    validStories.find(a => a.isBreaking || a.is_breaking || a.isLeadHero || a.is_lead_hero) ||
+    validStories[0] ||
+    null;
+
+  const coverImage = lead ? (lead.mainImage || lead.main_image || lead.image) : '/og-image.jpg';
+  const coverHeadline = lead?.title || `அமேஸ் டைம்ஸ் ${tamilMonth} ${currentYearStr} மாதாந்திரச் சிறப்புப் பதிப்பு!`;
+  const coverCategory = lead?.category || 'மாதத்தின் சிறப்புப் பார்வை';
+
+  return {
+    pageNumber: 1,
+    template: 'magazine-front-cover',
+    monthYearLabel: `${tamilMonth} ${currentYearStr}`,
+    monthTamil: tamilMonth,
+    monthEng: engMonth,
+    year: currentYearStr,
+    volumeNo: '05',
+    issueNo: currentMonthNum,
+    priceLabel: 'விலை : இலவசம்',
+    coverHeadline,
+    coverCategory,
+    coverImage
+  };
+}
+
+export default function MagazinePromoModal({ news = [], onOpenEPaper, onOpenMagazine }) {
   const [isOpen, setIsOpen] = useState(false);
   const [latestMag, setLatestMag] = useState(null);
-  const [coverPage, setCoverPage] = useState(null);
+  const [coverPage, setCoverPage] = useState(() => {
+    const now = new Date();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const y = String(now.getFullYear());
+    return buildInstantCoverFromNews(news, m, y);
+  });
+  const serverCoverLoadedRef = useRef(false);
+
+  // If news array populates shortly after mount (before magazine API responds), upgrade cover immediately
+  useEffect(() => {
+    if (serverCoverLoadedRef.current) return;
+    if (!Array.isArray(news) || news.length === 0) return;
+    const now = new Date();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const y = String(now.getFullYear());
+    setCoverPage(buildInstantCoverFromNews(news, m, y));
+  }, [news]);
 
   useEffect(() => {
+    if (dismissedInCurrentLoad) return;
+
     const now = new Date();
     const currentMonthNum = String(now.getMonth() + 1).padStart(2, '0');
     const currentYearStr = String(now.getFullYear());
-    const promoStorageKey = `amaze_mag_promo_seen_${currentYearStr}_${currentMonthNum}`;
 
-    try {
-      if (sessionStorage.getItem(promoStorageKey)) return;
-    } catch (_) {}
+    // Open reliably within 900ms — never blocked waiting 10+ seconds on cold DB queries!
+    const openTimer = setTimeout(() => {
+      if (!dismissedInCurrentLoad) {
+        setIsOpen(true);
+      }
+    }, 900);
 
-    const checkMagazine = async () => {
+    let active = true;
+    const fetchMagazineCover = async () => {
       try {
-        // 1. First fetch dynamic magazine reader data (contains real glossy cover template in pages[0])
-        const res = await fetch('/api/amazetimes/magazine')
-          .then(r => r.json())
+        const res = await fetch(`/api/amazetimes/magazine?_t=${Date.now()}`, { cache: 'no-store' })
+          .then(r => (r.ok ? r.json() : null))
           .catch(() => null);
 
+        if (!active) return;
+
         if (res && res.success && res.publication) {
+          serverCoverLoadedRef.current = true;
           setLatestMag(res.publication);
           if (res.pages && res.pages.length > 0 && res.pages[0].template === 'magazine-front-cover') {
             setCoverPage(res.pages[0]);
           } else {
-            // Build default coverPage
             setCoverPage({
               pageNumber: 1,
               template: 'magazine-front-cover',
@@ -70,22 +131,23 @@ export default function MagazinePromoModal({ onOpenEPaper, onOpenMagazine }) {
               year: currentYearStr,
               volumeNo: '05',
               issueNo: currentMonthNum,
-              priceLabel: 'ரூ. 22/-',
-              coverHeadline: res.publication.coverHeadline || 'இடைத்தேர்தலில் மீண்டும் தனது செல்வாக்கை நிரூபித்துக் காட்டிய முதல்வர் விஜய்!',
+              priceLabel: 'விலை : இலவசம்',
+              coverHeadline: res.publication.coverHeadline || 'அமேஸ் டைம்ஸ் மாதாந்திரச் சிறப்புப் பதிப்பு!',
               coverCategory: 'மாதத்தின் சிறப்புப் பார்வை',
               coverImage: (res.publication.coverImage && res.publication.coverImage !== '/Amaze times.jpg')
                 ? res.publication.coverImage
-                : '/magazine-cover-sample.jpg'
+                : '/og-image.jpg'
             });
           }
-          setTimeout(() => setIsOpen(true), 2500);
           return;
         }
 
-        // 2. Fallback to /api/magazines
-        const magRes = await api.getMagazines();
+        // Secondary fallback to /api/magazines
+        const magRes = await api.getMagazines().catch(() => null);
+        if (!active) return;
         if (magRes && magRes.success && Array.isArray(magRes.magazines) && magRes.magazines.length > 0) {
           const m = magRes.magazines[0];
+          serverCoverLoadedRef.current = true;
           setLatestMag(m);
           const mMonth = String(m.month || currentMonthNum).padStart(2, '0');
           const mYear = String(m.year || currentYearStr);
@@ -93,7 +155,7 @@ export default function MagazinePromoModal({ onOpenEPaper, onOpenMagazine }) {
           const engMonth = ENG_MONTHS[mMonth] || 'November';
           const coverImg = (m.coverImage && m.coverImage !== '/Amaze times.jpg')
             ? m.coverImage
-            : (m.cover_image && m.cover_image !== '/Amaze times.jpg' ? m.cover_image : '/magazine-cover-sample.jpg');
+            : (m.cover_image && m.cover_image !== '/Amaze times.jpg' ? m.cover_image : '/og-image.jpg');
 
           setCoverPage({
             pageNumber: 1,
@@ -104,31 +166,31 @@ export default function MagazinePromoModal({ onOpenEPaper, onOpenMagazine }) {
             year: mYear,
             volumeNo: m.volumeNo || '05',
             issueNo: m.issueNo || mMonth,
-            priceLabel: m.priceLabel || 'விலை : ரூ. 22/-',
-            coverHeadline: m.coverHeadline || m.title || 'இடைத்தேர்தலில் மீண்டும் தனது செல்வாக்கை நிரூபித்துக் காட்டிய முதல்வர் விஜய்!',
+            priceLabel: m.priceLabel || 'விலை : இலவசம்',
+            coverHeadline: m.coverHeadline || m.title || 'அமேஸ் டைம்ஸ் மாதாந்திரச் சிறப்புப் பதிப்பு!',
             coverCategory: 'மாதத்தின் சிறப்புப் பார்வை',
             coverImage: coverImg
           });
-          setTimeout(() => setIsOpen(true), 2500);
         }
       } catch (_) {}
     };
 
-    checkMagazine();
+    fetchMagazineCover();
+
+    return () => {
+      active = false;
+      clearTimeout(openTimer);
+    };
   }, []);
 
   const handleDismiss = () => {
+    dismissedInCurrentLoad = true;
     setIsOpen(false);
-    try {
-      const now = new Date();
-      const currentMonthNum = String(now.getMonth() + 1).padStart(2, '0');
-      const currentYearStr = String(now.getFullYear());
-      sessionStorage.setItem(`amaze_mag_promo_seen_${currentYearStr}_${currentMonthNum}`, 'true');
-    } catch (_) {}
   };
 
   const handleRead = () => {
-    handleDismiss();
+    dismissedInCurrentLoad = true;
+    setIsOpen(false);
     if (onOpenMagazine) {
       onOpenMagazine();
     } else if (onOpenEPaper) {
@@ -148,10 +210,17 @@ export default function MagazinePromoModal({ onOpenEPaper, onOpenMagazine }) {
   const displayEdition = `${displayMonthTamil} ${displayYear}`;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in font-tamil">
-      <div className="bg-gradient-to-b from-[#0c1630] via-[#091024] to-[#060a16] border border-amber-500/50 rounded-3xl max-w-sm sm:max-w-md w-full overflow-hidden shadow-2xl p-5 sm:p-6 relative text-white space-y-4">
+    <div
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in font-tamil"
+      onClick={handleDismiss}
+    >
+      <div
+        className="bg-gradient-to-b from-[#0c1630] via-[#091024] to-[#060a16] border border-amber-500/50 rounded-3xl max-w-sm sm:max-w-md w-full overflow-hidden shadow-2xl p-5 sm:p-6 relative text-white space-y-4"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Close Button */}
         <button
+          type="button"
           onClick={handleDismiss}
           aria-label="Close"
           className="absolute top-4 right-4 p-1.5 rounded-full bg-white/10 hover:bg-white/20 text-gray-300 hover:text-white transition cursor-pointer z-20"
@@ -179,9 +248,9 @@ export default function MagazinePromoModal({ onOpenEPaper, onOpenMagazine }) {
             className="group cursor-pointer relative transition-transform duration-300 hover:scale-[1.03] active:scale-[0.98]"
             title="இதழை வாசிக்க கிளிக் செய்யவும்"
           >
-            <div className="w-[180px] h-[255px] bg-slate-900 rounded-2xl shadow-2xl overflow-hidden ring-4 ring-amber-400/40 border border-amber-400/60 relative pointer-events-none">
+            <div className="w-[196px] h-[277px] bg-slate-900 rounded-2xl shadow-2xl overflow-hidden ring-4 ring-amber-400/50 border border-amber-400/70 relative pointer-events-none">
               {coverPage ? (
-                <div style={{ width: '794px', height: '1123px', transform: 'scale(0.227)', transformOrigin: 'top left' }}>
+                <div style={{ width: '794px', height: '1123px', transform: 'scale(0.247)', transformOrigin: 'top left' }}>
                   <AmazeTimesPageRenderer page={coverPage} publicationType="magazine" />
                 </div>
               ) : (
@@ -189,11 +258,11 @@ export default function MagazinePromoModal({ onOpenEPaper, onOpenMagazine }) {
                   src={
                     (latestMag?.coverImage && latestMag.coverImage !== '/Amaze times.jpg')
                       ? latestMag.coverImage
-                      : '/magazine-cover-sample.jpg'
+                      : '/og-image.jpg'
                   }
                   alt={latestMag?.title || 'அமேஸ் டைம்ஸ் மாத இதழ்'}
                   className="w-full h-full object-cover"
-                  onError={(e) => { e.currentTarget.src = '/magazine-cover-sample.jpg'; }}
+                  onError={(e) => { e.currentTarget.src = '/og-image.jpg'; }}
                 />
               )}
             </div>
@@ -211,6 +280,7 @@ export default function MagazinePromoModal({ onOpenEPaper, onOpenMagazine }) {
         {/* Action Button */}
         <div className="space-y-2 pt-1">
           <button
+            type="button"
             onClick={handleRead}
             className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-500 via-rose-500 to-yellow-500 hover:brightness-110 text-slate-950 font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-amber-950/50 transition cursor-pointer active:scale-95"
           >
@@ -220,6 +290,7 @@ export default function MagazinePromoModal({ onOpenEPaper, onOpenMagazine }) {
           </button>
 
           <button
+            type="button"
             onClick={handleDismiss}
             className="w-full py-1.5 text-center text-xs text-gray-400 hover:text-white transition cursor-pointer"
           >

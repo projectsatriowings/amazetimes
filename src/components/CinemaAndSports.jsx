@@ -34,6 +34,10 @@ export default function CinemaAndSports({ onOpenArticle, onSelectCategory, artic
   const [cinemaSubTab, setCinemaSubTab] = useState('all'); // 'all' | 'reviews' | 'trailers' | 'boxoffice'
   const [sportsSubTab, setSportsSubTab] = useState('all'); // 'all' | 'csk' | 'international' | 'achievers'
 
+  // Dedicated Category Fetches (guarantees Cinema & Sports ALWAYS have full 5+ articles on Home even if top-50 latest news has few)
+  const [dedicatedCinema, setDedicatedCinema] = useState([]);
+  const [dedicatedSports, setDedicatedSports] = useState([]);
+
   // Dynamic Box Office Buzz Settings (from cinema_buzz_settings)
   const [boxOfficeBuzz, setBoxOfficeBuzz] = useState([
     {
@@ -96,11 +100,26 @@ export default function CinemaAndSports({ onOpenArticle, onSelectCategory, artic
 
   useEffect(() => {
     let isMounted = true;
-    const loadBuzzSettings = async () => {
+    const formatApiArt = (a) => ({
+      ...a,
+      id: a.id,
+      _id: a._id || String(a.id),
+      title: a.title,
+      category: a.category || a.category_name || a.category_id || 'செய்தி',
+      mainImage: a.mainImage || a.cover_image_url || a.image || a.img || '/Amaze times.jpg',
+      image: a.mainImage || a.cover_image_url || a.image || a.img || '/Amaze times.jpg',
+      img: a.mainImage || a.cover_image_url || a.image || a.img || '/Amaze times.jpg',
+      time: a.time || new Date(a.publishedAt || a.published_at || a.createdAt || a.created_at || Date.now()).toLocaleDateString('ta-IN', { hour: '2-digit', minute: '2-digit' }),
+      publishedAt: a.publishedAt || a.published_at || a.createdAt || a.created_at || ''
+    });
+
+    const loadBuzzAndCategoryNews = async () => {
       try {
-        const [cData, sData] = await Promise.allSettled([
+        const [cData, sData, cinemaRes, sportsRes] = await Promise.allSettled([
           api.getContent('cinema_buzz_settings'),
-          api.getContent('sports_buzz_settings')
+          api.getContent('sports_buzz_settings'),
+          api.getArticles({ category: 'cinema', limit: 15, status: 'published' }),
+          api.getArticles({ category: 'sports', limit: 15, status: 'published' })
         ]);
 
         if (!isMounted) return;
@@ -112,23 +131,58 @@ export default function CinemaAndSports({ onOpenArticle, onSelectCategory, artic
         if (sData.status === 'fulfilled' && sData.value && sData.value.liveMatch) {
           setLiveMatch(prev => ({ ...prev, ...sData.value.liveMatch }));
         }
+
+        if (cinemaRes.status === 'fulfilled' && cinemaRes.value) {
+          const arr = cinemaRes.value.articles || cinemaRes.value.data || cinemaRes.value.news || [];
+          if (Array.isArray(arr) && arr.length > 0) {
+            setDedicatedCinema(arr.map(formatApiArt));
+          }
+        }
+
+        if (sportsRes.status === 'fulfilled' && sportsRes.value) {
+          const arr = sportsRes.value.articles || sportsRes.value.data || sportsRes.value.news || [];
+          if (Array.isArray(arr) && arr.length > 0) {
+            setDedicatedSports(arr.map(formatApiArt));
+          }
+        }
       } catch (_) {}
     };
 
-    loadBuzzSettings();
+    loadBuzzAndCategoryNews();
     return () => { isMounted = false; };
   }, []);
 
-  // Source articles: Prefer passed articles prop (scoped to active category) if non-empty, else newsList
-  const sourceArticles = (Array.isArray(articles) && articles.length > 0) ? articles : newsList;
+  // Merge all available article pools (dedicated category fetches + passed articles + full AppContext newsList) & deduplicate newest-first
+  const mergeAndDedupe = (...pools) => {
+    const map = new Map();
+    pools.forEach(pool => {
+      if (!Array.isArray(pool)) return;
+      pool.forEach(art => {
+        if (!art) return;
+        const key = String(art.id || art._id || art.title);
+        if (!map.has(key)) map.set(key, art);
+      });
+    });
+    return Array.from(map.values()).sort((a, b) => {
+      const tA = new Date(a.publishedAt || a.published_at || a.createdAt || a.created_at || 0).getTime() || 0;
+      const tB = new Date(b.publishedAt || b.published_at || b.createdAt || b.created_at || 0).getTime() || 0;
+      if (tB !== tA) return tB - tA;
+      return (Number(b.id) || 0) - (Number(a.id) || 0);
+    });
+  };
+
+  const combinedPool = mergeAndDedupe(articles, newsList);
 
   // Filter Cinema Articles
-  const allCinemaArticles = sourceArticles.filter(art => {
-    const cat = (art.category || art.category_id || '').toLowerCase();
-    const tags = Array.isArray(art.tags) ? art.tags.join(' ').toLowerCase() : String(art.tags || '').toLowerCase();
-    const title = (art.title || '').toLowerCase();
-    return cat === 'cinema' || cat === 'சினிமா' || cat.includes('விமர்சனம்') || tags.includes('சினிமா') || title.includes('சினிமா') || title.includes('திரைப்படம்') || tags.includes('கூலி') || tags.includes('தளபதி');
-  });
+  const allCinemaArticles = mergeAndDedupe(
+    dedicatedCinema,
+    combinedPool.filter(art => {
+      const cat = (art.category || art.category_id || '').toLowerCase();
+      const tags = Array.isArray(art.tags) ? art.tags.join(' ').toLowerCase() : String(art.tags || '').toLowerCase();
+      const title = (art.title || '').toLowerCase();
+      return cat === 'cinema' || cat === 'சினிமா' || cat.includes('விமர்சனம்') || tags.includes('சினிமா') || title.includes('சினிமா') || title.includes('திரைப்படம்') || tags.includes('கூலி') || tags.includes('தளபதி');
+    })
+  );
 
   const filteredCinemaArticles = allCinemaArticles.filter(art => {
     if (cinemaSubTab === 'all') return true;
@@ -140,12 +194,29 @@ export default function CinemaAndSports({ onOpenArticle, onSelectCategory, artic
   });
 
   // Filter Sports Articles
-  const allSportsArticles = sourceArticles.filter(art => {
-    const cat = (art.category || art.category_id || '').toLowerCase();
-    const tags = Array.isArray(art.tags) ? art.tags.join(' ').toLowerCase() : String(art.tags || '').toLowerCase();
-    const title = (art.title || '').toLowerCase();
-    return cat === 'sports' || cat === 'விளையாட்டு' || tags.includes('விளையாட்டு') || tags.includes('கிரிக்கெட்') || title.includes('கிரிக்கெட்') || title.includes('ஐபிஎல்') || title.includes('csk') || tags.includes('csk');
-  });
+  const allSportsArticles = mergeAndDedupe(
+    dedicatedSports,
+    combinedPool.filter(art => {
+      const cat = (art.category || art.category_id || '').toLowerCase();
+      const tags = Array.isArray(art.tags) ? art.tags.join(' ').toLowerCase() : String(art.tags || '').toLowerCase();
+      const title = (art.title || '').toLowerCase();
+      return (
+        cat === 'sports' ||
+        cat === 'விளையாட்டு' ||
+        cat.includes('விளையாட்டு') ||
+        cat.includes('sport') ||
+        tags.includes('விளையாட்டு') ||
+        tags.includes('கிரிக்கெட்') ||
+        title.includes('கிரிக்கெட்') ||
+        title.includes('ஐபிஎல்') ||
+        title.includes('பேட்மிண்டன்') ||
+        title.includes('ஒலிம்பிக்') ||
+        title.includes('சாம்பியன்') ||
+        title.includes('csk') ||
+        tags.includes('csk')
+      );
+    })
+  );
 
   const filteredSportsArticles = allSportsArticles.filter(art => {
     if (sportsSubTab === 'all') return true;
@@ -498,7 +569,7 @@ export default function CinemaAndSports({ onOpenArticle, onSelectCategory, artic
               >
                 <div className="relative aspect-[16/9] w-full overflow-hidden bg-black">
                   <img
-                    src={sportsLead.mainImage || sportsLead.img || 'https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?auto=format&fit=crop&w=600&q=80'}
+                    src={sportsLead.mainImage || sportsLead.image || sportsLead.img || 'https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?auto=format&fit=crop&w=600&q=80'}
                     alt={sportsLead.title}
                     className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
                   />
@@ -531,7 +602,7 @@ export default function CinemaAndSports({ onOpenArticle, onSelectCategory, artic
                   className="flex items-center gap-3 p-2.5 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800/60 transition cursor-pointer group"
                 >
                   <img
-                    src={art.mainImage || art.img || 'https://images.unsplash.com/photo-1531415074868-036b107e775a?auto=format&fit=crop&w=200&q=80'}
+                    src={art.mainImage || art.image || art.img || 'https://images.unsplash.com/photo-1531415074868-036b107e775a?auto=format&fit=crop&w=200&q=80'}
                     alt={art.title}
                     className="w-18 h-18 sm:w-20 sm:h-20 rounded-xl object-cover shrink-0 group-hover:scale-105 transition"
                   />
@@ -543,7 +614,7 @@ export default function CinemaAndSports({ onOpenArticle, onSelectCategory, artic
                       <span>{art.time || 'சமீபத்தில்'}</span>
                       <span>•</span>
                       <span className="flex items-center gap-1 text-emerald-500 font-bold">
-                        <Heart className="w-3 h-3 fill-emerald-500" /> {getArticleLikes ? getArticleLikes(art.id) : 310}
+                        <Heart className="w-3 h-3 fill-emerald-500" /> {getArticleLikes ? getArticleLikes(art.id) : (art.likesCount ?? art.likes_count ?? art.likes ?? 0)}
                       </span>
                     </div>
                   </div>

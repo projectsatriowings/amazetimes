@@ -1,5 +1,5 @@
 import express from 'express';
-import { query } from '../db.js';
+import { query, ensureHttpsUrl } from '../db.js';
 
 const router = express.Router();
 
@@ -10,9 +10,10 @@ const defaultMagazinesList = [
     edition: 'நவம்பர் 2026',
     month: '11',
     year: '2026',
-    coverImage: '/magazine-cover-sample.jpg',
+    coverImage: '',
+    coverHeadline: '',
     pdfUrl: '',
-    pageCount: 32,
+    pageCount: 14,
     description: 'தமிழ்நாட்டின் வளர்ச்சித் திட்டங்கள், வணிகம், தொழில்நுட்பம், அரசியல் மற்றும் இலக்கியச் சிறப்பிதழ்.',
     publishedDate: '2026-11-01'
   },
@@ -22,23 +23,70 @@ const defaultMagazinesList = [
     edition: 'அக்டோபர் 2026',
     month: '10',
     year: '2026',
-    coverImage: '/magazine-cover-sample.jpg',
+    coverImage: '',
+    coverHeadline: '',
     pdfUrl: '',
-    pageCount: 64,
+    pageCount: 14,
     description: 'தமிழ்நாட்டின் வளர்ச்சித் திட்டங்கள், வணிகம், தொழில்நுட்பம் மற்றும் ஆன்மிகச் சிறப்பிதழ்.',
     publishedDate: '2026-10-01'
   }
 ];
+
+// Dynamically resolve authentic Amaze Times cover photo & headline from OUR OWN published news articles
+async function enrichMagazinesWithOwnCovers(magList) {
+  try {
+    const res = await query(`
+      SELECT id, title, category,
+             CASE WHEN main_image LIKE 'data:%' THEN '/api/news/' || id || '/image' ELSE main_image END AS main_image,
+             EXTRACT(YEAR FROM COALESCE(published_at, created_at) AT TIME ZONE 'Asia/Kolkata')::int AS yr,
+             EXTRACT(MONTH FROM COALESCE(published_at, created_at) AT TIME ZONE 'Asia/Kolkata')::int AS mo
+      FROM news
+      WHERE status = 'published'
+        AND main_image IS NOT NULL
+        AND TRIM(main_image) != ''
+        AND main_image != '/Amaze times.jpg'
+      ORDER BY (CASE WHEN is_breaking = true OR is_lead_hero = true THEN 1 ELSE 0 END) DESC,
+               COALESCE(published_at, created_at) DESC
+      LIMIT 40
+    `);
+    const rows = res.rows || [];
+    return magList.map((m, idx) => {
+      const hasCustomOwnCover =
+        m.coverImage &&
+        m.coverImage !== '/Amaze times.jpg' &&
+        !String(m.coverImage).includes('magazine-cover-sample') &&
+        !String(m.coverImage).includes('adutha');
+
+      const yNum = parseInt(m.year, 10);
+      const mNum = parseInt(m.month, 10);
+      const matchMonth = rows.find(r => r.yr === yNum && r.mo === mNum);
+      const fallbackRow = rows[idx % Math.max(1, rows.length)] || rows[0];
+      const chosen = matchMonth || fallbackRow;
+
+      return {
+        ...m,
+        coverImage: hasCustomOwnCover
+          ? ensureHttpsUrl(m.coverImage)
+          : (chosen?.main_image ? ensureHttpsUrl(chosen.main_image) : '/og-image.jpg'),
+        coverHeadline: m.coverHeadline || chosen?.title || m.title,
+        coverCategory: m.coverCategory || chosen?.category || 'சிறப்புப் பார்வை'
+      };
+    });
+  } catch (err) {
+    console.warn('Enrich magazines cover warning:', err.message);
+    return magList.map(m => ({
+      ...m,
+      coverImage: (m.coverImage && !String(m.coverImage).includes('magazine-cover-sample')) ? m.coverImage : '/og-image.jpg'
+    }));
+  }
+}
 
 // Helper to get magazines from site_content table
 async function getStoredMagazines() {
   try {
     const res = await query('SELECT data FROM site_content WHERE key = $1', ['magazines']);
     if (res.rows.length > 0 && Array.isArray(res.rows[0].data) && res.rows[0].data.length > 0) {
-      return res.rows[0].data.map(m => ({
-        ...m,
-        coverImage: (!m.coverImage || m.coverImage === '/Amaze times.jpg') ? '/magazine-cover-sample.jpg' : m.coverImage
-      }));
+      return res.rows[0].data;
     }
   } catch (err) {
     console.warn('Error reading magazines from DB:', err.message);
@@ -65,7 +113,9 @@ async function saveStoredMagazines(data) {
 // GET /api/magazines
 router.get('/', async (req, res) => {
   try {
-    const magazines = await getStoredMagazines();
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+    const rawMagazines = await getStoredMagazines();
+    const magazines = await enrichMagazinesWithOwnCovers(rawMagazines);
     res.json({
       success: true,
       data: magazines,
@@ -89,7 +139,7 @@ router.post('/', async (req, res) => {
       year: String(req.body.year || '2026'),
       coverImage: (req.body.coverImage && req.body.coverImage !== '/Amaze times.jpg')
         ? req.body.coverImage
-        : (req.body.coverImageUrl && req.body.coverImageUrl !== '/Amaze times.jpg' ? req.body.coverImageUrl : '/magazine-cover-sample.jpg'),
+        : (req.body.coverImageUrl && req.body.coverImageUrl !== '/Amaze times.jpg' ? req.body.coverImageUrl : ''),
       pdfUrl: req.body.pdfUrl || req.body.fileUrl || '',
       pageCount: parseInt(req.body.pageCount) || 24,
       description: req.body.description || req.body.subtitle || '',

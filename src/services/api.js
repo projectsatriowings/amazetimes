@@ -296,7 +296,46 @@ export const api = {
     }
 
     const res = await request(`/news${query ? `?${query}` : ''}`);
-    const list = (res && (res.data || res.news || res.articles)) || [];
+    const rawList = (res && (res.articles || res.data || res.news)) || [];
+    const list = rawList.map(a => {
+      if (!a || typeof a !== 'object') return a;
+      const img = a.mainImage || a.image || a.img || a.cover_image_url || '/Amaze times.jpg';
+      const sum = a.summary || a.desc || a.excerpt || '';
+      const cat = a.category || a.cat || 'தமிழ்நாடு';
+      const views = a.viewsCount ?? a.views_count ?? a.view_count ?? a.views ?? 0;
+      const likes = a.likesCount ?? a.likes_count ?? a.likes ?? 0;
+      return {
+        ...a,
+        _id: a._id || String(a.id),
+        cat,
+        category: cat,
+        category_id: a.category_id || cat,
+        sub_category: a.sub_category || a.subCategory || '',
+        mainImage: img,
+        image: img,
+        img,
+        cover_image_url: img,
+        summary: sum,
+        desc: sum,
+        excerpt: sum,
+        author: a.author || a.authorName || 'செய்தி ஆசிரியர்',
+        authorName: a.authorName || a.author || 'செய்தி ஆசிரியர்',
+        is_breaking: Boolean(a.isBreaking ?? a.is_breaking),
+        isBreaking: Boolean(a.isBreaking ?? a.is_breaking),
+        is_lead_hero: Boolean(a.isLeadHero ?? a.is_lead_hero),
+        isLeadHero: Boolean(a.isLeadHero ?? a.is_lead_hero),
+        is_top_story: Boolean(a.isTopStory ?? a.is_top_story),
+        isTopStory: Boolean(a.isTopStory ?? a.is_top_story),
+        viewsCount: views,
+        views_count: views,
+        view_count: views,
+        views,
+        likesCount: likes,
+        likes_count: likes,
+        published_at: a.published_at || a.publishedAt || a.createdAt,
+        created_at: a.created_at || a.createdAt
+      };
+    });
     if (res) {
       res.data = list;
       res.news = list;

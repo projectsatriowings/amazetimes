@@ -258,10 +258,18 @@ export const AdminDashboard = () => {
 
   const loadAdminData = async () => {
     try {
-      const statsRes = await api.getNewsStats().catch(() => null);
+      const [statsSettled, newsSettled, userSettled, analyticsSettled, goldSettled] = await Promise.allSettled([
+        api.getNewsStats(),
+        api.getNews({ limit: 'all', _t: Date.now() }),
+        api.getUsers(),
+        api.getAnalyticsStats(),
+        api.getGoldRate()
+      ]);
+
+      const statsRes = statsSettled.status === 'fulfilled' ? statsSettled.value : null;
       if (statsRes && statsRes.success) setStats(statsRes.stats);
 
-      const newsRes = await api.getNews({ limit: 'all', _t: Date.now() }).catch(() => null);
+      const newsRes = newsSettled.status === 'fulfilled' ? newsSettled.value : null;
       const fetchedNews = (newsRes && newsRes.success && Array.isArray(newsRes.data)) ? newsRes.data : [];
       const dedupedNews = Array.from(new Map(fetchedNews.map(a => [String(a.id || a._id), a])).values());
       setArticles(dedupedNews);
@@ -272,15 +280,15 @@ export const AdminDashboard = () => {
         pendingNews: fetchedNews.filter(a => a.status === 'pending').length
       }));
 
-      const userRes = await api.getUsers().catch(() => null);
+      const userRes = userSettled.status === 'fulfilled' ? userSettled.value : null;
       if (userRes && userRes.success) setUsersList(userRes.users || userRes.data || []);
 
-      const analyticsRes = await api.getAnalyticsStats().catch(() => null);
+      const analyticsRes = analyticsSettled.status === 'fulfilled' ? analyticsSettled.value : null;
       if (analyticsRes && analyticsRes.success) {
         setAnalyticsStats(analyticsRes.data || analyticsRes);
       }
 
-      const goldRes = await api.getGoldRate().catch(() => null);
+      const goldRes = goldSettled.status === 'fulfilled' ? goldSettled.value : null;
       if (goldRes && goldRes.success && goldRes.data) setGoldForm(goldRes.data);
     } catch (e) {
       console.warn('Backend API error in loadAdminData:', e);
@@ -428,6 +436,25 @@ export const AdminDashboard = () => {
         isTopStory: article.isTopStory || false,
         status: article.status || 'published'
       });
+
+      // Hydrate full unabridged content on-demand when editing a compact list item
+      if (article._isLight && /^\d+$/.test(String(article.id))) {
+        api.getNewsById(article.id)
+          .then(res => {
+            const full = res?.article || res?.news || res?.data;
+            if (full && full.content) {
+              setNewsForm(prev => ({
+                ...prev,
+                content: full.content,
+                summary: full.summary || prev.summary,
+                subtitle: full.subtitle || prev.subtitle,
+                seoKeywords: full.seoKeywords || prev.seoKeywords,
+                mainImage: full.mainImage || prev.mainImage
+              }));
+            }
+          })
+          .catch(() => {});
+      }
     } else {
       resetEditingArticle(targetCategory);
     }

@@ -4,6 +4,7 @@ import {
   Copy, Check, MessageSquare, Send, ExternalLink
 } from 'lucide-react';
 import VoiceReaderPlayer from './VoiceReaderPlayer';
+import { api } from '../services/api';
 
 /**
  * ArticleReaderModal
@@ -51,6 +52,9 @@ export default function ArticleReaderModal({
   };
 
   useEffect(() => {
+    if (isOpen && articleData?.id && /^\d+$/.test(String(articleData.id).trim())) {
+      api.recordNewsView(articleData.id).catch(() => {});
+    }
     return () => {
       if (playerRef.current) {
         playerRef.current.stop();

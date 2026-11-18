@@ -218,36 +218,138 @@ nav, .overflow-x-auto {
 }
 
 /* =========================================================
-   AMAZE TIMES FLIPBOOK & VIEWER ANIMATIONS
+   AMAZE TIMES REALISTIC 3D FLIPBOOK & VIEWER ANIMATIONS
    ========================================================= */
-@keyframes pageCurlNext {
+.flipbook-stage {
+  perspective: 2400px;
+  perspective-origin: center center;
+}
+
+.flipbook-sheet-3d {
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+.flipbook-face {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.flipbook-face-back {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  transform: rotateY(180deg);
+}
+
+/* Dual-page realistic 180-degree leaf turn (Right -> Left) */
+@keyframes flipSpreadNext {
   0% {
     transform: rotateY(0deg);
-    opacity: 1;
+    box-shadow: -4px 0 20px rgba(0, 0, 0, 0.25);
+  }
+  25% {
+    box-shadow: -28px 0 55px rgba(0, 0, 0, 0.45);
   }
   50% {
-    transform: rotateY(-18deg) scale(0.98);
-    opacity: 0.85;
+    transform: rotateY(-90deg);
+    box-shadow: 0 0 65px rgba(0, 0, 0, 0.55);
+  }
+  75% {
+    box-shadow: 28px 0 55px rgba(0, 0, 0, 0.4);
   }
   100% {
-    transform: rotateY(0deg);
-    opacity: 1;
+    transform: rotateY(-180deg);
+    box-shadow: 4px 0 18px rgba(0, 0, 0, 0.2);
   }
 }
 
-@keyframes pageCurlPrev {
+/* Dual-page realistic 180-degree leaf turn (Left -> Right) */
+@keyframes flipSpreadPrev {
+  0% {
+    transform: rotateY(0deg);
+    box-shadow: 4px 0 20px rgba(0, 0, 0, 0.25);
+  }
+  25% {
+    box-shadow: 28px 0 55px rgba(0, 0, 0, 0.45);
+  }
+  50% {
+    transform: rotateY(90deg);
+    box-shadow: 0 0 65px rgba(0, 0, 0, 0.55);
+  }
+  75% {
+    box-shadow: -28px 0 55px rgba(0, 0, 0, 0.4);
+  }
+  100% {
+    transform: rotateY(180deg);
+    box-shadow: -4px 0 18px rgba(0, 0, 0, 0.2);
+  }
+}
+
+/* Single-page / Cover hinged page turn forward */
+@keyframes flipSingleNext {
   0% {
     transform: rotateY(0deg);
     opacity: 1;
+    box-shadow: -6px 0 25px rgba(0, 0, 0, 0.35);
   }
-  50% {
-    transform: rotateY(18deg) scale(0.98);
-    opacity: 0.85;
+  65% {
+    transform: rotateY(-98deg);
+    opacity: 0.92;
+    box-shadow: -32px 0 60px rgba(0, 0, 0, 0.6);
+  }
+  100% {
+    transform: rotateY(-122deg);
+    opacity: 0;
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.2);
+  }
+}
+
+/* Single-page / Cover hinged page turn backward (page flips back in from left) */
+@keyframes flipSinglePrev {
+  0% {
+    transform: rotateY(-118deg);
+    opacity: 0;
+    box-shadow: -30px 0 55px rgba(0, 0, 0, 0.55);
+  }
+  30% {
+    opacity: 0.95;
   }
   100% {
     transform: rotateY(0deg);
     opacity: 1;
+    box-shadow: -4px 0 18px rgba(0, 0, 0, 0.2);
   }
+}
+
+/* Dynamic paper fold shadow that peaks mid-flip */
+@keyframes flipShadowPulse {
+  0% { opacity: 0; }
+  48% { opacity: 0.45; }
+  100% { opacity: 0; }
+}
+
+.animate-flipSpreadNext {
+  transform-origin: left center;
+  animation: flipSpreadNext 0.62s cubic-bezier(0.42, 0.04, 0.22, 1) forwards;
+}
+
+.animate-flipSpreadPrev {
+  transform-origin: right center;
+  animation: flipSpreadPrev 0.62s cubic-bezier(0.42, 0.04, 0.22, 1) forwards;
+}
+
+.animate-flipSingleNext {
+  transform-origin: left center;
+  animation: flipSingleNext 0.56s cubic-bezier(0.38, 0.05, 0.22, 1) forwards;
+}
+
+.animate-flipSinglePrev {
+  transform-origin: left center;
+  animation: flipSinglePrev 0.56s cubic-bezier(0.22, 0.78, 0.28, 1) forwards;
+}
+
+.animate-flipShadow {
+  animation: flipShadowPulse 0.62s ease-in-out forwards;
 }
 
 @keyframes slideUp {
@@ -270,14 +372,6 @@ nav, .overflow-x-auto {
     transform: scale(1);
     opacity: 1;
   }
-}
-
-.animate-pageCurlNext {
-  animation: pageCurlNext 0.3s cubic-bezier(0.25, 1, 0.5, 1);
-}
-
-.animate-pageCurlPrev {
-  animation: pageCurlPrev 0.3s cubic-bezier(0.25, 1, 0.5, 1);
 }
 
 .animate-slideUp {

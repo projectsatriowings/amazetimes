@@ -8,7 +8,7 @@ export default function MagazineShowcase({ onOpenEPaper, onOpenMagazine, onToast
   const [pdfProgress, setPdfProgress] = useState(null);
 
   useEffect(() => {
-    fetch('/api/amazetimes/magazine')
+    fetch(`/api/amazetimes/magazine?_t=${Date.now()}`, { cache: 'no-store' })
       .then(r => r.json())
       .then(d => {
         if (d && d.success && d.publication) {
@@ -30,7 +30,7 @@ export default function MagazineShowcase({ onOpenEPaper, onOpenMagazine, onToast
     priceLabel: 'ரூ. 22/-',
     coverHeadline: 'தமிழகத்தின் வளர்ச்சித் திட்டங்கள் & மக்கள் பார்வை!',
     coverCategory: 'மாதத்தின் சிறப்புப் பார்வை',
-    coverImage: '/magazine-cover-sample.jpg'
+    coverImage: '/og-image.jpg'
   };
 
   const editionTitle = latestMag?.publication?.title || 'நவம்பர் 2026 மாதாந்திர சிறப்பிதழ்';

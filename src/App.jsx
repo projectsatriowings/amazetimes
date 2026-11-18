@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Home, Grid, Radio, FileText, Bookmark, User, Building2, MapPin, Film, Trophy, TrendingUp, Sparkles, Flag, Globe, PenTool, Rss, BookOpen } from 'lucide-react';
+import { X, Home, Grid, Radio, FileText, Bookmark, User, Building2, MapPin, Film, Trophy, TrendingUp, Sparkles, Flag, Globe, PenTool, Rss, BookOpen, Newspaper } from 'lucide-react';
 import NewsSkeleton from './components/NewsSkeleton';
 import Header from './components/Header';
 import Ticker from './components/Ticker';
@@ -24,6 +24,7 @@ import GoldCalculatorModal from './components/GoldCalculatorModal';
 import GoldCalculatorBanner from './components/GoldCalculatorBanner';
 import MagazineShowcase from './components/MagazineShowcase';
 import MagazineHubSection from './components/MagazineHubSection';
+import DailyNewspaperHubSection from './components/DailyNewspaperHubSection';
 import SpecialDaysFestivalCard from './components/SpecialDaysFestivalCard';
 import CinemaAndSports from './components/CinemaAndSports';
 import CinemaSportsHub from './components/CinemaSportsHub';
@@ -157,6 +158,13 @@ export const DOMAINS_CONFIG = {
     subtitle: 'எழுத்தாளர்கள் மற்றும் வாசகர்களின் சிந்தனைக் களஞ்சியம்',
     badge: 'வலைப்பதிவு'
   },
+  epaper: {
+    id: 'epaper',
+    name: 'தினசரி நாளிதழ்',
+    title: 'தினசரி மின்-நாளிதழ் (Daily E-Paper)',
+    subtitle: 'ஒவ்வொரு நாளின் முழு அமேஸ் டைம்ஸ் நாளிதழ் — செய்திகள், 12 ராசிபலன், திருக்குறள், சிறுவர் கதை & புதிர்கள்',
+    badge: 'தினசரி நாளிதழ்'
+  },
   magazine: {
     id: 'magazine',
     name: 'மாத இதழ்',
@@ -180,6 +188,7 @@ export const CATEGORY_ALIASES = {
   spiritual: ['spiritual', 'ஆன்மிகம்', 'கோயில்', 'திருத்தலங்கள்'],
   editorial: ['editorial', 'தலையங்கம்', 'தலையங்க'],
   blogs: ['blogs', 'வலைப்பதிவுகள்', 'வலைப்பதிவு'],
+  epaper: ['epaper', 'e-paper', 'தினசரி நாளிதழ்', 'நாளிதழ்'],
   magazine: ['magazine', 'மாத இதழ்', 'இதழ்', 'மாதஇதழ்']
 };
 
@@ -308,7 +317,7 @@ export default function App() {
     } else if (p.startsWith('/category/')) {
       const cat = p.replace('/category/', '').trim();
       if (cat) setActiveCategory(cat);
-    } else if (['/cinema', '/sports', '/tamilnadu', '/districts', '/business', '/india', '/world', '/magazine', '/editorial', '/thalaiyangam', '/spiritual', '/aanmeegam', '/blogs', '/valaipathivugal', '/politics', '/competitions'].includes(p)) {
+    } else if (['/cinema', '/sports', '/tamilnadu', '/districts', '/business', '/india', '/world', '/epaper', '/magazine', '/editorial', '/thalaiyangam', '/spiritual', '/aanmeegam', '/blogs', '/valaipathivugal', '/politics', '/competitions'].includes(p)) {
       setActiveCategory(p.replace('/', ''));
     }
   }, [currentPath]);
@@ -387,8 +396,10 @@ export default function App() {
   const [isLoadingDetailArticle, setIsLoadingDetailArticle] = useState(false);
   const [isEPaperOpen, setIsEPaperOpen] = useState(false);
   const [viewerPublicationType, setViewerPublicationType] = useState('enewspaper');
+  const [viewerInitialDate, setViewerInitialDate] = useState(null);
 
-  const openEPaper = () => {
+  const openEPaper = (dateIso = null) => {
+    setViewerInitialDate(typeof dateIso === 'string' ? dateIso : null);
     setViewerPublicationType('enewspaper');
     setIsEPaperOpen(true);
   };
@@ -984,17 +995,29 @@ export default function App() {
     setActiveModalArticle(null);
     addToReadingHistory(target);
 
-    // Atomically increment views in Neon PostgreSQL
+    // Hydrate full unabridged article content + atomically record view in ONE fast call
     if (target && target.id && /^\d+$/.test(String(target.id).trim())) {
       try {
-        const res = await api.recordNewsView(target.id);
-        if (res && res.success && typeof res.viewsCount === 'number') {
-          setActiveDetailArticle(prev => prev ? { ...prev, viewCount: res.viewsCount, viewsCount: res.viewsCount } : prev);
-          setBackendArticles(prev => prev.map(a => String(a.id) === String(target.id) ? { ...a, viewCount: res.viewsCount, viewsCount: res.viewsCount } : a));
-          setBackendLeadArticle(prev => prev && String(prev.id) === String(target.id) ? { ...prev, viewCount: res.viewsCount, viewsCount: res.viewsCount } : prev);
+        const res = await api.getNewsById(`${target.id}?trackView=1`);
+        const full = res?.article || res?.news || res?.data;
+        if (full) {
+          const updatedViews = typeof full.viewsCount === 'number' ? full.viewsCount : (full.views_count || target.viewsCount || 0);
+          setActiveDetailArticle(prev => prev && String(prev.id) === String(target.id) ? {
+            ...prev,
+            ...full,
+            body: full.content || prev.body,
+            desc: full.summary || prev.desc,
+            image: full.mainImage || prev.image,
+            img: full.mainImage || prev.img,
+            viewCount: updatedViews,
+            viewsCount: updatedViews,
+            views_count: updatedViews
+          } : prev);
+          setBackendArticles(prev => prev.map(a => String(a.id) === String(target.id) ? { ...a, viewCount: updatedViews, viewsCount: updatedViews, views_count: updatedViews } : a));
+          setBackendLeadArticle(prev => prev && String(prev.id) === String(target.id) ? { ...prev, viewCount: updatedViews, viewsCount: updatedViews, views_count: updatedViews } : prev);
         }
       } catch (e) {
-        console.warn('Background view increment failed:', e);
+        console.warn('Article hydration/view increment warning:', e);
       }
     }
   };
@@ -1330,7 +1353,11 @@ export default function App() {
 
                   <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
                     <span className="bg-white/10 text-white font-extrabold text-xs px-3.5 py-1.5 rounded-xl border border-white/15">
-                      {isLoadingNews ? 'செய்திகள் ஏற்றப்படுகின்றன...' : `${leadData ? 1 + displayCards.length : displayCards.length} செய்திகள்`}
+                      {activeCategory === 'epaper'
+                        ? 'தினசரி மின்-நாளிதழ் (ஒவ்வொரு நாளும்)'
+                        : activeCategory === 'magazine'
+                          ? 'மாதாந்திர மின்-இதழ்'
+                          : (isLoadingNews ? 'செய்திகள் ஏற்றப்படுகின்றன...' : `${leadData ? 1 + displayCards.length : displayCards.length} செய்திகள்`)}
                     </span>
                     <button
                       onClick={() => handleSelectCategory('all')}
@@ -1343,8 +1370,28 @@ export default function App() {
               </div>
             )}
 
-            {/* DOMAIN EMPTY STATE / SKELETON */}
-            {isLoadingNews ? (
+            {/* DEDICATED DAILY E-NEWSPAPER SECTION (Every Day's Newspaper + 14-Day Archive + Date Picker!) */}
+            {activeCategory === 'epaper' ? (
+              <DailyNewspaperHubSection
+                news={backendLeadArticle ? [backendLeadArticle, ...rawCards] : rawCards}
+                defaultShowAll={true}
+                onOpenEPaperDate={(dateIso) => openEPaper(dateIso)}
+                onToast={addToast}
+                readerUser={readerUser}
+                onOpenAuth={() => setIsUserAuthOpen(true)}
+              />
+            ) : activeCategory === 'magazine' ? (
+              /* DEDICATED MONTHLY MAGAZINE SECTION (Amaze Times Glossy Covers + Year Archives!) */
+              <div className="space-y-6">
+                <MagazineHubSection
+                  onOpenEPaper={() => openEPaper()}
+                  onOpenMagazine={openMagazine}
+                  onToast={addToast}
+                  readerUser={readerUser}
+                  onOpenAuth={() => setIsUserAuthOpen(true)}
+                />
+              </div>
+            ) : isLoadingNews ? (
               <NewsSkeleton />
             ) : (!leadData && displayCards.length === 0) ? (
               <div className="bg-white dark:bg-[#0f1b3d] rounded-3xl p-8 sm:p-14 text-center border border-slate-200 dark:border-slate-800 shadow-sm max-w-2xl mx-auto my-8 space-y-4">
@@ -1439,19 +1486,6 @@ export default function App() {
                   />
                 )}
 
-                {activeCategory === 'magazine' && (
-                  <div className="space-y-6">
-                    <MagazineShowcase onOpenEPaper={openEPaper} onOpenMagazine={openMagazine} onToast={addToast} readerUser={readerUser} onOpenAuth={() => setIsUserAuthOpen(true)} />
-                    <MagazineHubSection
-                      onOpenEPaper={openEPaper}
-                      onOpenMagazine={openMagazine}
-                      onToast={addToast}
-                      readerUser={readerUser}
-                      onOpenAuth={() => setIsUserAuthOpen(true)}
-                    />
-                  </div>
-                )}
-
                 {/* 3. GENERAL HOMEPAGE SHOWCASES (Only rendered on 'all' / Main Frontpage) */}
                 {activeCategory === 'all' && (
                   <>
@@ -1487,8 +1521,15 @@ export default function App() {
 
                     <GovernmentBirthdaySection onToast={addToast} />
                     <SpecialDaysFestivalCard onToast={addToast} />
+                    <DailyNewspaperHubSection
+                      news={backendLeadArticle ? [backendLeadArticle, ...rawCards] : rawCards}
+                      onOpenEPaperDate={(dateIso) => openEPaper(dateIso)}
+                      onToast={addToast}
+                      readerUser={readerUser}
+                      onOpenAuth={() => setIsUserAuthOpen(true)}
+                    />
                     <MagazineHubSection
-                      onOpenEPaper={openEPaper}
+                      onOpenEPaper={() => openEPaper()}
                       onOpenMagazine={openMagazine}
                       onToast={addToast}
                       readerUser={readerUser}
@@ -1663,6 +1704,7 @@ export default function App() {
         isOpen={isEPaperOpen}
         onClose={() => setIsEPaperOpen(false)}
         initialPublication={viewerPublicationType}
+        initialDate={viewerInitialDate}
         readerUser={readerUser}
         onOpenAuth={() => setIsUserAuthOpen(true)}
         onToast={addToast}
@@ -1828,6 +1870,7 @@ export default function App() {
       />
 
       <MagazinePromoModal
+        news={backendLeadArticle ? [backendLeadArticle, ...rawCards] : rawCards}
         onOpenMagazine={openMagazine}
         onOpenEPaper={openMagazine}
       />

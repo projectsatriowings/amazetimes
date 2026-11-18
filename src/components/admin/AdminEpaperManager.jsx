@@ -98,7 +98,7 @@ export const AdminEpaperManager = () => {
   const [epaperForm, setEpaperForm] = useState(() => {
     const now = new Date();
     return {
-      title: 'அடுத்த தலைமுறை தமிழ்நாடு பிரதான மின்-இதழ்',
+      title: 'அமேஸ் டைம்ஸ் தமிழ்நாடு முதன்மை மின்-நாளிதழ்',
       edition: 'tamilnadu',
       month: getMonthYearString(now),
       editionDate: now.toISOString().split('T')[0],
@@ -194,7 +194,7 @@ export const AdminEpaperManager = () => {
     const today = new Date();
     setEditingId(null);
     setEpaperForm({
-      title: 'அடுத்த தலைமுறை தமிழ்நாடு பிரதான மின்-இதழ்',
+      title: 'அமேஸ் டைம்ஸ் தமிழ்நாடு முதன்மை மின்-நாளிதழ்',
       edition: 'tamilnadu',
       month: getMonthYearString(today),
       editionDate: today.toISOString().split('T')[0],
@@ -436,7 +436,7 @@ export const AdminEpaperManager = () => {
                 required
                 value={epaperForm.title}
                 onChange={(e) => setEpaperForm({ ...epaperForm, title: e.target.value })}
-                placeholder="உதாரணம்: அடுத்த தலைமுறை தமிழ்நாடு பிரதான மின்-இதழ்..."
+                placeholder="உதாரணம்: அமேஸ் டைம்ஸ் தமிழ்நாடு முதன்மை மின்-நாளிதழ்..."
                 className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-white focus:outline-none focus:border-amber-500"
               />
             </div>

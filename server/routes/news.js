@@ -6,6 +6,9 @@ import { authenticate, requireReporterOrAdmin, optionalAuth } from '../middlewar
 import {
   getCachedNews,
   setCachedNews,
+  getAllLightCachedNews,
+  setAllLightCachedNews,
+  updateCachedArticleViews,
   getCategoryCachedNews,
   setCategoryCachedNews,
   getNewsVersion,
@@ -18,6 +21,50 @@ const router = express.Router();
 // In-flight request coalescing & idempotency guard against concurrent / duplicate POSTs
 const inFlightNewsCreations = new Map();
 const recentClientRequestIds = new Map();
+
+// Fast lightweight SQL projection for list feeds (excludes giant HTML content & offloads base64 images to cached /api/news/:id/image)
+const LIST_COLUMNS_SQL = `
+  id, title, subtitle, summary,
+  LEFT(COALESCE(content, ''), 260) AS content,
+  category, sub_category, district,
+  CASE WHEN main_image LIKE 'data:%' THEN '/api/news/' || id || '/image' ELSE main_image END AS main_image,
+  seo_keywords, tags, is_breaking, is_lead_hero, is_top_story,
+  display_order, author_id, author_name, status,
+  views_count, likes_count, published_at, created_at
+`;
+
+// In-memory decoded binary cache for inline base64 news images (max 150 entries)
+const inlineImageCache = new Map();
+
+// Compact list formatter (avoids 4x image & 3x summary duplication on the wire; api.js restores aliases in client RAM)
+const formatNewsListRow = (r) => {
+  const imgUrl = ensureHttpsUrl(r.main_image || r.cover_image_url || '/Amaze times.jpg');
+  const sum = r.summary || r.excerpt || (r.content ? r.content.substring(0, 160) + '...' : '');
+  return {
+    id: r.id,
+    title: r.title,
+    subtitle: r.subtitle || '',
+    summary: sum,
+    content: r.content || '',
+    category: r.category || r.category_name || 'தமிழ்நாடு',
+    subCategory: r.sub_category || '',
+    district: r.district || 'all',
+    mainImage: imgUrl,
+    seoKeywords: r.seo_keywords || '',
+    tags: Array.isArray(r.tags) ? r.tags : (r.tags ? String(r.tags).split(',').map(t => t.trim()) : []),
+    isBreaking: Boolean(r.is_breaking),
+    isLeadHero: Boolean(r.is_lead_hero || r.is_lead),
+    isTopStory: Boolean(r.is_top_story),
+    displayOrder: r.display_order || 0,
+    authorName: r.author_name || 'செய்தி ஆசிரியர்',
+    status: r.status || 'published',
+    viewsCount: parseInt(r.views_count || r.view_count || r.views || 0, 10),
+    likesCount: parseInt(r.likes_count || 0, 10),
+    publishedAt: r.published_at || r.created_at,
+    createdAt: r.created_at,
+    _isLight: true
+  };
+};
 
 // Helper to format an article row uniformly
 export const formatNewsRow = (r) => {
@@ -162,7 +209,16 @@ router.get('/', optionalAuth, async (req, res) => {
       }
     }
 
-    if (isDefaultQuery && !isAdminOrReporter) {
+    // Fast <5ms RAM cache for full-catalog light list (Admin Dashboard & AppContext)
+    if (isDefaultQuery && isUnlimited) {
+      const allCached = getAllLightCachedNews();
+      if (allCached) {
+        res.setHeader('X-Cache', 'HIT-ALL');
+        return res.json(allCached);
+      }
+    }
+
+    if (isDefaultQuery && !isUnlimited && !isAdminOrReporter) {
       const cached = getCachedNews();
       if (cached) {
         res.setHeader('X-Cache', 'HIT');
@@ -303,19 +359,17 @@ router.get('/', optionalAuth, async (req, res) => {
     const offsetIdx = params.length;
 
     const selectSql = `
-      SELECT * FROM news
+      SELECT ${LIST_COLUMNS_SQL} FROM news
       ${whereClause}
       ORDER BY COALESCE(display_order, 0) DESC, created_at DESC
       LIMIT $${limitIdx} OFFSET $${offsetIdx};
     `;
 
     const result = await query(selectSql, params);
-    const formattedNews = result.rows.map(formatNewsRow);
+    const formattedNews = result.rows.map(formatNewsListRow);
 
     const responsePayload = {
       success: true,
-      news: formattedNews,
-      data: formattedNews,
       articles: formattedNews,
       pagination: {
         page: pageNum,
@@ -325,7 +379,10 @@ router.get('/', optionalAuth, async (req, res) => {
       }
     };
 
-    if (isDefaultQuery && !isAdminOrReporter) {
+    if (isDefaultQuery && isUnlimited) {
+      setAllLightCachedNews(responsePayload);
+      res.setHeader('X-Cache', 'MISS-ALL');
+    } else if (isDefaultQuery && !isUnlimited && !isAdminOrReporter) {
       setCachedNews(responsePayload);
       res.setHeader('X-Cache', 'MISS');
     } else if (isCategoryQuery && !isAdminOrReporter) {
@@ -342,6 +399,44 @@ router.get('/', optionalAuth, async (req, res) => {
 });
 
 
+// GET /api/news/:id/image - Serve inline base64 main_image as browser-cached binary image (cuts list JSON by 95%!)
+router.get('/:id/image', async (req, res) => {
+  try {
+    const id = String(req.params.id || '').trim();
+    if (!/^\d+$/.test(id)) return res.redirect('/Amaze times.jpg');
+
+    if (inlineImageCache.has(id)) {
+      const cached = inlineImageCache.get(id);
+      res.setHeader('Content-Type', cached.mime);
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      return res.send(cached.buf);
+    }
+
+    const r = await query('SELECT main_image FROM news WHERE id = $1 LIMIT 1;', [id]);
+    const img = r.rows[0]?.main_image || '';
+    if (!img) return res.redirect('/Amaze times.jpg');
+
+    if (img.startsWith('data:')) {
+      const match = img.match(/^data:([^;]+);base64,(.+)$/);
+      if (match) {
+        const mime = match[1] || 'image/jpeg';
+        const buf = Buffer.from(match[2], 'base64');
+        if (inlineImageCache.size >= 150) {
+          const firstKey = inlineImageCache.keys().next().value;
+          inlineImageCache.delete(firstKey);
+        }
+        inlineImageCache.set(id, { mime, buf });
+        res.setHeader('Content-Type', mime);
+        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+        return res.send(buf);
+      }
+    }
+    return res.redirect(ensureHttpsUrl(img));
+  } catch (err) {
+    return res.redirect('/Amaze times.jpg');
+  }
+});
+
 // GET /api/news/:id - Fetch single article
 router.get('/:id', async (req, res) => {
   try {
@@ -349,7 +444,15 @@ router.get('/:id', async (req, res) => {
     if (!/^\d+$/.test(String(id).trim())) {
       return res.status(404).json({ success: false, message: 'செய்தி கிடைக்கவில்லை' });
     }
-    const result = await query(`SELECT * FROM news WHERE id = $1;`, [id]);
+    const shouldTrack = req.query.trackView === '1' || req.query.trackView === 'true';
+    const result = shouldTrack
+      ? await query(`UPDATE news SET views_count = COALESCE(views_count, 0) + 1 WHERE id = $1 RETURNING *;`, [id])
+      : await query(`SELECT * FROM news WHERE id = $1;`, [id]);
+
+    if (shouldTrack && result.rows.length > 0) {
+      query(`UPDATE site_analytics SET total_views = total_views + 1, updated_at = CURRENT_TIMESTAMP WHERE id = 1;`).catch(() => {});
+      updateCachedArticleViews(id, result.rows[0].views_count);
+    }
 
     if (result.rows.length === 0) {
       return res.status(404).json({ success: false, message: 'செய்தி கிடைக்கவில்லை' });
@@ -408,6 +511,9 @@ router.post('/:id/view', async (req, res) => {
     // Sync articles table if present
     try {
       await query(`UPDATE articles SET view_count = COALESCE(view_count, 0) + 1 WHERE id = $1;`, [id]);
+    } catch (_) {}
+    updateCachedArticleViews(id, updatedViews);
+    try {
     } catch (_) {}
 
     res.json({
@@ -987,16 +1093,14 @@ export async function warmNewsCache() {
     const countRes = await query(`SELECT COUNT(*) AS total FROM news WHERE status = 'published';`);
     const totalCount = parseInt(countRes.rows[0]?.total || 0, 10);
     const result = await query(`
-      SELECT * FROM news
+      SELECT ${LIST_COLUMNS_SQL} FROM news
       WHERE status = 'published'
       ORDER BY COALESCE(display_order, 0) DESC, created_at DESC
       LIMIT 5000 OFFSET 0;
     `);
-    const formattedNews = result.rows.map(formatNewsRow);
+    const formattedNews = result.rows.map(formatNewsListRow);
     const responsePayload = {
       success: true,
-      news: formattedNews,
-      data: formattedNews,
       articles: formattedNews,
       pagination: {
         page: 1,
@@ -1005,7 +1109,17 @@ export async function warmNewsCache() {
         totalPages: Math.ceil(totalCount / 5000) || 1
       }
     };
-    setCachedNews(responsePayload);
+    setAllLightCachedNews(responsePayload);
+    setCachedNews({
+      success: true,
+      articles: formattedNews.slice(0, 50),
+      pagination: {
+        page: 1,
+        limit: 50,
+        total: totalCount,
+        totalPages: Math.ceil(totalCount / 50) || 1
+      }
+    });
     console.log(`⚡ [NewsCache] News cache successfully warmed with ${formattedNews.length} articles.`);
   } catch (err) {
     console.warn('⚠️ [NewsCache] Notice on warming cache:', err?.message || err);

@@ -186,6 +186,7 @@ export default function Header({
     { id: 'social', label: 'சமூக ஊடகம்', icon: Share2, badge: 'HOT 🚀', badgeColor: 'bg-gradient-to-r from-red-600 to-pink-600 font-bold' },
     { id: 'competitions', label: 'போட்டிகள்', icon: Trophy, badge: 'பரிசு 🏆', badgeColor: 'bg-gradient-to-r from-yellow-500 to-amber-600 text-slate-950 font-black' },
     { id: 'spiritual', label: 'ஆன்மிகம்', icon: Sparkles, badge: 'சிறப்பு', badgeColor: 'bg-amber-500' },
+    { id: 'epaper', label: 'தினசரி நாளிதழ்', icon: FileText, badge: 'தினசரி 📰', badgeColor: 'bg-red-600' },
     { id: 'magazine', label: 'மாத இதழ்', icon: BookOpen, badge: 'புதியது', badgeColor: 'bg-emerald-600' },
     { id: 'blogs', label: 'வலைப்பதிவுகள்', icon: Rss },
     { id: 'india', label: 'தேசியம்', icon: Flag },

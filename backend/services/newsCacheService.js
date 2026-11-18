@@ -7,6 +7,7 @@
  */
 
 let globalNewsCache = null;
+let allNewsLightCache = null;
 const categoryNewsCache = new Map();
 let newsVersion = Date.now();
 const sseClients = new Set();
@@ -25,6 +26,40 @@ export const getCachedNews = () => {
  */
 export const setCachedNews = (data) => {
   globalNewsCache = data;
+};
+
+/**
+ * Retrieve cached lightweight full-catalog feed (for Admin & AppContext <5ms load)
+ */
+export const getAllLightCachedNews = () => {
+  return allNewsLightCache;
+};
+
+export const setAllLightCachedNews = (data) => {
+  allNewsLightCache = data;
+};
+
+/**
+ * Update viewsCount in-place across all in-memory caches in 0ms (NO cache wipe, NO SSE reload storm!)
+ */
+export const updateCachedArticleViews = (articleId, updatedViews) => {
+  const idStr = String(articleId);
+  const patchPayload = (payload) => {
+    if (!payload) return;
+    const arr = payload.articles || payload.news || payload.data;
+    if (!Array.isArray(arr)) return;
+    for (let i = 0; i < arr.length; i++) {
+      if (String(arr[i].id) === idStr) {
+        arr[i].viewsCount = updatedViews;
+        arr[i].views_count = updatedViews;
+        arr[i].view_count = updatedViews;
+        arr[i].views = updatedViews;
+      }
+    }
+  };
+  patchPayload(globalNewsCache);
+  patchPayload(allNewsLightCache);
+  categoryNewsCache.forEach((entry) => patchPayload(entry?.data));
 };
 
 /**
@@ -69,6 +104,7 @@ export const getNewsVersion = () => {
  */
 export const invalidateNewsCache = (action = 'update', article = null) => {
   globalNewsCache = null;
+  allNewsLightCache = null;
   categoryNewsCache.clear();
   newsVersion = Date.now();
 
@@ -142,6 +178,9 @@ export const getSseClientsCount = () => {
 export default {
   getCachedNews,
   setCachedNews,
+  getAllLightCachedNews,
+  setAllLightCachedNews,
+  updateCachedArticleViews,
   getCategoryCachedNews,
   setCategoryCachedNews,
   getNewsVersion,

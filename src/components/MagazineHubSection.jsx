@@ -2,7 +2,19 @@ import React, { useState, useEffect } from 'react';
 import { BookOpen, Download } from 'lucide-react';
 import { api } from '../services/api';
 import MagazineShowcase from './MagazineShowcase';
+import AmazeTimesPageRenderer from './amazetimes/AmazeTimesPageRenderer';
 import { exportPublicationToPdf } from '../utils/pdfExporter';
+
+const TAMIL_MONTHS_MAP = {
+  '01': 'ஜனவரி', '02': 'பிப்ரவரி', '03': 'மார்ச்', '04': 'ஏப்ரல்',
+  '05': 'மே', '06': 'ஜூன்', '07': 'ஜூலை', '08': 'ஆகஸ்ட்',
+  '09': 'செப்டம்பர்', '10': 'அக்டோபர்', '11': 'நவம்பர்', '12': 'டிசம்பர்'
+};
+const ENG_MONTHS_MAP = {
+  '01': 'January', '02': 'February', '03': 'March', '04': 'April',
+  '05': 'May', '06': 'June', '07': 'July', '08': 'August',
+  '09': 'September', '10': 'October', '11': 'November', '12': 'December'
+};
 
 export default function MagazineHubSection({ onOpenEPaper, onOpenMagazine, onToast, readerUser = null, onOpenAuth }) {
   const [magazines, setMagazines] = useState([]);
@@ -93,20 +105,42 @@ export default function MagazineHubSection({ onOpenEPaper, onOpenMagazine, onToa
         {/* Magazine Grid */}
         {filteredMagazines.length > 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4">
-            {filteredMagazines.map(mag => (
+            {filteredMagazines.map(mag => {
+              const moCode = String(mag.month || '11').padStart(2, '0');
+              const yrStr = String(mag.year || '2026');
+              const moTa = TAMIL_MONTHS_MAP[moCode] || 'நவம்பர்';
+              const moEn = ENG_MONTHS_MAP[moCode] || 'November';
+              const safeOwnCover = (mag.coverImage && !String(mag.coverImage).includes('magazine-cover-sample') && !String(mag.coverImage).includes('adutha'))
+                ? mag.coverImage
+                : '/og-image.jpg';
+              const miniCoverPage = {
+                pageNumber: 1,
+                template: 'magazine-front-cover',
+                monthYearLabel: `${moTa}-${yrStr}`,
+                monthTamil: moTa,
+                monthEng: moEn,
+                year: yrStr,
+                volumeNo: mag.volumeNo || '05',
+                issueNo: moCode,
+                priceLabel: mag.priceLabel || 'விலை : இலவசம்',
+                coverHeadline: mag.coverHeadline || mag.title || 'அமேஸ் டைம்ஸ் மாதாந்திரச் சிறப்பிதழ்',
+                coverCategory: mag.coverCategory || 'சிறப்புப் பார்வை',
+                coverImage: safeOwnCover
+              };
+
+              return (
               <div
                 key={mag.id}
                 className="bg-[#0f1a33] rounded-2xl p-2.5 border border-gray-800 hover:border-amber-500/50 transition group flex flex-col justify-between"
               >
-                <div className="aspect-[3/4] rounded-xl overflow-hidden bg-gray-900 mb-2 relative">
-                  <img
-                    src={mag.coverImage || mag.cover_image || mag.cover_image_url || '/Amaze times.jpg'}
-                    alt={mag.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    onError={(e) => { e.currentTarget.src = '/Amaze times.jpg'; }}
-                  />
-                  <span className="absolute top-1.5 right-1.5 bg-red-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded">
-                    {mag.edition || mag.month || mag.issue_month}
+                <div className="w-full aspect-[794/1123] rounded-xl overflow-hidden bg-slate-900 mb-2 relative shadow-md border border-amber-400/30">
+                  <div className="w-full h-full relative overflow-hidden pointer-events-none">
+                    <div style={{ width: '794px', height: '1123px', transform: 'scale(0.22)', transformOrigin: 'top left' }}>
+                      <AmazeTimesPageRenderer page={miniCoverPage} publicationType="magazine" />
+                    </div>
+                  </div>
+                  <span className="absolute top-1.5 right-1.5 bg-red-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded shadow">
+                    {mag.edition || `${moTa} ${yrStr}`}
                   </span>
                 </div>
 
@@ -143,7 +177,8 @@ export default function MagazineHubSection({ onOpenEPaper, onOpenMagazine, onToa
                   </div>
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         ) : (
           <div className="py-8 text-center text-gray-400 space-y-1">

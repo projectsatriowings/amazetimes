@@ -41,11 +41,408 @@ function DropCapParagraph({ text, isFirst = false, className = '' }) {
 }
 
 // =========================================================================
-// DAILY E-NEWSPAPER BROADSHEET RENDERER (D EDITION -> D-1 NEWS + FULL COVERAGE)
+// DAILY E-NEWSPAPER BROADSHEET RENDERER (FULL NEWS STRUCTURE + LARGE IMAGES + HOROSCOPE)
 // =========================================================================
 function DailyNewspaperPage({ page, editionName }) {
   const isFront = page.template === 'newspaper-front';
+  const isHoroscope = page.template === 'newspaper-horoscope';
+  const isKuralKids = page.template === 'newspaper-kural-kids' || page.template === 'newspaper-fun-corner';
+  const isPuzzles = page.template === 'newspaper-puzzles';
   const market = page.marketRates || {};
+
+  // SPLIT PAGE A: RICH THIRUKKURAL (2 FULL KURALS + LIFE LESSONS) + PROVERB/QUOTE + EXPANDED KIDS MORAL STORY + 3 SCIENCE FACTS
+  if (isKuralKids) {
+    const c = page.interactiveCorner || {};
+    const kurals = Array.isArray(c.kurals) && c.kurals.length > 0
+      ? c.kurals
+      : (c.kural ? [c.kural] : []);
+    const proverb = c.proverb || {};
+    const quote = c.quote || {};
+    const story = c.kidsStory || {};
+    const storyParas = Array.isArray(story.paragraphs) && story.paragraphs.length > 0
+      ? story.paragraphs
+      : (story.body ? [story.body] : []);
+    const facts = Array.isArray(c.didYouKnowList) && c.didYouKnowList.length > 0
+      ? c.didYouKnowList
+      : (c.didYouKnow ? [c.didYouKnow] : []);
+
+    return (
+      <div className="w-[794px] h-[1123px] bg-[#fdfbf4] text-[#111827] px-6 py-4 flex flex-col justify-between font-tamil border border-slate-300 shadow-inner overflow-hidden">
+        <div className="flex-1 flex flex-col gap-3 overflow-hidden">
+          {/* Running Newspaper Header */}
+          <div className="flex items-center justify-between border-b-2 border-slate-950 pb-1.5">
+            <div className="flex items-center gap-2">
+              <span className="bg-slate-950 text-white text-xs font-black px-2.5 py-0.5">அமேஸ் டைம்ஸ்</span>
+              <span className="text-sm font-black text-amber-800 uppercase tracking-wide">
+                📜 திருக்குறள், தமிழ் மரபு &amp; சிறுவர் கதை உலகம்
+              </span>
+            </div>
+            <div className="text-[10px] font-bold text-slate-700 flex items-center gap-2">
+              <span>பதிப்பு: {page.editionDateFormatted}</span>
+              <span className="bg-amber-200 px-2 py-0.5 rounded font-black text-slate-950">பக்கம் {page.pageNumber}</span>
+            </div>
+          </div>
+
+          {/* 1. TWO DAILY THIRUKKURALS WITH DETAILED MEANING & LIFE LESSON */}
+          <section className="bg-gradient-to-r from-[#fffbeb] via-[#fef3c7] to-[#fffbeb] border-2 border-amber-700 rounded-lg p-3 shadow-sm space-y-2.5">
+            <div className="flex items-center justify-between border-b border-amber-600/40 pb-1">
+              <span className="bg-amber-800 text-amber-100 text-[10.5px] font-black px-3 py-0.5 rounded-full">
+                📜 இன்றைய திருக்குறள் சிந்தனைகள் (Daily Thirukkural)
+              </span>
+              <span className="text-[10px] font-bold text-amber-950">உலகப் பொதுமறை • திருவள்ளுவர் அருளியது</span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              {kurals.slice(0, 2).map((k, idx) => (
+                <div key={idx} className="bg-white/95 border border-amber-600/50 rounded-md p-2.5 flex flex-col justify-between shadow-sm">
+                  <div>
+                    <div className="flex items-center justify-between text-[9.5px] font-black text-amber-900 mb-1.5 border-b border-amber-200 pb-1">
+                      <span>அதிகாரம்: {k.adhigaram}</span>
+                      <span className="bg-amber-100 px-1.5 py-0.5 rounded">குறள் #{k.number}</span>
+                    </div>
+                    <div className="border-l-4 border-amber-700 bg-amber-50/70 px-2.5 py-1.5 rounded-r mb-2">
+                      <p className="text-[12.8px] font-black text-slate-950 leading-snug">{k.line1}</p>
+                      <p className="text-[12.8px] font-black text-slate-950 leading-snug">{k.line2}</p>
+                    </div>
+                    <p className="text-[10.2px] leading-[1.48] text-slate-900 text-justify mb-1.5">
+                      <b className="text-amber-900">விளக்கம்:</b> {k.meaning}
+                    </p>
+                  </div>
+                  {k.lifeLesson && (
+                    <div className="bg-slate-900 text-amber-200 px-2 py-1 rounded text-[9.3px] font-bold leading-snug">
+                      ✨ வாழ்க்கைப் பாடம்: {k.lifeLesson}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* 2. TAMIL PROVERB + INSPIRATIONAL QUOTE STRIP */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-rose-50/80 border-2 border-rose-700/60 rounded-lg p-2.5">
+              <span className="bg-rose-700 text-white text-[9.5px] font-black px-2 py-0.5 rounded inline-block mb-1">
+                💎 இன்றைய தமிழ் பழமொழி
+              </span>
+              <p className="text-[11.5px] font-black text-rose-950 leading-snug mb-1">{proverb.tamil}</p>
+              <p className="text-[9.8px] text-slate-800 leading-snug">{proverb.explanation}</p>
+            </div>
+            <div className="bg-indigo-50/80 border-2 border-indigo-700/60 rounded-lg p-2.5 flex flex-col justify-between">
+              <div>
+                <span className="bg-indigo-800 text-amber-200 text-[9.5px] font-black px-2 py-0.5 rounded inline-block mb-1">
+                  🌟 இன்றைய பொன்மொழி (Quote of the Day)
+                </span>
+                <p className="text-[11.8px] font-black text-indigo-950 leading-snug italic">{quote.text}</p>
+              </div>
+              <p className="text-right text-[10px] font-black text-indigo-800 mt-1">— {quote.author}</p>
+            </div>
+          </div>
+
+          {/* 3. EXPANDED KIDS MORAL SHORT STORY SECTION */}
+          <section className="bg-gradient-to-br from-emerald-50 via-white to-teal-50 border-2 border-emerald-700 rounded-lg p-3.5 shadow-sm flex-1 flex flex-col justify-between overflow-hidden">
+            <div>
+              <div className="flex items-center justify-between border-b border-emerald-600/30 pb-1 mb-2">
+                <span className="bg-emerald-700 text-white text-[10.5px] font-black px-3 py-0.5 rounded-full">
+                  🧒 சிறுவர் நீதிக் கதை உலகம் (Kids Story Corner)
+                </span>
+                <span className="text-[10px] font-bold text-emerald-800">குழந்தைகள் &amp; குடும்ப வாசிப்புச் சிறப்பு</span>
+              </div>
+              <h3 className="text-[17px] font-black text-emerald-950 mb-2 leading-snug">
+                ★ {story.title}
+              </h3>
+              <div className="columns-2 gap-4 text-[11px] leading-[1.6] text-slate-900 text-justify">
+                {storyParas.map((para, idx) => (
+                  <DropCapParagraph key={idx} text={para} isFirst={idx === 0} />
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-2 space-y-1.5">
+              <div className="bg-emerald-800 text-white px-3 py-1.5 rounded-md text-[10.8px] font-black flex items-center gap-2">
+                <span>🌟 கதையின் நீதி:</span>
+                <span className="font-bold text-amber-200">{story.moral}</span>
+              </div>
+              {story.reflection && (
+                <div className="bg-emerald-100/90 border border-emerald-400 text-emerald-950 px-3 py-1 rounded-md text-[10px] font-bold">
+                  🤔 {story.reflection}
+                </div>
+              )}
+            </div>
+          </section>
+
+          {/* 4. THREE "DID YOU KNOW?" SCIENCE & TAMIL HERITAGE FACTS */}
+          <section className="bg-sky-50 border-2 border-sky-800/60 rounded-lg p-2.5">
+            <div className="text-[10.5px] font-black text-sky-950 mb-1.5 flex items-center justify-between">
+              <span>🔬 உங்களுக்குத் தெரியுமா? — இன்றைய அறிவியல் &amp; தமிழ் மரபு அதிசயங்கள்</span>
+              <span className="text-[9px] text-sky-700">Did You Know?</span>
+            </div>
+            <div className="grid grid-cols-3 gap-2.5">
+              {facts.slice(0, 3).map((fact, idx) => (
+                <div key={idx} className="bg-white border border-sky-300 rounded p-2 text-[9.8px] leading-[1.45] text-slate-900 font-semibold text-justify">
+                  <span className="text-sky-700 font-black mr-1">#{idx + 1}</span>
+                  {fact}
+                </div>
+              ))}
+            </div>
+          </section>
+        </div>
+
+        {/* Footer */}
+        <div className="border-t-2 border-slate-900 pt-1 mt-1.5 flex items-center justify-between text-[9px] font-bold text-slate-700">
+          <span>அமேஸ் டைம்ஸ் | திருக்குறள், தமிழ் மரபு &amp; சிறுவர் உலகம்</span>
+          <span>பதிப்பு: {page.editionDateFormatted}</span>
+          <span>© 2026 Amaze Times • பக்கம் {page.pageNumber}</span>
+        </div>
+      </div>
+    );
+  }
+
+  // SPLIT PAGE B: RICH BRAIN GAMES, 6 TAMIL RIDDLES, 2 MATH/LOGIC PUZZLES, 4 WORD GAMES, 5 GK QUIZ, 3 HEALTH TIPS & COMPLETE ANSWERS
+  if (isPuzzles) {
+    const c = page.interactiveCorner || {};
+    const riddles = Array.isArray(c.riddles) ? c.riddles : [];
+    const puzzles = Array.isArray(c.puzzles) ? c.puzzles : (c.puzzle ? [c.puzzle] : []);
+    const wordGames = Array.isArray(c.wordGames) ? c.wordGames : [];
+    const gkQuiz = Array.isArray(c.gkQuiz) ? c.gkQuiz : (c.quiz ? [c.quiz] : []);
+    const healthTips = Array.isArray(c.healthTips) ? c.healthTips : (c.healthTip ? [c.healthTip] : []);
+
+    return (
+      <div className="w-[794px] h-[1123px] bg-[#fdfbf4] text-[#111827] px-6 py-4 flex flex-col justify-between font-tamil border border-slate-300 shadow-inner overflow-hidden">
+        <div className="flex-1 flex flex-col gap-2.5 overflow-hidden">
+          {/* Running Newspaper Header */}
+          <div className="flex items-center justify-between border-b-2 border-slate-950 pb-1.5">
+            <div className="flex items-center gap-2">
+              <span className="bg-slate-950 text-white text-xs font-black px-2.5 py-0.5">அமேஸ் டைம்ஸ்</span>
+              <span className="text-sm font-black text-indigo-800 uppercase tracking-wide">
+                🧩 மூளைக்கு வேலை — விடுகதைகள், புதிர்கள் &amp; வினாடி வினா
+              </span>
+            </div>
+            <div className="text-[10px] font-bold text-slate-700 flex items-center gap-2">
+              <span>பதிப்பு: {page.editionDateFormatted}</span>
+              <span className="bg-indigo-200 px-2 py-0.5 rounded font-black text-slate-950">பக்கம் {page.pageNumber}</span>
+            </div>
+          </div>
+
+          {/* 1. SIX TAMIL RIDDLES (2-Column Balanced Grid) */}
+          <section className="bg-white border-2 border-indigo-900/75 rounded-lg p-3 shadow-sm">
+            <div className="bg-indigo-900 text-amber-300 text-[11px] font-black px-3 py-1 rounded mb-2 flex items-center justify-between">
+              <span>🎭 இன்றைய 6 சுவாரசியமான தமிழ் விடுகதைகள் (Tamil Riddles)</span>
+              <span className="text-[9.5px] text-indigo-100">விடைகள் பக்கத்தின் கீழே!</span>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              {riddles.slice(0, 6).map((r, idx) => (
+                <div key={idx} className="p-2 bg-indigo-50/80 border-l-4 border-indigo-700 rounded-r text-[10.6px] font-bold text-slate-950 leading-snug">
+                  {r.q}
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* 2. TWO MATH & LOGIC BRAIN PUZZLES + FOUR WORD CLUES */}
+          <div className="grid grid-cols-12 gap-3">
+            {/* Left 7 Cols: 2 Math & Logic Puzzles */}
+            <div className="col-span-7 bg-white border-2 border-rose-800/75 rounded-lg p-3 flex flex-col gap-2">
+              <div className="bg-rose-700 text-white text-[10.5px] font-black px-2.5 py-0.5 rounded inline-block self-start">
+                🔢 கணித &amp; தர்க்கப் புதிர்கள் (Math &amp; Logic Teasers)
+              </div>
+              {puzzles.slice(0, 2).map((pz, idx) => (
+                <div key={idx} className="bg-rose-50/70 border border-rose-200 rounded p-2">
+                  <span className="text-[9.5px] font-black text-rose-800 block mb-0.5">புதிர் #{idx + 1}: {pz.title}</span>
+                  <p className="text-[10.6px] font-extrabold text-slate-950 leading-snug">{pz.question}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Right 5 Cols: 4 Tamil Word Games */}
+            <div className="col-span-5 bg-white border-2 border-amber-700/75 rounded-lg p-3 flex flex-col justify-between">
+              <div>
+                <div className="bg-amber-700 text-white text-[10.5px] font-black px-2.5 py-0.5 rounded inline-block mb-2">
+                  🔤 தமிழ் வார்த்தை விளையாட்டு
+                </div>
+                <div className="space-y-1.5">
+                  {wordGames.slice(0, 4).map((wg, idx) => (
+                    <div key={idx} className="bg-amber-50 border border-amber-300 rounded px-2 py-1.5 text-[10.2px] font-bold text-slate-950 leading-snug">
+                      {wg.clue}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 3. FIVE DAILY GK QUIZ QUESTIONS (TNPSC & School Students Special!) */}
+          <section className="bg-white border-2 border-purple-800/75 rounded-lg p-3 shadow-sm flex-1 flex flex-col justify-between overflow-hidden">
+            <div>
+              <div className="bg-purple-800 text-amber-200 text-[10.8px] font-black px-3 py-1 rounded mb-2 flex items-center justify-between">
+                <span>🎯 இன்றைய பொது அறிவு வினாடி வினா (Daily GK &amp; TNPSC Quiz — 5 கேள்விகள்)</span>
+                <span className="text-[9px] text-purple-100">மாணவர் &amp; போட்டித் தேர்வுச் சிறப்பு</span>
+              </div>
+              <div className="space-y-1.5">
+                {gkQuiz.slice(0, 5).map((q, idx) => (
+                  <div key={idx} className="bg-purple-50/70 border-l-3 border-purple-700 px-2.5 py-1.5 rounded-r text-[10.5px] font-extrabold text-slate-950 leading-snug">
+                    {q.q || q.question}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* 4. THREE DAILY HEALTH & LIFESTYLE TIPS */}
+            <div className="mt-2 pt-2 border-t border-lime-300 bg-lime-50 rounded-md p-2 border border-lime-500/50">
+              <span className="text-[10px] font-black text-lime-900 block mb-1">
+                🌿 இன்றைய ஆரோக்கியம் &amp; வாழ்வியல் குறிப்புகள் (Daily Health Tips)
+              </span>
+              <div className="grid grid-cols-3 gap-2">
+                {healthTips.slice(0, 3).map((tip, idx) => (
+                  <div key={idx} className="bg-white border border-lime-300 rounded p-1.5 text-[9.4px] leading-snug text-slate-800 font-semibold">
+                    • {tip}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          {/* 5. COMPLETE ANSWERS KEY BOX AT BOTTOM */}
+          <div className="bg-slate-900 text-white rounded-lg px-3.5 py-2 border-2 border-amber-400">
+            <div className="text-[9.5px] font-black text-amber-300 uppercase tracking-wider mb-1">
+              ✅ இன்றைய முழுமையான விடைகள் பெட்டி (Complete Answers Key):
+            </div>
+            <div className="space-y-0.5 text-[9px] text-slate-100 leading-snug">
+              <div>
+                <b className="text-amber-300">விடுகதைகள்:</b>{' '}
+                {riddles.map((r, i) => `(${i + 1}) ${r.a}`).join(' • ')}
+              </div>
+              <div>
+                <b className="text-rose-300">புதிர்கள்:</b>{' '}
+                {puzzles.map((p, i) => `(#${i + 1}) ${p.answer}`).join(' | ')}{' '}
+                <b className="text-yellow-300 ml-1">வார்த்தை:</b>{' '}
+                {wordGames.map((w, i) => `(${i + 1}) ${w.answer}`).join(', ')}
+              </div>
+              <div>
+                <b className="text-emerald-300">பொது அறிவு வினாடி வினா:</b>{' '}
+                {gkQuiz.map((q, i) => `(${i + 1}) ${q.a || q.answer}`).join(' • ')}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="border-t-2 border-slate-900 pt-1 mt-1.5 flex items-center justify-between text-[9px] font-bold text-slate-700">
+          <span>அமேஸ் டைம்ஸ் | மூளைக்கு வேலை — புதிர்கள் &amp; பொது அறிவு</span>
+          <span>பதிப்பு: {page.editionDateFormatted}</span>
+          <span>© 2026 Amaze Times • பக்கம் {page.pageNumber}</span>
+        </div>
+      </div>
+    );
+  }
+
+  // DEDICATED DAILY HOROSCOPE & PANCHANGAM PAGE (இன்றைய ராசிபலன் & பஞ்சாங்கம்)
+  if (isHoroscope) {
+    const signs = Array.isArray(page.horoscopeSigns) ? page.horoscopeSigns : [];
+    const p = page.panchangam || {};
+
+    return (
+      <div className="w-[794px] h-[1123px] bg-[#fdfbf4] text-[#111827] px-6 py-4 flex flex-col justify-between font-tamil border border-slate-300 shadow-inner overflow-hidden">
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {/* Running Newspaper Header */}
+          <div className="flex items-center justify-between border-b-2 border-slate-950 pb-1.5 mb-2">
+            <div className="flex items-center gap-2">
+              <span className="bg-slate-950 text-white text-xs font-black px-2.5 py-0.5">அமேஸ் டைம்ஸ்</span>
+              <span className="text-sm font-black text-amber-800 uppercase tracking-wide">
+                ✨ இன்றைய ராசிபலன் &amp; ஆன்மிகப் பஞ்சாங்கம்
+              </span>
+            </div>
+            <div className="text-[10px] font-bold text-slate-700 flex items-center gap-2">
+              <span>பதிப்பு: {page.editionDateFormatted}</span>
+              <span className="bg-amber-200 px-2 py-0.5 rounded font-black text-slate-950">பக்கம் {page.pageNumber}</span>
+            </div>
+          </div>
+
+          {/* Traditional Tamil Almanac Banner */}
+          <div className="bg-gradient-to-r from-[#7c1d1d] via-[#991b1b] to-[#7c1d1d] text-white px-4 py-2.5 rounded-md border-2 border-amber-500/80 mb-2.5 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-[20px] font-black tracking-wide leading-none text-amber-300">
+                  தினசரி 12 ராசி பலன்கள் (Daily Horoscope)
+                </h2>
+                <p className="text-[10px] text-amber-100 font-bold mt-1">
+                  {p.tamilDate || 'இன்றைய சுப தினப் பஞ்சாங்கம் & நட்சத்திரப் பலன்கள்'} • தேதி: {page.editionDateFormatted}
+                </p>
+              </div>
+              <div className="text-right text-[9.5px] font-bold bg-black/25 px-2.5 py-1 rounded border border-amber-400/40">
+                <div>சூலம்: {p.soolam || 'வடக்கு • பரிகாரம்: பால்'}</div>
+              </div>
+            </div>
+
+            {/* Panchangam Timings Strip */}
+            <div className="grid grid-cols-4 gap-1.5 mt-2 pt-2 border-t border-amber-400/35 text-[9.5px] text-center">
+              <div className="bg-black/20 rounded px-1.5 py-1">
+                <span className="block text-amber-300 text-[8.5px] font-black">நல்ல நேரம்</span>
+                <b className="text-white">{p.nallaNeram || 'காலை 09:30 – 10:30'}</b>
+              </div>
+              <div className="bg-black/20 rounded px-1.5 py-1">
+                <span className="block text-amber-300 text-[8.5px] font-black">ராகு காலம்</span>
+                <b className="text-white">{p.rahuKalam || 'மதியம் 12:00 – 01:30'}</b>
+              </div>
+              <div className="bg-black/20 rounded px-1.5 py-1">
+                <span className="block text-amber-300 text-[8.5px] font-black">எமகண்டம்</span>
+                <b className="text-white">{p.yemagandam || 'காலை 07:30 – 09:00'}</b>
+              </div>
+              <div className="bg-black/20 rounded px-1.5 py-1">
+                <span className="block text-amber-300 text-[8.5px] font-black">குளிகை</span>
+                <b className="text-white">{p.kuligai || 'காலை 10:30 – 12:00'}</b>
+              </div>
+            </div>
+          </div>
+
+          {/* 12 Zodiac Signs Grid (3 columns x 4 rows) */}
+          <div className="grid grid-cols-3 gap-2.5 flex-1 overflow-hidden">
+            {signs.slice(0, 12).map((s, idx) => (
+              <div
+                key={s.id || s.sign_code || idx}
+                className="bg-white border-2 border-amber-900/35 rounded-md p-2.5 flex flex-col justify-between shadow-sm overflow-hidden"
+              >
+                <div>
+                  <div className="flex items-center justify-between border-b border-amber-200 pb-1 mb-1.5">
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-6 h-6 rounded-full bg-red-800 text-amber-300 flex items-center justify-center text-sm font-black shadow-sm">
+                        {s.glyph || '★'}
+                      </span>
+                      <div>
+                        <h3 className="text-[13px] font-black text-slate-950 leading-none">{s.name_ta}</h3>
+                        <span className="text-[8.5px] font-bold text-slate-500 uppercase">{s.name_en}</span>
+                      </div>
+                    </div>
+                    {s.ruling_planet && (
+                      <span className="bg-amber-100 text-amber-950 text-[8.5px] font-black px-1.5 py-0.5 rounded border border-amber-300">
+                        {s.ruling_planet}
+                      </span>
+                    )}
+                  </div>
+
+                  <p className="text-[10.2px] leading-[1.46] text-slate-900 text-justify font-medium line-clamp-5">
+                    {s.prediction_text}
+                  </p>
+                </div>
+
+                <div className="mt-1.5 pt-1 border-t border-slate-200 flex items-center justify-between text-[8.8px] font-bold text-slate-700 bg-amber-50/70 -mx-2.5 -mb-2.5 px-2.5 py-1">
+                  <span>🎨 நிறம்: <b className="text-red-800">{s.lucky_color || 'மஞ்சள்'}</b></span>
+                  <span>🔢 எண்: <b className="text-blue-900">{s.lucky_number || '7'}</b></span>
+                  <span>🧭 {s.lucky_direction || 'கிழக்கு'}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="border-t-2 border-slate-900 pt-1 mt-2 flex items-center justify-between text-[9px] font-bold text-slate-700">
+          <span>அமேஸ் டைம்ஸ் | தினசரி ராசிபலன் &amp; ஆன்மிகப் பகுதி</span>
+          <span>பதிப்பு: {page.editionDateFormatted}</span>
+          <span>© 2026 Amaze Times • பக்கம் {page.pageNumber}</span>
+        </div>
+      </div>
+    );
+  }
 
   if (isFront) {
     const lead = page.leadArticle;
@@ -62,17 +459,17 @@ function DailyNewspaperPage({ page, editionName }) {
           </div>
 
           {/* Monumental Broadsheet Title */}
-          <div className="py-2 text-center border-b-2 border-slate-950 relative">
+          <div className="py-1.5 text-center border-b-2 border-slate-950 relative">
             <div className="flex items-center justify-center gap-3">
-              <div className="w-9 h-9 bg-red-600 text-white font-black text-xl flex items-center justify-center rounded-md border-2 border-slate-950 shadow">
+              <div className="w-8 h-8 bg-red-600 text-white font-black text-lg flex items-center justify-center rounded-md border-2 border-slate-950 shadow">
                 அ
               </div>
-              <h1 className="text-[34px] font-black tracking-tight text-slate-950 font-serif leading-none">
-                அமேஸ் டைம்ஸ் <span className="text-red-600 text-xl font-sans">| AMAZE TIMES</span>
+              <h1 className="text-[32px] font-black tracking-tight text-slate-950 font-serif leading-none">
+                அமேஸ் டைம்ஸ் <span className="text-red-600 text-lg font-sans">| AMAZE TIMES</span>
               </h1>
             </div>
-            <p className="text-[10px] font-bold text-slate-700 mt-1 tracking-wide">
-              உண்மையின் தீர்க்க குரல் • தமிழ்நாடு, அரசியல், தேசியம், வணிகம், கல்வி, விளையாட்டு &amp; உலகச் செய்திகள்
+            <p className="text-[9.5px] font-bold text-slate-700 mt-0.5 tracking-wide">
+              உண்மையின் தீர்க்க குரல் • தமிழ்நாடு, அரசியல், தேசியம், வணிகம், கல்வி, விளையாட்டு, சினிமா &amp; தினசரி ராசிபலன்
             </p>
           </div>
 
@@ -80,15 +477,14 @@ function DailyNewspaperPage({ page, editionName }) {
           <div className="flex items-center justify-between text-[10px] font-black border-b-2 border-slate-950 py-1 px-2 bg-slate-100">
             <span>📅 பதிப்புத் தேதி: {page.editionDateFormatted}</span>
             <span className="text-red-700">
-              📰 செய்தி நாள் (D-1): {page.sourceNewsDateFormatted}
-              {page.isFallbackUsed && page.exactSourceCount === 0 ? ' (+ அனைத்துப் பிரிவு சமீபத்திய தொகுப்பு)' : ''}
+              📰 செய்தி நாள்: {page.sourceNewsDateFormatted}
             </span>
             <span>பக்கம் {page.pageNumber} • இலவச டிஜிட்டல் பதிப்பு</span>
           </div>
 
           {/* Lead Content Grid (12 Cols) */}
           <div className="grid grid-cols-12 gap-3.5 pt-2.5 flex-1 overflow-hidden">
-            {/* Left/Main 8 Cols */}
+            {/* Left/Main 8 Cols: Full Lead Story with LARGE zero-crop photo */}
             <div className="col-span-8 pr-3 border-r border-slate-400 flex flex-col overflow-hidden">
               {lead ? (
                 <>
@@ -104,31 +500,26 @@ function DailyNewspaperPage({ page, editionName }) {
                     )}
                   </div>
 
-                  <h2 className="text-[21px] font-black leading-[1.2] text-slate-950 mb-1.5">
+                  <h2 className="text-[20px] font-black leading-[1.2] text-slate-950 mb-2">
                     {lead.title}
                   </h2>
 
-                  <div className="grid grid-cols-12 gap-2.5 mb-2">
-                    <div className="col-span-7 border border-slate-800 p-0.5 bg-white">
-                      <img
-                        src={getSafeRenderImageUrl(lead.image)}
-                        alt={lead.title}
-                        className="w-full h-44 object-cover block"
-                        onError={(e) => { e.target.src = '/Amaze times.jpg'; }}
-                      />
-                    </div>
-                    <div className="col-span-5 flex flex-col justify-between bg-slate-50 p-2 border border-slate-300">
-                      <p className="text-[10.5px] font-bold leading-[1.45] text-slate-900 text-justify">
-                        {lead.summary}
-                      </p>
-                      <div className="text-[9px] font-bold text-slate-600 border-t border-slate-300 pt-1 mt-1">
-                        நிருபர்: {lead.author} • {lead.publishedDateIst}
-                      </div>
+                  {/* LARGE FULL-WIDTH ZERO-CROP LEAD PHOTO */}
+                  <div className="border-2 border-slate-900 p-1 bg-slate-100 mb-2">
+                    <img
+                      src={getSafeRenderImageUrl(lead.image)}
+                      alt={lead.title}
+                      className="w-full h-[225px] object-contain bg-slate-100 block mx-auto"
+                      onError={(e) => { e.target.src = '/Amaze times.jpg'; }}
+                    />
+                    <div className="bg-slate-900 text-white text-[9px] font-bold px-2 py-0.5 mt-0.5 flex items-center justify-between">
+                      <span>நிருபர்: {lead.author}</span>
+                      <span>{lead.publishedDateIst}</span>
                     </div>
                   </div>
 
-                  <div className="columns-2 gap-3 text-[10.2px] leading-[1.52] text-slate-900 flex-1 overflow-hidden">
-                    {(lead.paragraphs || []).slice(0, 4).map((p, idx) => (
+                  <div className="columns-2 gap-3.5 text-[10.5px] leading-[1.55] text-slate-900 flex-1 overflow-hidden">
+                    {(lead.paragraphs?.length ? lead.paragraphs : [lead.summary]).slice(0, 4).map((p, idx) => (
                       <DropCapParagraph key={idx} text={p} isFirst={idx === 0} />
                     ))}
                   </div>
@@ -138,28 +529,29 @@ function DailyNewspaperPage({ page, editionName }) {
               )}
             </div>
 
-            {/* Right Sidebar 4 Cols: Market Box + 5 Briefs */}
+            {/* Right Sidebar 4 Cols: Market Box + Briefs */}
             <div className="col-span-4 flex flex-col gap-2 overflow-hidden">
               <div className="border-2 border-slate-900 bg-amber-50/70 p-2">
-                <div className="bg-slate-950 text-amber-300 text-center text-[9.5px] font-black py-0.5 mb-1.5 uppercase tracking-wide">
-                  சந்தை &amp; அத்தியாவசிய நிலவரம்
+                <div className="bg-slate-950 text-amber-300 text-center text-[9.5px] font-black py-0.5 mb-1 uppercase tracking-wide flex items-center justify-between px-2">
+                  <span>சந்தை &amp; விலை நிலவரம்</span>
+                  <span className="text-[8px] text-emerald-300">{market.updatedDate || page.editionDateFormatted}</span>
                 </div>
                 <div className="grid grid-cols-2 gap-1 text-[9.5px]">
                   <div className="bg-white border border-slate-300 p-1">
                     <span className="text-slate-500 block text-[8px]">தங்கம் 22K (1கி)</span>
-                    <b className="text-slate-950">{market.gold22k || '₹7,250'}</b>
+                    <b className="text-slate-950">{market.gold22k || '₹13,135 / கி'}</b>
                   </div>
                   <div className="bg-white border border-slate-300 p-1">
                     <span className="text-slate-500 block text-[8px]">வெள்ளி (1கி)</span>
-                    <b className="text-slate-950">{market.silver || '₹102.00'}</b>
+                    <b className="text-slate-950">{market.silver || '₹105 / கி'}</b>
                   </div>
                   <div className="bg-white border border-slate-300 p-1">
                     <span className="text-slate-500 block text-[8px]">பெட்ரோல்</span>
-                    <b className="text-slate-950">{market.petrol || '₹100.75'}</b>
+                    <b className="text-slate-950">{market.petrol || '₹100.80 / லி'}</b>
                   </div>
                   <div className="bg-white border border-slate-300 p-1">
                     <span className="text-slate-500 block text-[8px]">டீசல்</span>
-                    <b className="text-slate-950">{market.diesel || '₹92.34'}</b>
+                    <b className="text-slate-950">{market.diesel || '₹92.39 / லி'}</b>
                   </div>
                 </div>
               </div>
@@ -169,15 +561,15 @@ function DailyNewspaperPage({ page, editionName }) {
                   <span className="text-[10.5px] font-black text-red-700">முக்கியச் செய்தித் துளிகள்</span>
                   <span className="text-[8.5px] font-bold text-slate-500">உடனுக்குடன்</span>
                 </div>
-                <div className="space-y-1.5 divide-y divide-slate-200 overflow-hidden">
+                <div className="space-y-2 divide-y divide-slate-200 overflow-hidden">
                   {briefs.slice(0, 5).map((b, i) => (
                     <div key={b.id || i} className={i > 0 ? 'pt-1.5' : ''}>
                       <div className="flex items-center justify-between">
-                        <span className="text-[8px] font-black text-blue-800 uppercase">{b.category}</span>
+                        <span className="text-[8.5px] font-black text-blue-800 uppercase">{b.category}</span>
                         <span className="text-[8px] text-slate-400">{b.publishedDateIst}</span>
                       </div>
-                      <h4 className="text-[10.5px] font-black leading-tight text-slate-950 line-clamp-2">{b.title}</h4>
-                      <p className="text-[9px] leading-snug text-slate-700 line-clamp-2 text-justify">{b.summary}</p>
+                      <h4 className="text-[10.8px] font-black leading-snug text-slate-950 line-clamp-2">{b.title}</h4>
+                      <p className="text-[9.5px] leading-snug text-slate-700 line-clamp-2 text-justify">{b.summary}</p>
                     </div>
                   ))}
                 </div>
@@ -185,31 +577,33 @@ function DailyNewspaperPage({ page, editionName }) {
             </div>
           </div>
 
-          {/* Bottom Secondary 3-Column News Strip */}
+          {/* Bottom Secondary 2-Column FULL News Strip with Bigger Images */}
           {secondary.length > 0 && (
-            <div className="border-t-2 border-slate-950 mt-2 pt-2 grid grid-cols-3 gap-3 divide-x divide-slate-400">
-              {secondary.slice(0, 3).map((art, i) => (
-                <div key={art.id || i} className={i > 0 ? 'pl-3' : ''}>
+            <div className="border-t-2 border-slate-950 mt-2.5 pt-2.5 grid grid-cols-2 gap-4 divide-x divide-slate-400">
+              {secondary.slice(0, 2).map((art, i) => (
+                <div key={art.id || i} className={i > 0 ? 'pl-4' : ''}>
                   <div className="flex items-center justify-between mb-1">
-                    <span className="bg-slate-900 text-amber-300 text-[8.5px] font-black px-1.5 py-0.5">
+                    <span className="bg-slate-900 text-amber-300 text-[8.5px] font-black px-2 py-0.5">
                       {art.category}
                     </span>
                     <span className="text-[8.5px] text-slate-500 font-bold">{art.publishedDateIst}</span>
                   </div>
-                  <div className="flex gap-2 mb-1">
-                    <img
-                      src={getSafeRenderImageUrl(art.image)}
-                      alt={art.title}
-                      className="w-20 h-16 object-cover border border-slate-400 flex-shrink-0"
-                      onError={(e) => { e.target.src = '/Amaze times.jpg'; }}
-                    />
-                    <h3 className="text-[11.5px] font-black leading-tight text-slate-950 line-clamp-3">
-                      {art.title}
-                    </h3>
+                  <h3 className="text-[13px] font-black leading-snug text-slate-950 mb-1.5 line-clamp-2">
+                    {art.title}
+                  </h3>
+                  <div className="grid grid-cols-12 gap-2.5 items-start">
+                    <div className="col-span-5 border border-slate-500 p-0.5 bg-slate-100">
+                      <img
+                        src={getSafeRenderImageUrl(art.image)}
+                        alt={art.title}
+                        className="w-full h-[118px] object-contain bg-slate-100 block"
+                        onError={(e) => { e.target.src = '/Amaze times.jpg'; }}
+                      />
+                    </div>
+                    <p className="col-span-7 text-[10px] leading-[1.45] text-slate-800 text-justify line-clamp-6">
+                      {art.summary || (art.paragraphs || [])[0] || ''}
+                    </p>
                   </div>
-                  <p className="text-[9.5px] leading-[1.38] text-slate-800 text-justify line-clamp-3">
-                    {art.summary}
-                  </p>
                 </div>
               ))}
             </div>
@@ -219,23 +613,22 @@ function DailyNewspaperPage({ page, editionName }) {
         {/* Footer */}
         <div className="border-t-2 border-slate-900 pt-1 mt-1.5 flex items-center justify-between text-[9px] font-bold text-slate-700">
           <span>அமேஸ் டைம்ஸ் (Amaze Times Daily E-Paper)</span>
-          <span>பதிப்பு: {page.editionDateFormatted} (செய்தி நாள்: {page.sourceNewsDateFormatted})</span>
+          <span>பதிப்பு: {page.editionDateFormatted} • இன்றைய ராசிபலன் உள்ளே!</span>
           <span>© 2026 Amaze Times • பக்கம் {page.pageNumber}</span>
         </div>
       </div>
     );
   }
 
-  // INNER BROADSHEET PAGES: Rich Multi-Column 6-to-7 Story Section Pages!
-  const lead = page.leadArticle;
-  const middlePair = (page.articles || []).slice(1, 3);
-  const bottomDigest = (page.articles || []).slice(3, 7);
+  // INNER BROADSHEET PAGES: AUTHENTIC FULL-NEWS STRUCTURE (2 Full Stories Per Page + Large Crisp Zero-Crop Images!)
+  const storyOne = page.leadArticle || (page.articles || [])[0];
+  const storyTwo = page.secondaryArticle || (page.articles || [])[1] || null;
 
   return (
-    <div className="w-[794px] h-[1123px] bg-[#fdfcf7] text-[#111827] px-6 py-4 flex flex-col justify-between font-tamil border border-slate-300 shadow-inner overflow-hidden">
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Running Newspaper Header */}
-        <div className="flex items-center justify-between border-b-2 border-slate-950 pb-1.5 mb-2.5">
+    <div className="w-[794px] h-[1123px] bg-[#fdfcf7] text-[#111827] px-7 py-4 flex flex-col justify-between font-tamil border border-slate-300 shadow-inner overflow-hidden">
+      <div className="flex-1 flex flex-col gap-3.5 overflow-hidden">
+        {/* Running Newspaper Broadsheet Header */}
+        <div className="flex items-center justify-between border-b-2 border-slate-950 pb-1.5">
           <div className="flex items-center gap-2">
             <span className="bg-slate-950 text-white text-xs font-black px-2.5 py-0.5">அமேஸ் டைம்ஸ்</span>
             <span className="text-sm font-black text-red-700 uppercase tracking-wide">{page.section}</span>
@@ -246,101 +639,120 @@ function DailyNewspaperPage({ page, editionName }) {
           </div>
         </div>
 
-        {/* 1. Top Section Lead Story */}
-        {lead && (
-          <div className="border-b-2 border-slate-800 pb-2.5 mb-2.5">
-            <div className="flex items-center gap-2 mb-0.5">
-              <span className="bg-red-700 text-white text-[8.5px] font-black px-1.5 py-0.5 uppercase">
-                {lead.category}
+        {/* STORY 1: TOP FULL BROADSHEET NEWS ARTICLE WITH LARGE CRISP PHOTO */}
+        {storyOne && (
+          <article className={`flex flex-col overflow-hidden ${storyTwo ? 'border-b-2 border-slate-900 pb-3' : 'flex-1'}`}>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="bg-red-700 text-white text-[9px] font-black px-2 py-0.5 uppercase">
+                {storyOne.category}
               </span>
-              {lead.district && <span className="text-[9.5px] font-bold text-slate-600">• {lead.district}</span>}
-              <span className="text-[9px] text-slate-500 ml-auto font-bold">{lead.publishedDateIst}</span>
+              {storyOne.district && <span className="text-[9.5px] font-bold text-slate-600">📍 {storyOne.district}</span>}
+              <span className="text-[9.5px] font-bold text-slate-600 ml-auto">
+                நிருபர்: {storyOne.author} • {storyOne.publishedDateIst}
+              </span>
             </div>
-            <h2 className="text-[18px] font-black leading-tight text-slate-950 mb-1.5">
-              {lead.title}
+
+            <h2 className="text-[19px] font-black leading-[1.22] text-slate-950 mb-2">
+              {storyOne.title}
             </h2>
-            <div className="grid grid-cols-12 gap-3.5">
-              <div className="col-span-5">
-                <div className="border border-slate-800 p-0.5 bg-white">
+
+            <div className="grid grid-cols-12 gap-4 items-start">
+              {/* Large Prominent Zero-Crop Editorial Photo (6 Cols!) */}
+              <div className="col-span-6">
+                <div className="border-2 border-slate-900 p-1 bg-slate-100 shadow-sm">
                   <img
-                    src={getSafeRenderImageUrl(lead.image)}
-                    alt={lead.title}
-                    className="w-full h-36 object-cover block"
+                    src={getSafeRenderImageUrl(storyOne.image)}
+                    alt={storyOne.title}
+                    className={`w-full ${storyTwo ? 'h-[215px]' : 'h-[320px]'} object-contain bg-slate-100 block mx-auto`}
                     onError={(e) => { e.target.src = '/Amaze times.jpg'; }}
                   />
                 </div>
-                <p className="text-[8.5px] font-bold text-slate-600 mt-0.5">
-                  நிருபர்: {lead.author}
-                </p>
+                {storyOne.subtitle && (
+                  <p className="text-[9.5px] font-bold text-slate-700 bg-slate-100 border-x border-b border-slate-400 px-2 py-1 leading-snug">
+                    {storyOne.subtitle}
+                  </p>
+                )}
               </div>
-              <div className="col-span-7 text-[10.5px] leading-[1.52] text-slate-900">
-                <p className="font-bold text-slate-950 mb-1 text-justify">{lead.summary}</p>
-                {(lead.paragraphs || []).slice(0, 2).map((p, idx) => (
+
+              {/* Lead Paragraphs beside photo */}
+              <div className="col-span-6 text-[11px] leading-[1.58] text-slate-900 overflow-hidden">
+                {storyOne.summary && (
+                  <p className="font-bold text-slate-950 bg-amber-50/70 border-l-3 border-red-700 pl-2 py-1 mb-2 text-[10.8px] leading-snug text-justify">
+                    {storyOne.summary}
+                  </p>
+                )}
+                {(storyOne.paragraphs || []).slice(0, 2).map((p, idx) => (
                   <DropCapParagraph key={idx} text={p} isFirst={idx === 0} />
                 ))}
               </div>
             </div>
-          </div>
+
+            {/* Continuation Full Broadsheet 2-Column Body */}
+            {(storyOne.paragraphs || []).length > 2 && (
+              <div className="columns-2 gap-4 text-[10.8px] leading-[1.56] text-slate-900 mt-2 overflow-hidden">
+                {(storyOne.paragraphs || []).slice(2, storyTwo ? 5 : 10).map((p, idx) => (
+                  <p key={idx} className="mb-1.5 text-justify">{p}</p>
+                ))}
+              </div>
+            )}
+          </article>
         )}
 
-        {/* 2. Middle 2-Column Rich Stories */}
-        {middlePair.length > 0 && (
-          <div className="grid grid-cols-2 gap-4 pb-2.5 mb-2.5 border-b border-slate-400">
-            {middlePair.map((art, i) => (
-              <div key={art.id || i} className={`bg-white border border-slate-300 p-2.5 flex flex-col overflow-hidden ${i === 1 ? '' : ''}`}>
-                <div className="flex items-center justify-between mb-1 border-b border-slate-200 pb-0.5">
-                  <span className="bg-slate-900 text-amber-300 text-[8px] font-black px-1.5 py-0.5">{art.category}</span>
-                  <span className="text-[8.5px] font-bold text-slate-500">{art.publishedDateIst}</span>
-                </div>
-                <h3 className="text-[13px] font-black leading-snug text-slate-950 mb-1.5 line-clamp-2">{art.title}</h3>
-                <div className="flex gap-2 mb-1.5">
+        {/* STORY 2: BOTTOM FULL BROADSHEET NEWS ARTICLE WITH LARGE CRISP PHOTO */}
+        {storyTwo && (
+          <article className="flex-1 flex flex-col overflow-hidden">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="bg-slate-900 text-amber-300 text-[9px] font-black px-2 py-0.5 uppercase">
+                {storyTwo.category}
+              </span>
+              {storyTwo.district && <span className="text-[9.5px] font-bold text-slate-600">📍 {storyTwo.district}</span>}
+              <span className="text-[9.5px] font-bold text-slate-600 ml-auto">
+                நிருபர்: {storyTwo.author} • {storyTwo.publishedDateIst}
+              </span>
+            </div>
+
+            <h3 className="text-[17.5px] font-black leading-[1.24] text-slate-950 mb-2">
+              {storyTwo.title}
+            </h3>
+
+            <div className="grid grid-cols-12 gap-4 items-start flex-1 overflow-hidden">
+              {/* Full Text Left 6 Cols */}
+              <div className="col-span-6 text-[10.8px] leading-[1.58] text-slate-900 overflow-hidden">
+                {(storyTwo.paragraphs?.length ? storyTwo.paragraphs : [storyTwo.summary]).slice(0, 3).map((p, idx) => (
+                  <DropCapParagraph key={idx} text={p} isFirst={idx === 0} />
+                ))}
+              </div>
+
+              {/* Large Prominent Zero-Crop Editorial Photo Right 6 Cols */}
+              <div className="col-span-6 flex flex-col gap-2 overflow-hidden">
+                <div className="border-2 border-slate-900 p-1 bg-slate-100 shadow-sm">
                   <img
-                    src={getSafeRenderImageUrl(art.image)}
-                    alt={art.title}
-                    className="w-24 h-18 object-cover border border-slate-400 flex-shrink-0"
+                    src={getSafeRenderImageUrl(storyTwo.image)}
+                    alt={storyTwo.title}
+                    className="w-full h-[205px] object-contain bg-slate-100 block mx-auto"
                     onError={(e) => { e.target.src = '/Amaze times.jpg'; }}
                   />
-                  <p className="text-[10px] font-bold leading-snug text-slate-800 text-justify line-clamp-4">{art.summary}</p>
                 </div>
-                <p className="text-[9.8px] leading-[1.45] text-slate-700 text-justify line-clamp-3">
-                  {(art.paragraphs || [])[0] || ''}
-                </p>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* 3. Bottom Multi-Column News Digest Strip (up to 4 extra stories per page!) */}
-        {bottomDigest.length > 0 && (
-          <div className={`grid gap-3 flex-1 overflow-hidden divide-x divide-slate-300 ${bottomDigest.length >= 3 ? 'grid-cols-4' : 'grid-cols-2'}`}>
-            {bottomDigest.map((art, i) => (
-              <div key={art.id || i} className={`flex flex-col overflow-hidden ${i > 0 ? 'pl-2.5' : ''}`}>
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-[8px] font-black text-red-700 uppercase">{art.category}</span>
-                  <span className="text-[8px] text-slate-500">{art.publishedDateIst}</span>
+                <div className="text-[10.6px] leading-[1.55] text-slate-900 text-justify overflow-hidden">
+                  {(storyTwo.paragraphs || []).slice(3, 5).map((p, idx) => (
+                    <p key={idx} className="mb-1.5">{p}</p>
+                  ))}
+                  {!(storyTwo.paragraphs || [])[3] && storyTwo.summary && (
+                    <p className="font-bold text-slate-800 bg-slate-100 border-l-3 border-slate-900 pl-2 py-1 text-[10.2px]">
+                      {storyTwo.summary}
+                    </p>
+                  )}
                 </div>
-                <img
-                  src={getSafeRenderImageUrl(art.image)}
-                  alt={art.title}
-                  className="w-full h-20 object-cover border border-slate-300 mb-1"
-                  onError={(e) => { e.target.src = '/Amaze times.jpg'; }}
-                />
-                <h4 className="text-[11px] font-black leading-tight text-slate-950 mb-1 line-clamp-3">
-                  {art.title}
-                </h4>
-                <p className="text-[9.2px] leading-[1.4] text-slate-700 text-justify line-clamp-4">
-                  {art.summary}
-                </p>
               </div>
-            ))}
-          </div>
+            </div>
+          </article>
         )}
       </div>
 
       {/* Footer */}
       <div className="border-t-2 border-slate-900 pt-1 mt-1.5 flex items-center justify-between text-[9px] font-bold text-slate-700">
         <span>அமேஸ் டைம்ஸ் | {page.section}</span>
-        <span>பதிப்பு: {page.editionDateFormatted} ({page.articles?.length || 0} செய்திகள்)</span>
+        <span>பதிப்பு: {page.editionDateFormatted} (முழு செய்தி வடிவம்)</span>
         <span>பக்கம் {page.pageNumber}</span>
       </div>
     </div>
@@ -584,12 +996,12 @@ function MonthlyMagazinePage({ page }) {
               {lead.title}
             </h2>
 
-            <div className="border-2 border-black p-1 bg-white mb-3.5 shadow-sm">
+            <div className="border-2 border-black p-1 bg-slate-100 mb-3 shadow-sm">
               <div className="relative">
                 <img
                   src={getSafeRenderImageUrl(lead.image)}
                   alt={lead.title}
-                  className="w-full h-56 object-cover block"
+                  className="w-full h-[265px] object-contain bg-slate-100 block mx-auto"
                   onError={(e) => { e.target.src = '/Amaze times.jpg'; }}
                 />
                 <div className="bg-black text-white text-[10px] font-black px-2.5 py-1 flex items-center justify-between">
@@ -599,7 +1011,7 @@ function MonthlyMagazinePage({ page }) {
               </div>
             </div>
 
-            <div className="flex-1 text-[11.5px] leading-[1.66] text-black overflow-hidden">
+            <div className="flex-1 text-[11.2px] leading-[1.62] text-black overflow-hidden">
               {(lead.paragraphs || [lead.summary]).slice(0, 5).map((p, idx) => (
                 <DropCapParagraph key={idx} text={p} isFirst={idx === 0} />
               ))}
@@ -615,14 +1027,14 @@ function MonthlyMagazinePage({ page }) {
     );
   }
 
-  // PAGES 3+: Inner Section Spreads & Back Page
+  // PAGES 3+: Inner Section Spreads & Back Page (LARGE ZERO-CROP IMAGES + FULL ARTICLE FLOW)
   const primary = page.primaryStory;
   const secondary = page.secondaryStory;
   const isBackPage = page.template === 'magazine-back-page';
   const m = page.masthead || {};
 
   return (
-    <div className="w-[794px] h-[1123px] bg-white text-black px-8 py-5 flex flex-col justify-between font-tamil border border-slate-300 shadow-inner overflow-hidden">
+    <div className="w-[794px] h-[1123px] bg-white text-black px-7 py-5 flex flex-col justify-between font-tamil border border-slate-300 shadow-inner overflow-hidden">
       <div className="flex-1 flex flex-col gap-3.5 overflow-hidden">
         {/* Top Section Header Pill */}
         {page.section && (
@@ -634,7 +1046,7 @@ function MonthlyMagazinePage({ page }) {
 
         {/* PRIMARY TOP FEATURE STORY */}
         {primary && (
-          <div className="flex flex-col overflow-hidden">
+          <div className={`flex flex-col overflow-hidden ${!secondary ? 'flex-1' : ''}`}>
             <div className="bg-black text-white px-4 py-2 text-center mb-2.5">
               <h2 className="text-[17px] font-black leading-snug tracking-wide">
                 {primary.title}
@@ -642,26 +1054,26 @@ function MonthlyMagazinePage({ page }) {
             </div>
 
             <div className="grid grid-cols-12 gap-4 items-start">
-              <div className="col-span-6 text-[11.2px] leading-[1.62] text-black">
+              <div className="col-span-5 text-[11px] leading-[1.6] text-black overflow-hidden">
                 {(primary.paragraphs || [primary.summary]).slice(0, 3).map((p, idx) => (
                   <DropCapParagraph key={idx} text={p} isFirst={idx === 0} />
                 ))}
               </div>
 
-              <div className="col-span-6 flex flex-col gap-2">
-                <div className="border-2 border-black p-0.5 bg-white">
+              <div className="col-span-7 flex flex-col gap-2">
+                <div className="border-2 border-black p-1 bg-slate-100 shadow-sm">
                   <img
                     src={getSafeRenderImageUrl(primary.image)}
                     alt={primary.title}
-                    className="w-full h-40 object-cover block"
+                    className={`w-full ${secondary ? 'h-[235px]' : 'h-[340px]'} object-contain bg-slate-100 block mx-auto`}
                     onError={(e) => { e.target.src = '/Amaze times.jpg'; }}
                   />
-                  <div className="bg-slate-100 border-t border-black px-2 py-1 text-[9px] font-black flex justify-between">
+                  <div className="bg-slate-900 text-white border-t border-black px-2.5 py-1 text-[9.5px] font-black flex justify-between mt-0.5">
                     <span>{primary.category}</span>
                     <span>{primary.author}</span>
                   </div>
                 </div>
-                <div className="text-[11px] leading-[1.6] text-black text-justify">
+                <div className="text-[10.8px] leading-[1.58] text-black text-justify">
                   {(primary.paragraphs || []).slice(3, 5).map((p, idx) => (
                     <p key={idx} className="mb-1.5">{p}</p>
                   ))}
@@ -687,12 +1099,12 @@ function MonthlyMagazinePage({ page }) {
             </div>
 
             <div className="grid grid-cols-12 gap-4 items-start flex-1 overflow-hidden">
-              <div className="col-span-5">
-                <div className="border-2 border-black p-0.5 bg-white mb-1.5">
+              <div className="col-span-6">
+                <div className="border-2 border-black p-1 bg-slate-100 mb-1.5 shadow-sm">
                   <img
                     src={getSafeRenderImageUrl(secondary.image)}
                     alt={secondary.title}
-                    className="w-full h-36 object-cover block"
+                    className="w-full h-[210px] object-contain bg-slate-100 block mx-auto"
                     onError={(e) => { e.target.src = '/Amaze times.jpg'; }}
                   />
                 </div>
@@ -701,7 +1113,7 @@ function MonthlyMagazinePage({ page }) {
                 </div>
               </div>
 
-              <div className="col-span-7 text-[11px] leading-[1.58] text-black overflow-hidden">
+              <div className="col-span-6 text-[10.8px] leading-[1.56] text-black overflow-hidden">
                 {(secondary.paragraphs || [secondary.summary]).slice(0, 4).map((p, idx) => (
                   <DropCapParagraph key={idx} text={p} isFirst={idx === 0} />
                 ))}
