@@ -496,164 +496,87 @@ export default function AmazeTimesViewerModal({
       onContextMenu={(e) => e.preventDefault()}
     >
       {/* ========================================================
-          1. TOP BRAND HEADER & PUBLICATION SWITCHER (Hidden in Fullscreen Read Mode)
+          1. UNIFIED ULTRA-SLEEK TOP NAVIGATION (Single 46px Bar - Maximizes Reading Area)
       ======================================================== */}
       {!isFullscreen && (
-      <header className="bg-gradient-to-r from-[#071330] via-[#0b1d4d] to-[#122e70] border-b border-amber-500/20 px-3 sm:px-6 py-2.5 flex items-center justify-between gap-3 flex-shrink-0 shadow-xl z-20">
+      <header className="bg-slate-900/95 border-b border-amber-500/30 px-3 sm:px-5 py-2 flex items-center justify-between gap-2.5 flex-shrink-0 shadow-2xl z-30 backdrop-blur-md">
         
-        {/* Brand Logo & Name */}
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-400 via-amber-500 to-amber-300 p-0.5 shadow-lg flex-shrink-0">
-            <div className="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center">
-              <span className="font-serif font-black text-amber-400 text-lg">அ</span>
+        {/* Left: Brand + Publication Switcher + Issue/Date Selector */}
+        <div className="flex items-center gap-2.5 flex-wrap min-w-0">
+          {/* Brand Mark */}
+          <div className="flex items-center gap-2 shrink-0">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-amber-400 via-amber-500 to-amber-300 p-0.5 shadow flex items-center justify-center">
+              <div className="w-full h-full bg-slate-950 rounded-[6px] flex items-center justify-center">
+                <span className="font-serif font-black text-amber-400 text-sm">அ</span>
+              </div>
             </div>
+            <span className="hidden sm:inline font-black text-sm lg:text-base text-white tracking-tight">
+              அமேஸ் டைம்ஸ்
+            </span>
           </div>
 
-          <div className="hidden sm:block">
-            <div className="flex items-center gap-2">
-              <h1 className="font-black text-base lg:text-lg text-white tracking-wide">
-                அமேஸ் டைம்ஸ் (Amaze Times)
-              </h1>
-              <span className="bg-amber-500/20 text-amber-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-amber-400/30">
-                டிஜிட்டல் வாசகர் களம்
-              </span>
-            </div>
-            <p className="text-[11px] text-amber-200/80">
-              தமிழ்நாட்டின் முன்னணி நம்பகமான டிஜிட்டல் நாளிதழ் & மாதாந்திர இதழ்
-            </p>
-          </div>
-        </div>
+          <div className="h-4 w-px bg-slate-700 hidden sm:block shrink-0" />
 
-        {/* Brand Publication Switcher Tabs (Seamless Segmented Switcher) */}
-        <div className="bg-slate-900/90 p-1 rounded-2xl border border-white/10 flex items-center shadow-inner">
-          <button
-            onClick={() => {
-              setPublicationType('magazine');
-              setCurrentPage(1);
-            }}
-            className={`px-3 sm:px-4 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
-              publicationType === 'magazine'
-                ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 shadow-md font-black'
-                : 'text-slate-300 hover:text-white hover:bg-white/5'
-            }`}
-          >
-            <BookOpen className="w-4 h-4" />
-            <span>மாதாந்திர இதழ் (Magazine)</span>
-          </button>
-
-          <button
-            onClick={() => {
-              setPublicationType('enewspaper');
-              setCurrentPage(1);
-            }}
-            className={`px-3 sm:px-4 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
-              publicationType === 'enewspaper'
-                ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 shadow-md font-black'
-                : 'text-slate-300 hover:text-white hover:bg-white/5'
-            }`}
-          >
-            <Newspaper className="w-4 h-4" />
-            <span>தினசரி மின்-நாளிதழ் (E-Paper)</span>
-          </button>
-        </div>
-
-        {/* Top Right Actions: Fullscreen Read, VIP, Close */}
-        <div className="flex items-center gap-2">
-          <button
-            onClick={toggleFullscreen}
-            className="flex items-center gap-1.5 bg-white/10 hover:bg-amber-500 text-amber-300 hover:text-slate-950 font-bold px-2.5 sm:px-3 py-1.5 rounded-xl text-xs transition border border-amber-400/30 shadow cursor-pointer"
-            title="முழுத்திரை வாசிப்பு (Fullscreen Read - F)"
-          >
-            <Maximize2 className="w-3.5 h-3.5" />
-            <span className="hidden lg:inline">முழுத்திரை வாசிப்பு</span>
-          </button>
-
-          {readerUser ? (
-            <div className="hidden md:flex items-center gap-1.5 bg-emerald-500/10 text-emerald-400 px-2.5 py-1 rounded-full border border-emerald-500/30 text-xs font-medium">
-              <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
-              <span>{readerUser.name || 'VIP வாசகர்'}</span>
-            </div>
-          ) : (
+          {/* Segmented Switcher: Magazine vs E-Paper */}
+          <div className="bg-slate-950/80 p-0.5 rounded-xl border border-slate-700/80 flex items-center shadow-inner shrink-0">
             <button
-              onClick={onOpenAuth}
-              className="hidden md:flex items-center gap-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-3 py-1.5 rounded-xl text-xs transition shadow cursor-pointer"
+              onClick={() => {
+                setPublicationType('magazine');
+                setCurrentPage(1);
+              }}
+              className={`px-2.5 sm:px-3 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                publicationType === 'magazine'
+                  ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-black shadow'
+                  : 'text-slate-300 hover:text-white hover:bg-white/5'
+              }`}
             >
-              <Lock className="w-3.5 h-3.5 text-slate-950" />
-              <span>வாசகர் உள்நுழைவு</span>
+              <BookOpen className="w-3.5 h-3.5" />
+              <span>மாதாந்திர இதழ்</span>
             </button>
-          )}
 
-          <button
-            onClick={onClose}
-            className="w-9 h-9 rounded-xl bg-white/10 hover:bg-red-500/80 text-white flex items-center justify-center transition-all cursor-pointer border border-white/15"
-            title="வெளியேறு (Esc)"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-      </header>
-      )}
+            <button
+              onClick={() => {
+                setPublicationType('enewspaper');
+                setCurrentPage(1);
+              }}
+              className={`px-2.5 sm:px-3 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                publicationType === 'enewspaper'
+                  ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-black shadow'
+                  : 'text-slate-300 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <Newspaper className="w-3.5 h-3.5" />
+              <span>மின்-நாளிதழ்</span>
+            </button>
+          </div>
 
-      {/* ========================================================
-          2. SECONDARY CONTROLS BAR: ARCHIVE / EDITION PICKER (Hidden in Fullscreen Read Mode)
-      ======================================================== */}
-      {!isFullscreen && (
-      <div className="bg-slate-900/90 border-b border-slate-800 px-3 sm:px-6 py-2 flex flex-wrap items-center justify-between gap-3 text-xs flex-shrink-0 z-10 backdrop-blur-md">
-        
-        {/* Edition Selectors */}
-        <div className="flex items-center gap-3 flex-wrap">
+          {/* Date / Issue Selectors */}
           {publicationType === 'magazine' ? (
-            /* Magazine Year / Month Pickers */
-            <div className="flex items-center gap-2">
-              <span className="font-bold text-amber-400 flex items-center gap-1">
-                <BookOpen className="w-3.5 h-3.5" />
-                <span>இதழ் தேர்வு:</span>
-              </span>
-
-              <select
-                value={`${selectedMagYear}-${selectedMagMonth}`}
-                onChange={(e) => {
-                  const [y, m] = e.target.value.split('-');
-                  setSelectedMagYear(y);
-                  setSelectedMagMonth(m);
-                }}
-                className="bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1 text-slate-200 font-bold focus:outline-none focus:ring-1 focus:ring-amber-400"
-              >
-                {availableEditions.map(ed => (
-                  <option key={ed.id} value={`${ed.year}-${String(ed.month).padStart(2, '0')}`}>
-                    {ed.title || ed.edition}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <select
+              value={`${selectedMagYear}-${selectedMagMonth}`}
+              onChange={(e) => {
+                const [y, m] = e.target.value.split('-');
+                setSelectedMagYear(y);
+                setSelectedMagMonth(m);
+              }}
+              className="bg-slate-800 text-amber-300 border border-slate-700 rounded-lg px-2 py-1 text-xs font-bold focus:outline-none focus:ring-1 focus:ring-amber-400 shrink-0"
+            >
+              {availableEditions.map(ed => (
+                <option key={ed.id} value={`${ed.year}-${String(ed.month).padStart(2, '0')}`}>
+                  {ed.title || ed.edition}
+                </option>
+              ))}
+            </select>
           ) : (
-            /* E-Newspaper Date & Edition Pickers */
-            <div className="flex items-center gap-2 flex-wrap">
-              <div className="flex items-center gap-1.5">
-                <Calendar className="w-4 h-4 text-amber-400" />
-                <span className="font-bold text-amber-400">தேதி:</span>
-                <input
-                  type="date"
-                  value={selectedNewspaperDate}
-                  onChange={(e) => setSelectedNewspaperDate(e.target.value)}
-                  className="bg-slate-800 border border-slate-700 rounded-lg px-2 py-1 text-slate-200 font-bold focus:outline-none focus:ring-1 focus:ring-amber-400 text-xs"
-                />
-              </div>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <input
+                type="date"
+                value={selectedNewspaperDate}
+                onChange={(e) => setSelectedNewspaperDate(e.target.value)}
+                className="bg-slate-800 text-amber-300 border border-slate-700 rounded-lg px-2 py-0.5 text-xs font-bold focus:outline-none focus:ring-1 focus:ring-amber-400"
+              />
 
-              <div className="flex items-center gap-1.5">
-                <span className="font-bold text-slate-300">மண்டலப் பதிப்பு:</span>
-                <select
-                  value={selectedNewspaperEdition}
-                  onChange={(e) => setSelectedNewspaperEdition(e.target.value)}
-                  className="bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1 text-slate-200 font-bold focus:outline-none focus:ring-1 focus:ring-amber-400"
-                >
-                  <option value="main">தமிழ்நாடு முதன்மைப் பதிப்பு</option>
-                  <option value="city">சென்னை பெருநகரப் பதிப்பு</option>
-                  <option value="special">வாராந்திர சிறப்பு மலர்</option>
-                </select>
-              </div>
-
-              {/* 1-Click Direct Jump to Daily Horoscope & Panchangam Page */}
+              {/* Quick Jumps */}
               {(() => {
                 const hPage = pages.find(p => p.template === 'newspaper-horoscope');
                 if (!hPage) return null;
@@ -661,20 +584,19 @@ export default function AmazeTimesViewerModal({
                   <button
                     type="button"
                     onClick={() => setCurrentPage(hPage.pageNumber)}
-                    className={`px-2.5 py-1 rounded-lg font-black text-xs flex items-center gap-1 transition cursor-pointer border ${
+                    className={`hidden md:flex px-2 py-1 rounded-lg text-[11px] font-black items-center gap-1 transition cursor-pointer border ${
                       currentPage === hPage.pageNumber
-                        ? 'bg-amber-400 text-slate-950 border-amber-300 shadow'
-                        : 'bg-amber-500/20 hover:bg-amber-400 text-amber-300 hover:text-slate-950 border-amber-400/40'
+                        ? 'bg-amber-400 text-slate-950 border-amber-300'
+                        : 'bg-amber-500/20 text-amber-300 hover:bg-amber-400 hover:text-slate-950 border-amber-400/30'
                     }`}
-                    title={`பக்கம் ${hPage.pageNumber}: இன்றைய 12 ராசிபலன் & பஞ்சாங்கம் பக்கத்திற்குச் செல்க`}
+                    title="ராசிபலன் & பஞ்சாங்கம்"
                   >
-                    <Sparkles className="w-3.5 h-3.5" />
+                    <Sparkles className="w-3 h-3" />
                     <span>ராசிபலன்</span>
                   </button>
                 );
               })()}
 
-              {/* 1-Click Direct Jump to Split Page A: Thirukkural, Proverb & Kids Moral Story */}
               {(() => {
                 const kPage = pages.find(p => p.template === 'newspaper-kural-kids' || p.template === 'newspaper-fun-corner');
                 if (!kPage) return null;
@@ -682,19 +604,18 @@ export default function AmazeTimesViewerModal({
                   <button
                     type="button"
                     onClick={() => setCurrentPage(kPage.pageNumber)}
-                    className={`px-2.5 py-1 rounded-lg font-black text-xs flex items-center gap-1 transition cursor-pointer border ${
+                    className={`hidden lg:flex px-2 py-1 rounded-lg text-[11px] font-black items-center gap-1 transition cursor-pointer border ${
                       currentPage === kPage.pageNumber
-                        ? 'bg-emerald-400 text-slate-950 border-emerald-300 shadow'
-                        : 'bg-emerald-500/20 hover:bg-emerald-400 text-emerald-300 hover:text-slate-950 border-emerald-400/40'
+                        ? 'bg-emerald-400 text-slate-950 border-emerald-300'
+                        : 'bg-emerald-500/20 text-emerald-300 hover:bg-emerald-400 hover:text-slate-950 border-emerald-400/30'
                     }`}
-                    title={`பக்கம் ${kPage.pageNumber}: திருக்குறள், பழமொழி & சிறுவர் நீதிக் கதை பக்கத்திற்குச் செல்க`}
+                    title="திருக்குறள் & சிறுவர் கதை"
                   >
-                    <span>📜 திருக்குறள் &amp; சிறுவர்</span>
+                    <span>📜 திருக்குறள்</span>
                   </button>
                 );
               })()}
 
-              {/* 1-Click Direct Jump to Split Page B: Brain Games, Riddles, Puzzles & GK Quiz */}
               {(() => {
                 const pzPage = pages.find(p => p.template === 'newspaper-puzzles');
                 if (!pzPage) return null;
@@ -702,99 +623,113 @@ export default function AmazeTimesViewerModal({
                   <button
                     type="button"
                     onClick={() => setCurrentPage(pzPage.pageNumber)}
-                    className={`px-2.5 py-1 rounded-lg font-black text-xs flex items-center gap-1 transition cursor-pointer border ${
+                    className={`hidden lg:flex px-2 py-1 rounded-lg text-[11px] font-black items-center gap-1 transition cursor-pointer border ${
                       currentPage === pzPage.pageNumber
-                        ? 'bg-indigo-400 text-slate-950 border-indigo-300 shadow'
-                        : 'bg-indigo-500/20 hover:bg-indigo-400 text-indigo-300 hover:text-slate-950 border-indigo-400/40'
+                        ? 'bg-indigo-400 text-slate-950 border-indigo-300'
+                        : 'bg-indigo-500/20 text-indigo-300 hover:bg-indigo-400 hover:text-slate-950 border-indigo-400/30'
                     }`}
-                    title={`பக்கம் ${pzPage.pageNumber}: விடுகதைகள், கணிதப் புதிர்கள் & பொது அறிவு வினாடி வினா பக்கத்திற்குச் செல்க`}
+                    title="புதிர்கள் & வினாடி வினா"
                   >
-                    <span>🧩 புதிர்கள் &amp; வினாடி வினா</span>
+                    <span>🧩 புதிர்கள்</span>
                   </button>
                 );
               })()}
             </div>
           )}
-
-          {/* Publication Metadata Badge */}
-          {publication && (
-            <div className="hidden lg:flex items-center gap-2 text-slate-400 border-l border-slate-700 pl-3">
-              <span>பக்கங்கள்: <b className="text-amber-300">{totalPages}</b></span>
-              <span>•</span>
-              {publicationType === 'enewspaper' ? (
-                <span className="text-emerald-400 font-bold">
-                  செய்திகள் நாள்: {publication.source_news_date_display} ({publication.total_articles || 0} செய்திகள்)
-                </span>
-              ) : (
-                <span className="text-emerald-400 font-bold">
-                  தொகுப்பு: {publication.sourceMonthLabel || publication.edition} ({publication.totalArticlesIncluded || 0} படைப்புகள்)
-                </span>
-              )}
-            </div>
-          )}
         </div>
 
-        {/* Quick Tools: Dual/Single Spread Toggle & Reading Mode */}
-        <div className="flex items-center gap-2 ml-auto">
-          {/* Dual / Single Spread Toggle (Desktop) */}
-          <div className="hidden sm:flex bg-slate-800 p-0.5 rounded-lg border border-slate-700">
+        {/* Right: Spread Mode, Reading Filter, Clipper, Download PDF, Fullscreen, Close */}
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          {/* Dual / Single Spread Toggle */}
+          <div className="hidden md:flex bg-slate-950/80 p-0.5 rounded-lg border border-slate-700/80">
             <button
               onClick={() => setIsDualPageMode(true)}
-              className={`px-2 py-1 rounded text-[11px] font-bold transition ${
-                isDualPageMode ? 'bg-amber-500 text-slate-950' : 'text-slate-300 hover:text-white'
+              className={`px-2 py-0.5 rounded text-[10.5px] font-bold transition ${
+                isDualPageMode ? 'bg-amber-500 text-slate-950 font-black' : 'text-slate-400 hover:text-white'
               }`}
               title="இரட்டைப் பக்கம் (Dual Spread)"
             >
-              இரட்டைப் பக்கம்
+              இரட்டை
             </button>
             <button
               onClick={() => setIsDualPageMode(false)}
-              className={`px-2 py-1 rounded text-[11px] font-bold transition ${
-                !isDualPageMode ? 'bg-amber-500 text-slate-950' : 'text-slate-300 hover:text-white'
+              className={`px-2 py-0.5 rounded text-[10.5px] font-bold transition ${
+                !isDualPageMode ? 'bg-amber-500 text-slate-950 font-black' : 'text-slate-400 hover:text-white'
               }`}
               title="ஒற்றைப் பக்கம் (Single Page)"
             >
-              ஒற்றைப் பக்கம்
+              ஒற்றை
             </button>
           </div>
 
-          {/* Reading Mode Switcher */}
-          <div className="flex items-center bg-slate-800 p-0.5 rounded-lg border border-slate-700">
+          {/* Reading Mode Switcher (Light / Dark / Sepia) */}
+          <div className="hidden sm:flex items-center bg-slate-950/80 p-0.5 rounded-lg border border-slate-700/80">
             <button
               onClick={() => setReadingMode('light')}
               className={`p-1 rounded transition ${readingMode === 'light' ? 'bg-amber-500 text-slate-950' : 'text-slate-400 hover:text-white'}`}
-              title="இயல்பான நிறம் (Light)"
+              title="இயல்பு (Light)"
             >
               <Sun className="w-3.5 h-3.5" />
             </button>
             <button
               onClick={() => setReadingMode('dark')}
               className={`p-1 rounded transition ${readingMode === 'dark' ? 'bg-amber-500 text-slate-950' : 'text-slate-400 hover:text-white'}`}
-              title="இரவுப் பார்வை (Dark)"
+              title="இரவு (Dark)"
             >
               <Moon className="w-3.5 h-3.5" />
             </button>
             <button
               onClick={() => setReadingMode('sepia')}
               className={`p-1 rounded transition ${readingMode === 'sepia' ? 'bg-amber-500 text-slate-950' : 'text-slate-400 hover:text-white'}`}
-              title="பாரம்பரிய நாளிதழ் நிறம் (Sepia)"
+              title="பாரம்பரியம் (Sepia)"
             >
               <Coffee className="w-3.5 h-3.5" />
             </button>
           </div>
 
-          {/* Crop Article Button in Header */}
+          {/* Crop Article Clipper Button */}
           <button
             onClick={() => handleOpenClipper()}
             disabled={isCapturingClip}
-            className="bg-amber-500/10 hover:bg-amber-500 text-amber-300 hover:text-slate-950 border border-amber-500/30 px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow disabled:opacity-60"
+            className="hidden sm:flex bg-amber-500/10 hover:bg-amber-500 text-amber-300 hover:text-slate-950 border border-amber-500/30 px-2 py-1 rounded-lg text-xs font-bold transition items-center gap-1 cursor-pointer disabled:opacity-60"
             title="செய்திக் கத்தரிப்பு (Article Clipper)"
           >
             <Scissors className={`w-3.5 h-3.5 ${isCapturingClip ? 'animate-spin' : ''}`} />
-            <span className="hidden sm:inline">{isCapturingClip ? 'தயாராகிறது...' : 'கத்தரித்து பகிர்க'}</span>
+            <span className="hidden lg:inline">{isCapturingClip ? 'தயாராகிறது...' : 'கத்தரி'}</span>
+          </button>
+
+          {/* Download Full Edition PDF */}
+          <button
+            onClick={handleDownloadFullEdition}
+            disabled={Boolean(pdfProgress)}
+            className="px-2.5 py-1 rounded-lg bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold text-xs shadow transition flex items-center gap-1 cursor-pointer disabled:opacity-70"
+            title="முழுமையான பதிப்பு பதிவிறக்கம் (PDF)"
+          >
+            <Download className={`w-3.5 h-3.5 ${pdfProgress ? 'animate-bounce' : ''}`} />
+            <span className="hidden md:inline">
+              {pdfProgress ? `${pdfProgress.current}/${pdfProgress.total}` : 'PDF'}
+            </span>
+          </button>
+
+          {/* Fullscreen Toggle */}
+          <button
+            onClick={toggleFullscreen}
+            className="p-1.5 rounded-lg bg-slate-800 hover:bg-amber-500 text-slate-300 hover:text-slate-950 transition border border-slate-700 cursor-pointer"
+            title="முழுத்திரை வாசிப்பு (Fullscreen - F)"
+          >
+            <Maximize2 className="w-4 h-4" />
+          </button>
+
+          {/* Close Modal (Esc) */}
+          <button
+            onClick={onClose}
+            className="w-8 h-8 rounded-lg bg-red-600/80 hover:bg-red-500 text-white flex items-center justify-center transition cursor-pointer shadow"
+            title="வெளியேறு (Esc)"
+          >
+            <X className="w-4 h-4" />
           </button>
         </div>
-      </div>
+      </header>
       )}
 
       {/* ========================================================
@@ -1007,35 +942,20 @@ export default function AmazeTimesViewerModal({
           </button>
         </div>
 
-        {/* Right: PDF Download, Thumbnails Toggle, Fullscreen */}
+        {/* Right: Thumbnails Toggle & Fullscreen */}
         <div className="flex items-center gap-2">
           {/* Thumbnails strip button */}
           <button
             onClick={() => setIsThumbnailDrawerOpen(prev => !prev)}
-            className={`p-2 rounded-xl border transition flex items-center gap-1.5 text-xs font-bold ${
+            className={`px-3 py-1.5 rounded-xl border transition flex items-center gap-1.5 text-xs font-bold cursor-pointer ${
               isThumbnailDrawerOpen 
-                ? 'bg-amber-500 text-slate-950 border-amber-400' 
+                ? 'bg-amber-500 text-slate-950 border-amber-400 shadow' 
                 : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700'
             }`}
             title="அனைத்துப் பக்கங்களின் முன்னோட்டம்"
           >
             <Layers className="w-4 h-4" />
-            <span className="hidden md:inline">பக்கங்கள்</span>
-          </button>
-
-          {/* Download Full Edition */}
-          <button
-            onClick={handleDownloadFullEdition}
-            disabled={Boolean(pdfProgress)}
-            className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold text-xs shadow-md transition flex items-center gap-1.5 cursor-pointer disabled:opacity-70"
-            title="முழுமையான இதழ் பதிவிறக்கம் (PDF)"
-          >
-            <Download className={`w-4 h-4 ${pdfProgress ? 'animate-bounce' : ''}`} />
-            <span className="hidden sm:inline">
-              {pdfProgress
-                ? `PDF தயாராகிறது (${pdfProgress.current}/${pdfProgress.total})...`
-                : 'PDF பதிவிறக்கம்'}
-            </span>
+            <span>பக்கங்கள் ({totalPages})</span>
           </button>
 
           {/* Fullscreen Toggle */}

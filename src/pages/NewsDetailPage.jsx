@@ -299,12 +299,34 @@ export default function NewsDetailPage({
     .filter(a => String(a.id) !== String(article.id))
     .slice(0, 6);
 
+  const [fullContentText, setFullContentText] = useState(article?.content || article?.body || '');
+
+  // Auto-hydrate complete unabridged description/paragraphs from database if article was initially loaded from compact feed
+  useEffect(() => {
+    const initialText = article?.content || article?.body || '';
+    setFullContentText(initialText);
+    if (article?.id && (!initialText || initialText.length <= 300)) {
+      api.getArticle(article.id)
+        .then(res => {
+          const a = res?.data || res?.article || res?.news;
+          if (a && (a.content || a.body)) {
+            const fetched = a.content || a.body;
+            if (fetched.length > initialText.length) {
+              setFullContentText(fetched);
+            }
+          }
+        })
+        .catch(() => {});
+    }
+  }, [article?.id, article?.content, article?.body]);
+
   const sidebarList = relatedArticles.length >= 3 ? relatedArticles : trendingArticles;
 
   // Split content into clean paragraphs
-  const rawContent = article.content || article.body || article.summary || article.desc || '';
-  const paragraphs = rawContent
-    .split(/\n\n+|\r\n\r\n+/)
+  const rawContent = fullContentText || article.content || article.body || article.summary || article.desc || '';
+  const cleanContent = rawContent.replace(/<br\s*\/?>/gi, '\n').replace(/<\/p>/gi, '\n\n').replace(/<[^>]+>/g, '');
+  const paragraphs = cleanContent
+    .split(/\n\n+|\r\n\r\n+|\n+/)
     .map(p => p.trim())
     .filter(Boolean);
 

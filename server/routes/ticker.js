@@ -4,13 +4,86 @@ import { authenticate, requireAdmin } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// GET /api/ticker - Public active tickers
+// GET /api/ticker - Public active tickers (Combines real-time breaking news + custom tickers)
 router.get('/', async (req, res) => {
   try {
-    const result = await query(
-      'SELECT id, content, priority, link_url, is_active FROM breaking_tickers WHERE is_active = true ORDER BY priority ASC, created_at DESC'
+    // 1. Fetch live breaking articles from news table
+    const breakingNewsRes = await query(
+      `SELECT id, title, category, main_image, created_at, true as is_breaking
+       FROM news
+       WHERE is_breaking = true AND status = 'published'
+       ORDER BY created_at DESC
+       LIMIT 8`
     );
-    res.json({ success: true, tickers: result.rows });
+
+    const liveBreaking = (breakingNewsRes.rows || []).map(r => ({
+      id: `news-${r.id}`,
+      article_id: r.id,
+      content: r.title,
+      title: r.title,
+      category: r.category,
+      main_image: r.main_image,
+      link_url: `/news/${r.id}`,
+      is_breaking: true,
+      created_at: r.created_at
+    }));
+
+    // 2. Fetch custom breaking tickers
+    const tickerRes = await query(
+      'SELECT id, content, priority, link_url, is_active, created_at FROM breaking_tickers WHERE is_active = true ORDER BY priority ASC, created_at DESC'
+    );
+
+    const customTickers = (tickerRes.rows || []).map(t => {
+      // Extract numeric article ID if link_url is /news/:id
+      let artId = null;
+      if (t.link_url && t.link_url.startsWith('/news/')) {
+        const parts = t.link_url.split('/news/');
+        if (parts[1] && !isNaN(parts[1])) artId = parseInt(parts[1], 10);
+      }
+      return {
+        id: t.id,
+        article_id: artId,
+        content: t.content,
+        title: t.content,
+        priority: t.priority,
+        link_url: t.link_url,
+        is_breaking: true,
+        created_at: t.created_at
+      };
+    });
+
+    // 3. Combine: live breaking news first, followed by active custom tickers (deduping by content)
+    const seen = new Set();
+    const combined = [];
+
+    for (const item of [...liveBreaking, ...customTickers]) {
+      const key = (item.content || item.title || '').trim();
+      if (key && !seen.has(key)) {
+        seen.add(key);
+        combined.push(item);
+      }
+    }
+
+    // 4. Fallback if empty: fetch latest 5 published news
+    if (combined.length === 0) {
+      const latestNewsRes = await query(
+        `SELECT id, title, category, created_at FROM news WHERE status = 'published' ORDER BY created_at DESC LIMIT 5`
+      );
+      latestNewsRes.rows.forEach(r => {
+        combined.push({
+          id: `news-${r.id}`,
+          article_id: r.id,
+          content: r.title,
+          title: r.title,
+          category: r.category,
+          link_url: `/news/${r.id}`,
+          is_breaking: true,
+          created_at: r.created_at
+        });
+      });
+    }
+
+    res.json({ success: true, tickers: combined });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

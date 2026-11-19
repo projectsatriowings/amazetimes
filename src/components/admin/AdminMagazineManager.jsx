@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { exportPublicationToPdf } from '../../utils/pdfExporter';
 import AmazeTimesPageRenderer from '../amazetimes/AmazeTimesPageRenderer';
+import AmazeTimesViewerModal from '../amazetimes/AmazeTimesViewerModal';
 
 const MONTH_OPTIONS = [
   { code: '01', name: 'ஜனவரி' },
@@ -77,6 +78,7 @@ export const AdminMagazineManager = () => {
 
   // Structured Template Preview & PDF Export States
   const [previewMagazineData, setPreviewMagazineData] = useState(null);
+  const [isLiveReaderOpen, setIsLiveReaderOpen] = useState(false);
   const [loadingPreview, setLoadingPreview] = useState(false);
   const [pdfExportProgress, setPdfExportProgress] = useState(null);
 
@@ -399,13 +401,24 @@ export const AdminMagazineManager = () => {
           </p>
         </div>
 
-        <button
-          onClick={() => handleOpenModal()}
-          className="w-full md:w-auto bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-extrabold shadow-md shadow-red-600/30 px-6 py-3.5 rounded-2xl text-xs sm:text-sm uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer transition whitespace-nowrap"
-        >
-          <Plus className="w-5 h-5" />
-          <span>புதிய மாத இதழ் உருவாக்கு</span>
-        </button>
+        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+          <button
+            type="button"
+            onClick={() => setIsLiveReaderOpen(true)}
+            className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black px-5 py-3.5 rounded-2xl text-xs sm:text-sm flex items-center justify-center gap-2 cursor-pointer transition shadow-lg whitespace-nowrap"
+          >
+            <BookOpen className="w-5 h-5 text-amber-300" />
+            <span>வாசகர் 3D வாசிப்பு முன்னோட்டம் (Live Flipbook)</span>
+          </button>
+
+          <button
+            onClick={() => handleOpenModal()}
+            className="w-full sm:w-auto bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black shadow-lg px-6 py-3.5 rounded-2xl text-xs sm:text-sm flex items-center justify-center gap-2 cursor-pointer transition whitespace-nowrap"
+          >
+            <Plus className="w-5 h-5" />
+            <span>புதிய மாத இதழ் உருவாக்கு</span>
+          </button>
+        </div>
       </div>
 
       {/* FILTER & SEARCH ROW */}
@@ -924,6 +937,15 @@ export const AdminMagazineManager = () => {
             </form>
           </div>
         </div>
+      )}
+
+      {/* Live 3D Reader Modal */}
+      {isLiveReaderOpen && (
+        <AmazeTimesViewerModal
+          isOpen={isLiveReaderOpen}
+          onClose={() => setIsLiveReaderOpen(false)}
+          initialPublication="magazine"
+        />
       )}
     </div>
   );

@@ -340,6 +340,7 @@ const validStaticRoutes = new Set([
   '/robots.txt',
   '/sitemap.xml',
   '/ads.txt',
+  '/googled830f38830b0a3b5.html',
   '/favicon.ico',
   '/favicon.svg',
   '/favicon.png',
@@ -349,6 +350,22 @@ const validStaticRoutes = new Set([
   '/404',
   '/404.html'
 ]);
+
+// Google Search Console Site Verification File (Direct Route)
+app.get('/google:id.html', (req, res) => {
+  const fileName = `google${req.params.id}.html`;
+  const filePathPublic = path.join(publicPath, fileName);
+  const filePathDist = path.join(distPath, fileName);
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.setHeader('Cache-Control', 'public, max-age=3600');
+  if (fs.existsSync(filePathPublic)) {
+    return res.sendFile(filePathPublic);
+  }
+  if (fs.existsSync(filePathDist)) {
+    return res.sendFile(filePathDist);
+  }
+  res.send(`google-site-verification: ${fileName}`);
+});
 
 // SPA Routing & Custom 404 Status Handler (Eliminates Soft 404 Error)
 app.use(async (req, res, next) => {

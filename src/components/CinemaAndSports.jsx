@@ -42,44 +42,44 @@ export default function CinemaAndSports({ onOpenArticle, onSelectCategory, artic
   const [boxOfficeBuzz, setBoxOfficeBuzz] = useState([
     {
       id: 1,
-      title: 'கூலி (Coolie)',
-      star: 'ரஜினிகாந்த்',
+      title: 'அவெஞ்சர்ஸ்: டூம்ஸ்டே (Avengers: Doomsday)',
+      star: 'ராபர்ட் டவுனி ஜூனியர் • மார்வெல்',
       rating: '5.0',
-      statusBadge: 'ரூ.450+ கோடி வசூல்',
-      collection: 'லோகேஷ் கனகராஜ் இயக்கம்',
-      notes: 'சன் பிக்சர்ஸ் தயாரிப்பில் அனிருத் இசையில் அதிரடி ஆக்ஷன் வேட்டை',
+      statusBadge: '₹10+ கோடி முன்பதிவு',
+      collection: 'இந்தியாவில் வசூல் சாதனை வேகம்',
+      notes: 'முன்பதிவு தொடங்கிய சில மணி நேரங்களிலேயே இந்தியாவில் ₹10 கோடியைத் தாண்டி டிக்கெட்டுகள் விற்றுத் தீர்ந்தன',
       poster: 'https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?auto=format&fit=crop&w=400&q=80'
     },
     {
       id: 2,
-      title: 'தளபதி 69 (Thalapathy 69)',
-      star: 'விஜய்',
+      title: 'ராமாயணம் (Ramayana)',
+      star: 'ரன்பீர் கபூர் • சாய் பல்லவி • யாஷ்',
       rating: '4.9',
-      statusBadge: 'ரூ.1,000+ கோடி எதிர்பார்ப்பு',
-      collection: 'எச். வினோத் இயக்கம்',
-      notes: 'அரசியல் களத்திற்கு செல்லும் முன் தளபதியின் கடைசி பிரம்மாண்ட படைப்பு',
+      statusBadge: 'ரூ.1,110+ கோடி வசூல்',
+      collection: 'நிதேஷ் திவாரி பிரம்மாண்ட இயக்கம்',
+      notes: '9 நாட்களில் உலக அளவில் ரூ.1,110 கோடியைத் தாண்டி பாக்ஸ் ஆபீஸில் புதிய சாதனை படைத்த ரன்பீர் கபூர் படம்',
       poster: 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=400&q=80'
     },
     {
       id: 3,
-      title: 'விடாமுயற்சி (Vidaamuyarchi)',
-      star: 'அஜித் குமார்',
+      title: 'சத்தியவான் சாவித்திரி',
+      star: 'கீர்த்தி சுரேஷ்',
       rating: '4.8',
-      statusBadge: 'சூப்பர் ஹிட் டிரெண்டிங்',
-      collection: 'மகிழ் திருமேனி இயக்கம்',
-      notes: 'மகிழ் திருமேனி இயக்கத்தில் அனிருத் இசையில் சர்வதேச கார் சேஸிங் காட்சிகள்',
+      statusBadge: 'நவம்பர் 20 ரிலீஸ்',
+      collection: 'யு/ஏ சான்றிதழ் பெற்றது',
+      notes: 'கீர்த்தி சுரேஷின் மாறுபட்ட நடிப்பில் உருவாகியுள்ள திரைப்படம் யு/ஏ சான்றிதழுடன் திரையரங்குகளில் ரிலீஸ்',
       poster: 'https://images.unsplash.com/photo-1440404653325-ab127d49abc1?auto=format&fit=crop&w=400&q=80'
     }
   ]);
 
   // Dynamic Live Match / CSK Tracker Banner (from sports_buzz_settings)
   const [liveMatch, setLiveMatch] = useState({
-    tournament: 'TATA IPL 2025 - லீக் ஆட்டம் 18',
-    badge: 'CSK UPDATE',
+    tournament: 'இந்தியா vs நியூசிலாந்து டெஸ்ட் தொடர் 2026',
+    badge: 'CSK & CRICKET LIVE',
     status: 'LIVE',
-    title: 'சென்னை சூப்பர் கிங்ஸ் அதிரடி வெற்றி: தோனியின் கடைசி ஓவர் ஃபினிஷிங்!',
-    venue: 'சேப்பாக்கம் எம்.ஏ. சிதம்பரம் மைதானம், சென்னை',
-    summary: 'சிஎஸ்கே 204/3 (20.0) vs மும்பை இந்தியன்ஸ் 188/7 (20.0) • 16 ரன்கள் வித்தியாசத்தில் சிஎஸ்கே திரில் வெற்றி!',
+    title: 'தோனி சிஎஸ்கே புதிய வழிகாட்டியாக நியமனம் • இந்தியா - நியூசிலாந்து முதல் டெஸ்ட் விறுவிறுப்பு!',
+    venue: 'சேப்பாக்கம் & கான்பூர் சர்வதேச கிரிக்கெட் மைதானங்கள்',
+    summary: 'எம்.எஸ். தோனி வீரராக ஓய்வு பெற்று சிஎஸ்கே வழிகாட்டியாக பொறுப்பேற்பு • ஆப்கானிஸ்தான் வீரர் நசீர் கான் அறிமுக டெஸ்டில் சதம் + 7 விக்கெட்டுகள் எடுத்து உலக சாதனை!',
     link: '/category/sports'
   });
 
@@ -227,64 +227,64 @@ export default function CinemaAndSports({ onOpenArticle, onSelectCategory, artic
     return true;
   });
 
-  // Fallbacks if database has few category news
+  // Fallbacks matching latest 2026 releases & records
   const fallbackCinema = [
     {
-      id: 'fb-c-1',
-      title: 'தளபதி 69 படப்பிடிப்பு சென்னையில் தீவிரம்: விஜய் - எச். வினோத் இணையும் கடைசி பிரம்மாண்டம்!',
-      time: '15 நிமிடங்களுக்கு முன்',
-      mainImage: 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=600&q=80',
-      category: 'சினிமா',
-      views: 1840,
-      likes: 340
-    },
-    {
-      id: 'fb-c-2',
-      title: 'கூலி திரைப்படத்தின் புதிய போஸ்டர் வெளியீடு: ரஜினியின் அசத்தல் லுக்குக்கு குவியும் லைக்குகள்!',
-      time: '1 மணி நேரத்திற்கு முன்',
+      id: 375,
+      title: 'இந்தியாவில் ₹10 கோடியைக் கடந்த அவெஞ்சர்ஸ் டூம்ஸ்டே முன்பதிவு – வெளியீட்டிற்கு முன்பே வசூலில் சாதனை வேகம்!',
+      time: 'இன்று',
       mainImage: 'https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?auto=format&fit=crop&w=600&q=80',
       category: 'சினிமா',
-      views: 2420,
-      likes: 512
+      views: 2450,
+      likes: 620
     },
     {
-      id: 'fb-c-3',
-      title: 'விடாமுயற்சி டீசர் வெளியீட்டு தேதி உறுதியானது: அஜித் ரசிகர்கள் கொண்டாட்டம்!',
-      time: '2 மணி நேரத்திற்கு முன்',
+      id: 371,
+      title: 'கீர்த்தி சுரேஷின் சத்தியவான் சாவித்திரி படத்திற்கு யு/ஏ சான்றிதழ் – நவம்பர் 20ஆம் தேதி திரையரங்குகளில் வெளியீடு!',
+      time: 'இன்று',
       mainImage: 'https://images.unsplash.com/photo-1440404653325-ab127d49abc1?auto=format&fit=crop&w=600&q=80',
       category: 'சினிமா',
-      views: 1690,
-      likes: 290
+      views: 1890,
+      likes: 410
+    },
+    {
+      id: 372,
+      title: 'சென்னையில் மின்னும் ஓர் இரவு திரைப்படத்தின் இசை மற்றும் முன்னோட்டம் வெளியீடு – நவம்பர் 27ஆம் தேதி வெளியீடு!',
+      time: 'நேற்று',
+      mainImage: 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=600&q=80',
+      category: 'சினிமா',
+      views: 1540,
+      likes: 380
     }
   ];
 
   const fallbackSports = [
     {
-      id: 'fb-s-1',
-      title: 'ஐபிஎல் 2026: சேப்பாக்கத்தில் சென்னை சூப்பர் கிங்ஸ் அணிக்கு தொடர் வெற்றி!',
-      time: '20 நிமிடங்களுக்கு முன்',
+      id: 366,
+      title: 'ஐபிஎல் போட்டிகளில் இருந்து வீரராக ஓய்வு பெற்றார் எம்.எஸ். தோனி – சிஎஸ்கே அணியின் புதிய வழிகாட்டியாக நியமனம்!',
+      time: 'இன்று',
       mainImage: 'https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?auto=format&fit=crop&w=600&q=80',
       category: 'விளையாட்டு',
-      views: 0,
-      likes: 0
+      views: 3120,
+      likes: 890
     },
     {
-      id: 'fb-s-2',
-      title: 'தோனியின் கடைசி ஓவர் சிக்ஸர் சாதனை: இளம் வீரர்களுக்கு உத்வேகம் தரும் கேப்டன் கூல்!',
-      time: '1 மணி நேரத்திற்கு முன்',
+      id: 369,
+      title: '20 வயதில் டெஸ்ட் கிரிக்கெட்டில் வரலாறு படைத்த ஆப்கானிஸ்தான் வீரர் நசீர் கான் – அறிமுகப் போட்டியில் சதம், 7 விக்கெட்டுகள்!',
+      time: 'இன்று',
       mainImage: 'https://images.unsplash.com/photo-1531415074868-036b107e775a?auto=format&fit=crop&w=600&q=80',
       category: 'விளையாட்டு',
-      views: 0,
-      likes: 0
+      views: 1980,
+      likes: 470
     },
     {
-      id: 'fb-s-3',
-      title: 'டி20 உலகக்கோப்பை 2026: இந்திய அணியில் தமிழகத்தைச் சேர்ந்த 3 வீரர்களுக்கு வாய்ப்பு?',
-      time: '3 மணி நேரத்திற்கு முன்',
+      id: 367,
+      title: 'நியூசிலாந்துக்கு எதிரான முதல் டெஸ்டில் நான்கு வேகப்பந்து வீச்சாளர்கள் – சுப்மன் கில்லுக்கு அணி தேர்வில் சவால்!',
+      time: 'நேற்று',
       mainImage: 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&w=600&q=80',
       category: 'விளையாட்டு',
-      views: 0,
-      likes: 0
+      views: 1420,
+      likes: 310
     }
   ];
 

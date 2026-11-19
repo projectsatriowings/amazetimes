@@ -51,9 +51,23 @@ export default function ArticleReaderModal({
     }
   };
 
+  const [fullContent, setFullContent] = useState(articleData?.content || articleData?.body || '');
+
   useEffect(() => {
+    const initialText = articleData?.content || articleData?.body || '';
+    setFullContent(initialText);
     if (isOpen && articleData?.id && /^\d+$/.test(String(articleData.id).trim())) {
       api.recordNewsView(articleData.id).catch(() => {});
+      if (!initialText || initialText.length <= 300) {
+        api.getNewsById(articleData.id)
+          .then(res => {
+            const a = res?.article || res?.news || res?.data;
+            if (a && (a.content || a.body)) {
+              setFullContent(a.content || a.body);
+            }
+          })
+          .catch(() => {});
+      }
     }
     return () => {
       if (playerRef.current) {
@@ -63,7 +77,7 @@ export default function ArticleReaderModal({
         window.speechSynthesis.cancel();
       }
     };
-  }, [articleData?.id]);
+  }, [isOpen, articleData?.id, articleData?.content, articleData?.body]);
 
   // Track reading progress on scroll
   const handleScroll = () => {
@@ -402,10 +416,17 @@ export default function ArticleReaderModal({
 
         {/* Article Body Content */}
         <div className="font-body text-slate-800 dark:text-slate-200 text-sm sm:text-base leading-relaxed space-y-4 whitespace-pre-line">
-          {articleData.content ? (
-            articleData.content.split('\n\n').map((para, idx) => (
-              <p key={idx}>{para}</p>
-            ))
+          {(fullContent || articleData.content) ? (
+            (fullContent || articleData.content)
+              .replace(/<br\s*\/?>/gi, '\n')
+              .replace(/<\/p>/gi, '\n\n')
+              .replace(/<[^>]+>/g, '')
+              .split(/\n\n+|\r\n\r\n+|\n+/)
+              .map(p => p.trim())
+              .filter(Boolean)
+              .map((para, idx) => (
+                <p key={idx}>{para}</p>
+              ))
           ) : (
             <p>{articleData.body || articleData.desc}</p>
           )}

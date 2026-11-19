@@ -197,6 +197,20 @@ export const matchesCategory = (article, targetCategory) => {
   const target = String(targetCategory).toLowerCase().trim();
   const catId = String(article.category_id || '').toLowerCase().trim();
   const catName = String(article.category || article.cat || article.category_name || '').toLowerCase().trim();
+  const dist = String(article.district || '').toLowerCase().trim();
+
+  // District news matching: include all district-assigned articles & regional state news
+  if (target === 'districts' || target === 'மாவட்டங்கள்' || target === 'மாவட்டம்') {
+    if (dist && dist !== 'all' && dist !== '') return true;
+    if (catName.includes('தமிழ்நாடு') || catName.includes('மாவட்ட') || catName.includes('தமிழகம்')) return true;
+    if (catId.includes('dist') || catId.includes('tamil')) return true;
+  }
+
+  // Tamil Nadu news matching: include state news & district news
+  if (target === 'tamilnadu' || target === 'தமிழ்நாடு' || target === 'தமிழகம்') {
+    if (catName.includes('தமிழ்நாடு') || catName.includes('தமிழகம்')) return true;
+    if (dist && dist !== 'all' && dist !== '') return true;
+  }
 
   // 1. Direct match
   if (catId === target || catName === target) return true;
@@ -646,42 +660,46 @@ export default function App() {
         setActiveDetailArticle(found);
       } else {
         setIsLoadingDetailArticle(true);
-        api.getArticle(parsed.id)
-          .then(res => {
-            const a = res?.data || res?.article || res?.news;
-            if (res && res.success && a) {
-              const formatted = {
-                id: a.id,
-                _id: String(a.id),
-                title: a.title,
-                category: a.category || 'செய்தி',
-                district: a.district,
-                subtitle: a.subtitle || '',
-                summary: a.summary || a.desc || '',
-                desc: a.summary || a.desc || '',
-                content: a.content || a.body || '',
-                body: a.content || a.body || '',
-                image: a.main_image || a.image || '/Amaze times.jpg',
-                author: a.author_name || 'செய்தி ஆசிரியர்',
-                authorName: a.author_name || 'செய்தி ஆசிரியர்',
-                time: new Date(a.published_at || a.created_at || Date.now()).toLocaleDateString('ta-IN', { hour: '2-digit', minute: '2-digit' }),
-                tags: Array.isArray(a.tags) ? a.tags : (a.tags ? String(a.tags).split(',').map(t => t.trim()) : []),
-                viewsCount: a.views_count || 0,
-                views_count: a.views_count || 0,
-                likesCount: a.likes_count || 0,
-                likes_count: a.likes_count || 0,
-                reactions: (a.reactions && typeof a.reactions === 'object') ? a.reactions : { fire: 0, insight: 0, heart: 0, surprise: 0, sad: 0 }
-              };
-              setActiveDetailArticle(formatted);
-            }
-          })
-          .catch(err => {
-            console.warn('Failed to load article by URL:', err);
-          })
-          .finally(() => {
-            setIsLoadingDetailArticle(false);
-          });
       }
+
+      // ALWAYS fetch full untruncated content from /api/news/:id so rich description & paragraphs are never clipped
+      api.getArticle(parsed.id)
+        .then(res => {
+          const a = res?.data || res?.article || res?.news;
+          if (res && res.success && a) {
+            const formatted = {
+              ...(found || {}),
+              id: a.id,
+              _id: String(a.id),
+              title: a.title,
+              category: a.category || 'செய்தி',
+              district: a.district,
+              subtitle: a.subtitle || '',
+              summary: a.summary || a.desc || '',
+              desc: a.summary || a.desc || '',
+              content: a.content || a.body || '',
+              body: a.content || a.body || '',
+              image: a.main_image || a.mainImage || a.image || '/Amaze times.jpg',
+              author: a.author_name || a.authorName || a.author || 'செய்தி ஆசிரியர்',
+              authorName: a.author_name || a.authorName || a.author || 'செய்தி ஆசிரியர்',
+              time: new Date(a.published_at || a.created_at || Date.now()).toLocaleDateString('ta-IN', { hour: '2-digit', minute: '2-digit' }),
+              tags: Array.isArray(a.tags) ? a.tags : (a.tags ? String(a.tags).split(',').map(t => t.trim()) : []),
+              viewsCount: a.views_count || a.viewsCount || 0,
+              views_count: a.views_count || a.viewsCount || 0,
+              likesCount: a.likes_count || a.likesCount || 0,
+              likes_count: a.likes_count || a.likesCount || 0,
+              reactions: (a.reactions && typeof a.reactions === 'object') ? a.reactions : { fire: 0, insight: 0, heart: 0, surprise: 0, sad: 0 },
+              _isFullLoaded: true
+            };
+            setActiveDetailArticle(formatted);
+          }
+        })
+        .catch(err => {
+          console.warn('Failed to load article by URL:', err);
+        })
+        .finally(() => {
+          setIsLoadingDetailArticle(false);
+        });
     } else {
       setActiveDetailArticle(null);
     }
@@ -850,7 +868,7 @@ export default function App() {
         id: art.id,
         title: art.title,
         category: art.category || art.cat || 'செய்தி',
-        image: art.image || art.img || article?.cover_image_url || '/Amaze times.jpg',
+        image: art.image || art.img || art.cover_image_url || art.mainImage || art.main_image || '/Amaze times.jpg',
         readAt: new Date().toISOString()
       }, ...filtered].slice(0, 50);
     });
@@ -1238,6 +1256,7 @@ export default function App() {
       {/* Ticker Ribbons (Connected to Live Data & Neon DB) */}
       <Ticker 
         tickers={backendTickers} 
+        onOpenArticle={openArticleModal}
         onOpenGoldCalculator={() => setIsGoldCalculatorOpen(true)}
       />
 
@@ -1326,8 +1345,8 @@ export default function App() {
           />
         ) : (
           <>
-            {/* DOMAIN IMPORTANCE HEADER (Displayed when a specific category/domain is chosen) */}
-            {activeCategory !== 'all' && currentDomain && (
+            {/* DOMAIN IMPORTANCE HEADER (Displayed when a specific category/domain is chosen; excluded for districts which has its own specialized DistrictNewsHub header) */}
+            {activeCategory !== 'all' && activeCategory !== 'districts' && currentDomain && (
               <div className="bg-gradient-to-r from-[#091538] via-[#0e2a7a] to-[#1e3a8a] text-white rounded-3xl p-5 sm:p-7 shadow-lg border border-white/10 relative overflow-hidden">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
                   <div className="space-y-1.5">
@@ -1429,7 +1448,7 @@ export default function App() {
             ) : (
               <>
                 {/* 1. HERO SPOTLIGHT: 3-Column Power Layout (Lead 5-cols + Top Reads/Radar 4-cols + Publications 3-cols) */}
-                {leadData && (
+                {leadData && activeCategory !== 'districts' && (
                   <HeroSpotlight
                     leadData={leadData}
                     topArticles={displayCards}
@@ -1449,7 +1468,7 @@ export default function App() {
                 {/* 2. DOMAIN-SPECIFIC HUBS (Scoped to active category) */}
                 {activeCategory === 'districts' && (
                   <DistrictNewsHub
-                    articles={displayCards}
+                    articles={leadData ? [leadData, ...displayCards] : displayCards}
                     onOpenArticle={openArticleModal}
                     onOpenEPaper={() => setIsEPaperOpen(true)}
                   />

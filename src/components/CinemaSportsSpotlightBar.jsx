@@ -4,25 +4,25 @@ import { api } from '../services/api';
 
 export default function CinemaSportsSpotlightBar({ onOpenSearch, onSelectCategory }) {
   const [cinemaTags, setCinemaTags] = useState([
-    { label: '#கூலி', query: 'கூலி', subTab: 'all' },
-    { label: '#GOAT', query: 'GOAT', subTab: 'all' },
-    { label: '#தளபதி69', query: 'தளபதி', subTab: 'all' },
-    { label: '#விடாமுயற்சி', query: 'விடாமுயற்சி', subTab: 'all' },
-    { label: '#அமரன்', query: 'அமரன்', subTab: 'boxoffice' },
-    { label: '#வேட்டையன்', query: 'வேட்டையன்', subTab: 'all' },
+    { label: '#அவெஞ்சர்ஸ்_டூம்ஸ்டே', query: 'அவெஞ்சர்ஸ்', subTab: 'boxoffice' },
+    { label: '#சத்தியவான்_சாவித்திரி', query: 'சத்தியவான்', subTab: 'all' },
+    { label: '#ராமாயணம்', query: 'ராமாயணம்', subTab: 'boxoffice' },
+    { label: '#மின்னும்_ஓர்_இரவு', query: 'மின்னும்', subTab: 'all' },
+    { label: '#யே_பிரேம்_மோல்', query: 'ஆயுஷ்மான்', subTab: 'all' },
+    { label: '#சுபான்_நதியாட்வாலா', query: 'சுபான்', subTab: 'all' },
     { label: '#திரைவிமர்சனம்', query: 'விமர்சனம்', subTab: 'reviews' },
     { label: '#பாக்ஸ்_ஆபீஸ்', query: 'வசூல்', subTab: 'boxoffice' }
   ]);
 
   const [sportsTags, setSportsTags] = useState([
-    { label: '#IPL_2025', query: 'IPL', subTab: 'csk' },
-    { label: '#CSK', query: 'CSK', subTab: 'csk' },
-    { label: '#தோனி', query: 'தோனி', subTab: 'csk' },
-    { label: '#இந்தியா_கிரிக்கெட்', query: 'இந்தியா', subTab: 'international' },
-    { label: '#ரோஹித்_சர்மா', query: 'ரோஹித்', subTab: 'international' },
-    { label: '#விராட்_கோலி', query: 'விராட்', subTab: 'international' },
-    { label: '#டி20_உலகக்கோப்பை', query: 'டி20', subTab: 'international' },
-    { label: '#TNPL', query: 'TNPL', subTab: 'achievers' }
+    { label: '#தோனி_சிஎஸ்கே_மென்டார்', query: 'தோனி', subTab: 'csk' },
+    { label: '#நசீர்_கான்_சாதனை', query: 'நசீர் கான்', subTab: 'international' },
+    { label: '#இந்தியா_நியூசிலாந்து', query: 'நியூசிலாந்து', subTab: 'international' },
+    { label: '#பென்_டக்கெட்_சதம்', query: 'டக்கெட்', subTab: 'international' },
+    { label: '#சிஎஸ்கே', query: 'சிஎஸ்கே', subTab: 'csk' },
+    { label: '#சாண்ட்பேப்பர்_சர்ச்சை', query: 'சாண்ட்பேப்பர்', subTab: 'international' },
+    { label: '#ஐபிஎல்_2027', query: 'ஐபிஎல்', subTab: 'csk' },
+    { label: '#டெஸ்ட்_கிரிக்கெட்', query: 'டெஸ்ட்', subTab: 'achievers' }
   ]);
 
   useEffect(() => {

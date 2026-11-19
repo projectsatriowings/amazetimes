@@ -50,6 +50,7 @@ import { AdminErrorBoundary } from '../components/admin/AdminErrorBoundary';
 import { AdminTickerLiveWireManager } from '../components/admin/AdminTickerLiveWireManager';
 import { AdminPollsManager } from '../components/admin/AdminPollsManager';
 import { AdminReaderSubmissionsManager } from '../components/admin/AdminReaderSubmissionsManager';
+import AdminDistrictNewsManager from '../components/admin/AdminDistrictNewsManager';
 import {
   LayoutDashboard,
   FilePlus,
@@ -1032,6 +1033,21 @@ export const AdminDashboard = () => {
                 <Vote className="w-4 h-4 text-emerald-400" />
                 <span>கருத்துக் கணிப்பு (Polls)</span>
               </button>
+
+              <button
+                onClick={() => setActiveTab('district-news')}
+                className={`w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold cursor-pointer transition ${
+                  activeTab === 'district-news' ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-black shadow-lg' : 'text-slate-300 hover:bg-slate-800/60'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <MapPin className="w-4 h-4 text-amber-400" />
+                  <span>மாவட்டச் செய்திகள்</span>
+                </div>
+                <span className="bg-slate-900 text-amber-400 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                  {articles.filter(a => a.district && a.district !== 'all').length}
+                </span>
+              </button>
             </div>
 
             {/* SECTION 2: CONTENT */}
@@ -1560,6 +1576,17 @@ export const AdminDashboard = () => {
                     <option value="pending">Pending Approval</option>
                     <option value="draft">Draft</option>
                   </select>
+
+                  <select
+                    value={districtFilter}
+                    onChange={(e) => setDistrictFilter(e.target.value)}
+                    className="bg-[#050915] border border-slate-700 rounded-xl px-3 py-2 text-amber-300 font-bold focus:outline-none font-tamil"
+                  >
+                    <option value="all">அனைத்து மாவட்டங்கள்</option>
+                    {DISTRICT_LIST.filter(d => d !== 'அனைத்து மாவட்டங்கள்').map((d) => (
+                      <option key={d} value={d}>{d}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
 
@@ -1578,6 +1605,7 @@ export const AdminDashboard = () => {
                         <th className="p-4">படம்</th>
                         <th className="p-4">செய்தி தலைப்பு</th>
                         <th className="p-4">பிரிவு</th>
+                        <th className="p-4">மாவட்டம்</th>
                         <th className="p-4">நிருபர்</th>
                         <th className="p-4">நிலை (Status)</th>
                         <th className="p-4">பார்வைகள்</th>
@@ -1587,7 +1615,7 @@ export const AdminDashboard = () => {
                     <tbody className="divide-y divide-slate-800/60 font-tamil">
                       {getFilteredArticles().length === 0 ? (
                         <tr>
-                          <td colSpan="7" className="p-8 text-center text-slate-500 font-sans">
+                          <td colSpan="8" className="p-8 text-center text-slate-500 font-sans">
                             செய்திகள் எதுவும் காணப்படவில்லை.
                           </td>
                         </tr>
@@ -1607,6 +1635,15 @@ export const AdminDashboard = () => {
                             <td className="p-4">
                               <span className="bg-slate-800 text-amber-400 px-2.5 py-1 rounded text-xs font-bold border border-slate-700">
                                 {item.category}
+                              </span>
+                            </td>
+                            <td className="p-4">
+                              <span className={`px-2 py-0.5 rounded text-[11px] font-bold ${
+                                item.district && item.district !== 'all'
+                                  ? 'bg-amber-500/20 text-amber-300 border border-amber-400/30'
+                                  : 'text-slate-500'
+                              }`}>
+                                {item.district && item.district !== 'all' ? item.district : 'பொது'}
                               </span>
                             </td>
                             <td className="p-4 text-slate-400">{item.authorName || item.author?.name || 'ஆசிரியர்'}</td>
@@ -1681,6 +1718,19 @@ export const AdminDashboard = () => {
           {activeTab === 'polls-manager' && (
             <AdminErrorBoundary sectionName="வாசகர் கருத்துக் கணிப்பு (Polls)" onResetTab={() => setActiveTab('dashboard')}>
               <AdminPollsManager showToast={showToast} />
+            </AdminErrorBoundary>
+          )}
+
+          {/* VIEW: DISTRICT NEWS MANAGEMENT */}
+          {activeTab === 'district-news' && (
+            <AdminErrorBoundary sectionName="மாவட்டச் செய்திகள் (District News)" onResetTab={() => setActiveTab('dashboard')}>
+              <AdminDistrictNewsManager
+                articles={articles}
+                onRefresh={loadAdminData}
+                onOpenEditModal={(item) => handleOpenNewsModal(item)}
+                onDeleteNews={(id) => handleDeleteNews(id)}
+                showToast={showToast}
+              />
             </AdminErrorBoundary>
           )}
 

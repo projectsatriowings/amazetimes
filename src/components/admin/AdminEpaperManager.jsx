@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Newspaper, Upload, Plus, Trash2, Calendar, FileText, CheckCircle2, Lock, Sparkles, MapPin, Image as ImageIcon, Edit, X, Download, Eye, RefreshCw } from 'lucide-react';
+import { Newspaper, Upload, Plus, Trash2, Calendar, FileText, CheckCircle2, Lock, Sparkles, MapPin, Image as ImageIcon, Edit, X, Download, Eye, RefreshCw, BookOpen } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { api, getMediaUrl } from '../../services/api';
 import { getMonthYearString, getMonthLabel, getAvailableMonths } from '../../utils/monthUtils';
 import { exportPublicationToPdf } from '../../utils/pdfExporter';
 import AmazeTimesPageRenderer from '../amazetimes/AmazeTimesPageRenderer';
+import AmazeTimesViewerModal from '../amazetimes/AmazeTimesViewerModal';
 
 export const AdminEpaperManager = () => {
   const { showToast } = useApp();
@@ -27,6 +28,7 @@ export const AdminEpaperManager = () => {
   const [autoData, setAutoData] = useState(null);
   const [loadingAuto, setLoadingAuto] = useState(false);
   const [showAutoPreview, setShowAutoPreview] = useState(false);
+  const [isLiveReaderOpen, setIsLiveReaderOpen] = useState(false);
   const [pdfExportProgress, setPdfExportProgress] = useState(null);
 
   const fetchAutoCompiledEpaper = useCallback(async () => {
@@ -362,11 +364,20 @@ export const AdminEpaperManager = () => {
             <div className="flex flex-wrap items-center gap-3">
               <button
                 type="button"
+                onClick={() => setIsLiveReaderOpen(true)}
+                className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black text-xs flex items-center gap-2 cursor-pointer transition shadow-lg"
+              >
+                <BookOpen className="w-4 h-4 text-amber-300" />
+                <span>வாசகர் 3D வாசிப்பு முன்னோட்டம் (Live Flipbook)</span>
+              </button>
+
+              <button
+                type="button"
                 onClick={() => setShowAutoPreview(prev => !prev)}
                 className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs border border-slate-700 flex items-center gap-2 cursor-pointer transition"
               >
                 <Eye className="w-4 h-4 text-amber-400" />
-                <span>{showAutoPreview ? 'முன்னோட்டத்தை மூடு' : 'கட்டமைக்கப்பட்ட பக்கங்களைப் பார் (Preview)'}</span>
+                <span>{showAutoPreview ? 'முன்னோட்டத்தை மூடு' : 'பக்கங்களின் தொகுப்பு (14 Pages)'}</span>
               </button>
 
               <button
@@ -659,6 +670,16 @@ export const AdminEpaperManager = () => {
           </div>
         )}
       </div>
+
+      {/* Live 3D Reader Modal */}
+      {isLiveReaderOpen && (
+        <AmazeTimesViewerModal
+          isOpen={isLiveReaderOpen}
+          onClose={() => setIsLiveReaderOpen(false)}
+          initialPublication="enewspaper"
+          initialDate={autoDate}
+        />
+      )}
     </div>
   );
 };

@@ -6,13 +6,13 @@ import AmazeTimesPageRenderer from './AmazeTimesPageRenderer';
 
 function getSpreadForPage(pages, pageNum, totalPages, isDualPageMode) {
   if (!pages || pages.length === 0) {
-    return { leftPage: null, rightPage: null, showingSpread: false };
+    return { leftPage: null, rightPage: null, showingSpread: false, isCover: false, isBackCover: false };
   }
   const safeNum = Math.max(1, Math.min(totalPages, pageNum));
   if (isDualPageMode) {
     if (safeNum === 1) {
       const cover = pages.find(p => p.pageNumber === 1) || pages[0];
-      return { leftPage: null, rightPage: cover, showingSpread: false };
+      return { leftPage: null, rightPage: cover, showingSpread: false, isCover: true, isBackCover: false };
     }
     const leftNum = safeNum % 2 === 0 ? safeNum : safeNum - 1;
     const rightNum = leftNum + 1;
@@ -23,11 +23,13 @@ function getSpreadForPage(pages, pageNum, totalPages, isDualPageMode) {
     return {
       leftPage,
       rightPage,
-      showingSpread: Boolean(leftPage && rightPage)
+      showingSpread: Boolean(leftPage && rightPage),
+      isCover: false,
+      isBackCover: Boolean(leftPage && !rightPage)
     };
   }
   const single = pages.find(p => p.pageNumber === safeNum) || pages[safeNum - 1] || null;
-  return { leftPage: null, rightPage: single, showingSpread: false };
+  return { leftPage: null, rightPage: single, showingSpread: false, isCover: safeNum === 1, isBackCover: safeNum === totalPages };
 }
 
 export default function AmazeTimesFlipbook({
@@ -81,8 +83,9 @@ export default function AmazeTimesFlipbook({
     const fromSpread = getSpreadForPage(pages, displayedPage, totalPages, isDualPageMode);
     const toSpread = getSpreadForPage(pages, currentPage, totalPages, isDualPageMode);
 
-    // If both are the exact same dual-page spread (e.g. jumping between page 4 & 5 in dual mode), just sync without flipping
+    // If both resolve to the exact same dual-page spread, just sync without flipping
     if (
+      isDualPageMode &&
       fromSpread.leftPage?.pageNumber === toSpread.leftPage?.pageNumber &&
       fromSpread.rightPage?.pageNumber === toSpread.rightPage?.pageNumber
     ) {
@@ -91,8 +94,7 @@ export default function AmazeTimesFlipbook({
     }
 
     const direction = currentPage > displayedPage ? 'next' : 'prev';
-    const isTrueSpreadFlip = fromSpread.showingSpread && toSpread.showingSpread;
-    const duration = isTrueSpreadFlip ? 620 : 560;
+    const duration = isDualPageMode ? 620 : 560;
 
     if (flipTimerRef.current) {
       clearTimeout(flipTimerRef.current);
@@ -100,7 +102,7 @@ export default function AmazeTimesFlipbook({
 
     setFlipState({
       direction,
-      mode: isTrueSpreadFlip ? 'spread' : 'single',
+      mode: isDualPageMode ? 'spread' : 'single',
       fromSpread,
       toSpread,
       targetPage: currentPage,
@@ -153,34 +155,48 @@ export default function AmazeTimesFlipbook({
   // Active static spread (when not flipping)
   const activeSpread = getSpreadForPage(pages, displayedPage, totalPages, isDualPageMode);
 
-  // Determine stage dimensions (if flipping between cover & spread, use target dimensions for smooth landing)
-  const stageIsSpread = flipState
-    ? (flipState.mode === 'spread' ? true : flipState.toSpread.showingSpread)
-    : activeSpread.showingSpread;
-
+  // Stage dimensions: In dual mode, stage is always 1596px dual-page; in single mode, 794px
+  const stageIsSpread = isDualPageMode;
   const baseWidth = stageIsSpread ? 794 * 2 + 8 : 794;
   const baseHeight = 1123;
 
-  // Compute responsive Fit-to-Screen scale (full edge-to-edge fill in Fullscreen mode!)
-  const padW = isFullscreen ? (viewportSize.width < 640 ? 8 : 32) : (viewportSize.width < 640 ? 20 : 88);
-  const padH = isFullscreen ? 16 : 28;
+  // Compute responsive Fit-to-Screen scale: GUARANTEE 100% complete view of frontpage & all pages
+  const padW = isFullscreen ? (viewportSize.width < 640 ? 8 : 24) : (viewportSize.width < 640 ? 12 : 36);
+  const padH = isFullscreen ? 12 : 24;
   const availW = Math.max(280, viewportSize.width - padW);
   const availH = Math.max(300, viewportSize.height - padH);
-  const maxAutoScale = isFullscreen ? 1.45 : 0.98;
-  const fitScale = Math.min(availW / baseWidth, availH / baseHeight, maxAutoScale);
-  const effectiveScale = fitScale * zoomScale;
+
+  // Strict complete fit: scales to fit BOTH width and height so masthead, headlines, and footer are fully visible
+  const fitScale = Math.min(availW / baseWidth, availH / baseHeight);
+  const maxAutoScale = isFullscreen ? 1.6 : 1.3;
+  const clampedFitScale = Math.min(Math.max(fitScale, 0.25), maxAutoScale);
+  const effectiveScale = clampedFitScale * zoomScale;
 
   // Navigation triggers (simply update parent currentPage; effect runs the 3D flip!)
   const handlePageNavigation = useCallback((direction) => {
     if (flipState) return;
     if (direction === 'next') {
       if (currentPage >= totalPages) return;
-      const step = isDualPageMode && currentPage > 1 ? 2 : 1;
-      onPageChange(Math.min(totalPages, currentPage + step));
+      if (isDualPageMode) {
+        if (currentPage === 1) {
+          onPageChange(2);
+        } else {
+          onPageChange(Math.min(totalPages, currentPage + 2));
+        }
+      } else {
+        onPageChange(Math.min(totalPages, currentPage + 1));
+      }
     } else {
       if (currentPage <= 1) return;
-      const step = isDualPageMode && currentPage > 2 ? 2 : 1;
-      onPageChange(Math.max(1, currentPage - step));
+      if (isDualPageMode) {
+        if (currentPage <= 3) {
+          onPageChange(1);
+        } else {
+          onPageChange(Math.max(1, currentPage - 2));
+        }
+      } else {
+        onPageChange(Math.max(1, currentPage - 1));
+      }
     }
   }, [flipState, currentPage, totalPages, isDualPageMode, onPageChange]);
 
@@ -362,6 +378,62 @@ export default function AmazeTimesFlipbook({
     );
   };
 
+  // Elegant Book Cover Board for closed front cover (left side on Page 1) and back cover (right side on last page)
+  const renderCoverBoard = (side = 'front') => {
+    return (
+      <div
+        className={`w-[794px] h-[1123px] flex-shrink-0 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex flex-col items-center justify-center p-12 text-center select-none relative overflow-hidden ${
+          side === 'front' ? 'border-r border-slate-800/80' : 'border-l border-slate-800/80'
+        }`}
+      >
+        <div className="absolute inset-0 opacity-[0.035] pointer-events-none flex items-center justify-center">
+          <div className="w-[500px] h-[500px] rounded-full border-[28px] border-amber-400" />
+        </div>
+
+        <div className="w-24 h-24 rounded-3xl bg-gradient-to-tr from-amber-500/25 to-amber-300/10 border-2 border-amber-400/40 flex items-center justify-center mb-6 shadow-2xl backdrop-blur-md">
+          <span className="font-serif text-5xl font-black text-amber-400">அ</span>
+        </div>
+
+        <h2 className="text-3xl font-black text-amber-400 tracking-wide mb-2 font-tamil">
+          அமேஸ் டைம்ஸ்
+        </h2>
+        <p className="text-sm font-bold text-slate-300 tracking-widest uppercase mb-4">
+          Amaze Times Media Network
+        </p>
+
+        <div className="h-0.5 w-36 bg-gradient-to-r from-transparent via-amber-400/60 to-transparent mb-6" />
+
+        <div className="inline-flex items-center gap-2 bg-slate-900/90 border border-amber-500/30 px-5 py-2.5 rounded-full text-xs font-semibold text-amber-300/90 mb-8 shadow-lg">
+          <span>{publicationType === 'magazine' ? 'மாதாந்திர இதழ் • Monthly Magazine' : 'தினசரி மின்-நாளிதழ் • Daily E-Paper'}</span>
+        </div>
+
+        <p className="text-xs text-slate-400 max-w-sm leading-relaxed mb-6 font-tamil">
+          {side === 'front'
+            ? 'அமேஸ் டைம்ஸ் டிஜிட்டல் பதிப்பை வாசிக்க அடுத்த பக்கத்திற்கு செல்லவும்.'
+            : 'இன்றைய பதிப்பின் அனைத்து முக்கிய பக்கங்கள், பிரத்யேக செய்திகள் மற்றும் புதிர்கள் இத்துடன் நிறைவு பெறுகின்றன.'}
+        </p>
+
+        {side === 'front' ? (
+          <button
+            onClick={() => handlePageNavigation('next')}
+            className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs transition-transform hover:scale-105 shadow-xl cursor-pointer"
+          >
+            <span>வாசிக்கத் தொடங்குக (பக்கம் 2)</span>
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        ) : (
+          <button
+            onClick={() => onPageChange(1)}
+            className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-slate-800 hover:bg-amber-500 text-slate-200 hover:text-slate-950 font-black text-xs transition-colors shadow-xl cursor-pointer"
+          >
+            <ChevronLeft className="w-4 h-4" />
+            <span>முதல் பக்கத்திற்குத் திரும்புக</span>
+          </button>
+        )}
+      </div>
+    );
+  };
+
   // Compute Base Layer Left/Right Pages (what sits flat beneath any flipping sheet)
   let baseLeftPage = activeSpread.leftPage;
   let baseRightPage = activeSpread.rightPage;
@@ -378,14 +450,9 @@ export default function AmazeTimesFlipbook({
         baseRightPage = flipState.fromSpread.rightPage;
       }
     } else {
-      // Single-page or Cover<->Spread transition
-      if (flipState.direction === 'next') {
-        baseLeftPage = flipState.toSpread.leftPage;
-        baseRightPage = flipState.toSpread.rightPage;
-      } else {
-        baseLeftPage = flipState.fromSpread.leftPage;
-        baseRightPage = flipState.fromSpread.rightPage;
-      }
+      // Single-page mode
+      baseLeftPage = null;
+      baseRightPage = flipState.direction === 'next' ? flipState.toSpread.rightPage : flipState.fromSpread.rightPage;
     }
   }
 
@@ -446,7 +513,7 @@ export default function AmazeTimesFlipbook({
 
       {/* Zoom & Pan Container */}
       <div
-        className="transition-transform duration-100 ease-out flex items-center justify-center"
+        className="transition-transform duration-100 ease-out flex items-center justify-center my-auto"
         style={{
           transform: `translate(${panPosition.x}px, ${panPosition.y}px)`
         }}
@@ -471,16 +538,22 @@ export default function AmazeTimesFlipbook({
           >
             {/* 1. STATIC BASE BOOK LAYER */}
             <div className="relative w-full h-full flex items-stretch rounded overflow-hidden">
-              {/* LEFT PAGE */}
-              {stageIsSpread && renderPageSurface(baseLeftPage, 'left', !flipState)}
+              {/* LEFT PAGE (in dual mode) */}
+              {isDualPageMode && (
+                baseLeftPage
+                  ? renderPageSurface(baseLeftPage, 'left', !flipState)
+                  : renderCoverBoard('front')
+              )}
 
               {/* CENTER BOOK SPINE */}
-              {stageIsSpread && (
+              {isDualPageMode && (
                 <div className="w-[8px] h-[1123px] bg-gradient-to-r from-slate-800 via-slate-950 to-slate-800 flex-shrink-0 z-20 shadow-inner" />
               )}
 
               {/* RIGHT / SINGLE PAGE */}
-              {renderPageSurface(baseRightPage || baseLeftPage, 'right', !flipState)}
+              {baseRightPage
+                ? renderPageSurface(baseRightPage, 'right', !flipState)
+                : (isDualPageMode ? renderCoverBoard('back') : null)}
             </div>
 
             {/* 2. DYNAMIC 3D TURNING LEAF OVERLAY (DUAL-PAGE SPREAD FLIP) */}
@@ -496,11 +569,13 @@ export default function AmazeTimesFlipbook({
               >
                 {/* FRONT FACE (Outgoing turning page) */}
                 <div className="absolute inset-0 flipbook-face overflow-hidden">
-                  {renderPageSurface(
-                    flipState.direction === 'next' ? flipState.fromSpread.rightPage : flipState.fromSpread.leftPage,
-                    flipState.direction === 'next' ? 'right' : 'left',
-                    false
-                  )}
+                  {flipState.direction === 'next'
+                    ? (flipState.fromSpread.rightPage
+                        ? renderPageSurface(flipState.fromSpread.rightPage, 'right', false)
+                        : renderCoverBoard('back'))
+                    : (flipState.fromSpread.leftPage
+                        ? renderPageSurface(flipState.fromSpread.leftPage, 'left', false)
+                        : renderCoverBoard('front'))}
                   {/* Realistic Paper Curl Shadow Gradient */}
                   <div
                     className="absolute inset-0 animate-flipShadow pointer-events-none"
@@ -514,11 +589,13 @@ export default function AmazeTimesFlipbook({
 
                 {/* BACK FACE (Incoming page landing on the opposite side) */}
                 <div className="absolute inset-0 flipbook-face-back overflow-hidden">
-                  {renderPageSurface(
-                    flipState.direction === 'next' ? flipState.toSpread.leftPage : flipState.toSpread.rightPage,
-                    flipState.direction === 'next' ? 'left' : 'right',
-                    false
-                  )}
+                  {flipState.direction === 'next'
+                    ? (flipState.toSpread.leftPage
+                        ? renderPageSurface(flipState.toSpread.leftPage, 'left', false)
+                        : renderCoverBoard('front'))
+                    : (flipState.toSpread.rightPage
+                        ? renderPageSurface(flipState.toSpread.rightPage, 'right', false)
+                        : renderCoverBoard('back'))}
                   {/* Subtle Paper Sheen as Leaf Lands */}
                   <div
                     className="absolute inset-0 animate-flipShadow pointer-events-none"
@@ -532,31 +609,19 @@ export default function AmazeTimesFlipbook({
               </div>
             )}
 
-            {/* 3. DYNAMIC 3D TURNING SHEET OVERLAY (SINGLE-PAGE OR COVER <-> SPREAD FLIP) */}
+            {/* 3. DYNAMIC 3D TURNING SHEET OVERLAY (SINGLE-PAGE MODE) */}
             {flipState && flipState.mode === 'single' && (
               <div
                 key={flipState.key}
-                className={`absolute top-0 left-0 w-full h-full z-30 flipbook-sheet-3d pointer-events-none ${
+                className={`absolute top-0 left-0 w-[794px] h-[1123px] z-30 flipbook-sheet-3d pointer-events-none ${
                   flipState.direction === 'next' ? 'animate-flipSingleNext' : 'animate-flipSinglePrev'
                 }`}
               >
-                <div className="w-full h-full flex items-stretch overflow-hidden rounded shadow-2xl bg-white">
-                  {flipState.direction === 'next' ? (
-                    <>
-                      {flipState.fromSpread.showingSpread && renderPageSurface(flipState.fromSpread.leftPage, 'left', false)}
-                      {flipState.fromSpread.showingSpread && (
-                        <div className="w-[8px] h-[1123px] bg-slate-900 flex-shrink-0" />
-                      )}
-                      {renderPageSurface(flipState.fromSpread.rightPage || flipState.fromSpread.leftPage, 'right', false)}
-                    </>
-                  ) : (
-                    <>
-                      {flipState.toSpread.showingSpread && renderPageSurface(flipState.toSpread.leftPage, 'left', false)}
-                      {flipState.toSpread.showingSpread && (
-                        <div className="w-[8px] h-[1123px] bg-slate-900 flex-shrink-0" />
-                      )}
-                      {renderPageSurface(flipState.toSpread.rightPage || flipState.toSpread.leftPage, 'right', false)}
-                    </>
+                <div className="w-full h-full overflow-hidden rounded shadow-2xl bg-white">
+                  {renderPageSurface(
+                    flipState.direction === 'next' ? flipState.fromSpread.rightPage : flipState.toSpread.rightPage,
+                    'right',
+                    false
                   )}
                   {/* Curling Paper Shadow */}
                   <div

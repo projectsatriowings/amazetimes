@@ -130,19 +130,19 @@ html.dark article:hover {
 }
 
 /* =========================================================
-   MARQUEE & PULSE ANIMATIONS
+   MARQUEE & PULSE ANIMATIONS (Calm, Readable Pace ~50px/s)
    ========================================================= */
 @keyframes marquee {
-  0% { transform: translateX(100%); }
-  100% { transform: translateX(-100%); }
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
 }
 
 .animate-marquee {
-  animation: marquee 30s linear infinite;
+  animation: marquee 85s linear infinite;
 }
 
 .animate-marquee:hover {
-  animation-play-state: paused;
+  animation-play-state: paused !important;
 }
 
 @keyframes pulseGlow {

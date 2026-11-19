@@ -77,6 +77,7 @@ export const formatNewsRow = (r) => {
     desc: r.summary || r.excerpt || (r.content ? r.content.substring(0, 160) + '...' : ''),
     excerpt: r.summary || r.excerpt || '',
     content: r.content,
+    body: r.content,
     category: r.category || r.category_name || 'தமிழ்நாடு',
     cat: r.category || r.category_name || 'தமிழ்நாடு',
     category_id: r.category || 'all',

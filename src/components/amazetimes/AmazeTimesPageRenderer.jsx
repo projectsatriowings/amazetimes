@@ -70,14 +70,14 @@ function DailyNewspaperPage({ page, editionName }) {
       <div className="w-[794px] h-[1123px] bg-[#fdfbf4] text-[#111827] px-6 py-4 flex flex-col justify-between font-tamil border border-slate-300 shadow-inner overflow-hidden">
         <div className="flex-1 flex flex-col gap-3 overflow-hidden">
           {/* Running Newspaper Header */}
-          <div className="flex items-center justify-between border-b-2 border-slate-950 pb-1.5">
+          <div className="flex items-center justify-between border-b-2 border-slate-950 pb-2">
             <div className="flex items-center gap-2">
               <span className="bg-slate-950 text-white text-xs font-black px-2.5 py-0.5">அமேஸ் டைம்ஸ்</span>
               <span className="text-sm font-black text-amber-800 uppercase tracking-wide">
                 📜 திருக்குறள், தமிழ் மரபு &amp; சிறுவர் கதை உலகம்
               </span>
             </div>
-            <div className="text-[10px] font-bold text-slate-700 flex items-center gap-2">
+            <div className="text-[10px] font-bold text-slate-700 flex items-center gap-2 whitespace-nowrap shrink-0">
               <span>பதிப்பு: {page.editionDateFormatted}</span>
               <span className="bg-amber-200 px-2 py-0.5 rounded font-black text-slate-950">பக்கம் {page.pageNumber}</span>
             </div>
@@ -150,10 +150,17 @@ function DailyNewspaperPage({ page, editionName }) {
               <h3 className="text-[17px] font-black text-emerald-950 mb-2 leading-snug">
                 ★ {story.title}
               </h3>
-              <div className="columns-2 gap-4 text-[11px] leading-[1.6] text-slate-900 text-justify">
-                {storyParas.map((para, idx) => (
-                  <DropCapParagraph key={idx} text={para} isFirst={idx === 0} />
-                ))}
+              <div className="grid grid-cols-2 gap-4 text-[11px] leading-[1.6] text-slate-900 text-justify">
+                <div>
+                  {storyParas.slice(0, Math.ceil(storyParas.length / 2)).map((para, idx) => (
+                    <DropCapParagraph key={idx} text={para} isFirst={idx === 0} />
+                  ))}
+                </div>
+                <div className="space-y-1.5">
+                  {storyParas.slice(Math.ceil(storyParas.length / 2)).map((para, idx) => (
+                    <p key={idx}>{para}</p>
+                  ))}
+                </div>
               </div>
             </div>
 
@@ -188,10 +195,10 @@ function DailyNewspaperPage({ page, editionName }) {
         </div>
 
         {/* Footer */}
-        <div className="border-t-2 border-slate-900 pt-1 mt-1.5 flex items-center justify-between text-[9px] font-bold text-slate-700">
-          <span>அமேஸ் டைம்ஸ் | திருக்குறள், தமிழ் மரபு &amp; சிறுவர் உலகம்</span>
-          <span>பதிப்பு: {page.editionDateFormatted}</span>
-          <span>© 2026 Amaze Times • பக்கம் {page.pageNumber}</span>
+        <div className="border-t-2 border-slate-900 pt-1 mt-1.5 flex items-center justify-between text-[9px] font-bold text-slate-700 whitespace-nowrap flex-nowrap">
+          <span className="shrink-0">அமேஸ் டைம்ஸ் | திருக்குறள், தமிழ் மரபு &amp; சிறுவர் உலகம்</span>
+          <span className="shrink-0">பதிப்பு: {page.editionDateFormatted}</span>
+          <span className="shrink-0">© 2026 Amaze Times • பக்கம் {page.pageNumber}</span>
         </div>
       </div>
     );
@@ -210,14 +217,14 @@ function DailyNewspaperPage({ page, editionName }) {
       <div className="w-[794px] h-[1123px] bg-[#fdfbf4] text-[#111827] px-6 py-4 flex flex-col justify-between font-tamil border border-slate-300 shadow-inner overflow-hidden">
         <div className="flex-1 flex flex-col gap-2.5 overflow-hidden">
           {/* Running Newspaper Header */}
-          <div className="flex items-center justify-between border-b-2 border-slate-950 pb-1.5">
+          <div className="flex items-center justify-between border-b-2 border-slate-950 pb-2">
             <div className="flex items-center gap-2">
               <span className="bg-slate-950 text-white text-xs font-black px-2.5 py-0.5">அமேஸ் டைம்ஸ்</span>
               <span className="text-sm font-black text-indigo-800 uppercase tracking-wide">
                 🧩 மூளைக்கு வேலை — விடுகதைகள், புதிர்கள் &amp; வினாடி வினா
               </span>
             </div>
-            <div className="text-[10px] font-bold text-slate-700 flex items-center gap-2">
+            <div className="text-[10px] font-bold text-slate-700 flex items-center gap-2 whitespace-nowrap shrink-0">
               <span>பதிப்பு: {page.editionDateFormatted}</span>
               <span className="bg-indigo-200 px-2 py-0.5 rounded font-black text-slate-950">பக்கம் {page.pageNumber}</span>
             </div>
@@ -326,10 +333,10 @@ function DailyNewspaperPage({ page, editionName }) {
         </div>
 
         {/* Footer */}
-        <div className="border-t-2 border-slate-900 pt-1 mt-1.5 flex items-center justify-between text-[9px] font-bold text-slate-700">
-          <span>அமேஸ் டைம்ஸ் | மூளைக்கு வேலை — புதிர்கள் &amp; பொது அறிவு</span>
-          <span>பதிப்பு: {page.editionDateFormatted}</span>
-          <span>© 2026 Amaze Times • பக்கம் {page.pageNumber}</span>
+        <div className="border-t-2 border-slate-900 pt-1 mt-1.5 flex items-center justify-between text-[9px] font-bold text-slate-700 whitespace-nowrap flex-nowrap">
+          <span className="shrink-0">அமேஸ் டைம்ஸ் | மூளைக்கு வேலை — புதிர்கள் &amp; பொது அறிவு</span>
+          <span className="shrink-0">பதிப்பு: {page.editionDateFormatted}</span>
+          <span className="shrink-0">© 2026 Amaze Times • பக்கம் {page.pageNumber}</span>
         </div>
       </div>
     );
@@ -344,14 +351,14 @@ function DailyNewspaperPage({ page, editionName }) {
       <div className="w-[794px] h-[1123px] bg-[#fdfbf4] text-[#111827] px-6 py-4 flex flex-col justify-between font-tamil border border-slate-300 shadow-inner overflow-hidden">
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* Running Newspaper Header */}
-          <div className="flex items-center justify-between border-b-2 border-slate-950 pb-1.5 mb-2">
+          <div className="flex items-center justify-between border-b-2 border-slate-950 pb-2 mb-2">
             <div className="flex items-center gap-2">
               <span className="bg-slate-950 text-white text-xs font-black px-2.5 py-0.5">அமேஸ் டைம்ஸ்</span>
               <span className="text-sm font-black text-amber-800 uppercase tracking-wide">
                 ✨ இன்றைய ராசிபலன் &amp; ஆன்மிகப் பஞ்சாங்கம்
               </span>
             </div>
-            <div className="text-[10px] font-bold text-slate-700 flex items-center gap-2">
+            <div className="text-[10px] font-bold text-slate-700 flex items-center gap-2 whitespace-nowrap shrink-0">
               <span>பதிப்பு: {page.editionDateFormatted}</span>
               <span className="bg-amber-200 px-2 py-0.5 rounded font-black text-slate-950">பக்கம் {page.pageNumber}</span>
             </div>
@@ -361,10 +368,10 @@ function DailyNewspaperPage({ page, editionName }) {
           <div className="bg-gradient-to-r from-[#7c1d1d] via-[#991b1b] to-[#7c1d1d] text-white px-4 py-2.5 rounded-md border-2 border-amber-500/80 mb-2.5 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-[20px] font-black tracking-wide leading-none text-amber-300">
+                <h2 className="text-[19px] font-black tracking-wide leading-tight text-amber-300 mb-1">
                   தினசரி 12 ராசி பலன்கள் (Daily Horoscope)
                 </h2>
-                <p className="text-[10px] text-amber-100 font-bold mt-1">
+                <p className="text-[10.5px] text-amber-100 font-bold leading-normal">
                   {p.tamilDate || 'இன்றைய சுப தினப் பஞ்சாங்கம் & நட்சத்திரப் பலன்கள்'} • தேதி: {page.editionDateFormatted}
                 </p>
               </div>
@@ -435,10 +442,10 @@ function DailyNewspaperPage({ page, editionName }) {
         </div>
 
         {/* Footer */}
-        <div className="border-t-2 border-slate-900 pt-1 mt-2 flex items-center justify-between text-[9px] font-bold text-slate-700">
-          <span>அமேஸ் டைம்ஸ் | தினசரி ராசிபலன் &amp; ஆன்மிகப் பகுதி</span>
-          <span>பதிப்பு: {page.editionDateFormatted}</span>
-          <span>© 2026 Amaze Times • பக்கம் {page.pageNumber}</span>
+        <div className="border-t-2 border-slate-900 pt-1 mt-2 flex items-center justify-between text-[9px] font-bold text-slate-700 whitespace-nowrap flex-nowrap">
+          <span className="shrink-0">அமேஸ் டைம்ஸ் | தினசரி ராசிபலன் &amp; ஆன்மிகப் பகுதி</span>
+          <span className="shrink-0">பதிப்பு: {page.editionDateFormatted}</span>
+          <span className="shrink-0">© 2026 Amaze Times • பக்கம் {page.pageNumber}</span>
         </div>
       </div>
     );
@@ -459,27 +466,27 @@ function DailyNewspaperPage({ page, editionName }) {
           </div>
 
           {/* Monumental Broadsheet Title */}
-          <div className="py-1.5 text-center border-b-2 border-slate-950 relative">
-            <div className="flex items-center justify-center gap-3">
-              <div className="w-8 h-8 bg-red-600 text-white font-black text-lg flex items-center justify-center rounded-md border-2 border-slate-950 shadow">
+          <div className="py-2 text-center border-b-2 border-slate-950 relative">
+            <div className="flex items-center justify-center gap-3 whitespace-nowrap flex-nowrap">
+              <div className="w-8 h-8 bg-red-600 text-white font-black text-lg flex items-center justify-center rounded-md border-2 border-slate-950 shadow shrink-0">
                 அ
               </div>
-              <h1 className="text-[32px] font-black tracking-tight text-slate-950 font-serif leading-none">
-                அமேஸ் டைம்ஸ் <span className="text-red-600 text-lg font-sans">| AMAZE TIMES</span>
+              <h1 className="text-[28px] font-black tracking-tight text-slate-950 leading-none">
+                அமேஸ் டைம்ஸ் <span className="text-red-600 text-base font-black font-sans uppercase tracking-widest">| AMAZE TIMES</span>
               </h1>
             </div>
-            <p className="text-[9.5px] font-bold text-slate-700 mt-0.5 tracking-wide">
+            <p className="text-[9.5px] font-bold text-slate-700 mt-1 tracking-wide">
               உண்மையின் தீர்க்க குரல் • தமிழ்நாடு, அரசியல், தேசியம், வணிகம், கல்வி, விளையாட்டு, சினிமா &amp; தினசரி ராசிபலன்
             </p>
           </div>
 
           {/* Issue Metadata Bar */}
-          <div className="flex items-center justify-between text-[10px] font-black border-b-2 border-slate-950 py-1 px-2 bg-slate-100">
-            <span>📅 பதிப்புத் தேதி: {page.editionDateFormatted}</span>
-            <span className="text-red-700">
+          <div className="flex items-center justify-between text-[10px] font-black border-b-2 border-slate-950 py-1.5 px-2 bg-slate-100 whitespace-nowrap flex-nowrap">
+            <span className="shrink-0">📅 பதிப்புத் தேதி: {page.editionDateFormatted}</span>
+            <span className="text-red-700 shrink-0">
               📰 செய்தி நாள்: {page.sourceNewsDateFormatted}
             </span>
-            <span>பக்கம் {page.pageNumber} • இலவச டிஜிட்டல் பதிப்பு</span>
+            <span className="shrink-0">பக்கம் {page.pageNumber} • இலவச டிஜிட்டல் பதிப்பு</span>
           </div>
 
           {/* Lead Content Grid (12 Cols) */}
@@ -509,7 +516,7 @@ function DailyNewspaperPage({ page, editionName }) {
                     <img
                       src={getSafeRenderImageUrl(lead.image)}
                       alt={lead.title}
-                      className="w-full h-[225px] object-contain bg-slate-100 block mx-auto"
+                      className="w-full h-[195px] object-contain bg-slate-100 block mx-auto"
                       onError={(e) => { e.target.src = '/Amaze times.jpg'; }}
                     />
                     <div className="bg-slate-900 text-white text-[9px] font-bold px-2 py-0.5 mt-0.5 flex items-center justify-between">
@@ -611,10 +618,10 @@ function DailyNewspaperPage({ page, editionName }) {
         </div>
 
         {/* Footer */}
-        <div className="border-t-2 border-slate-900 pt-1 mt-1.5 flex items-center justify-between text-[9px] font-bold text-slate-700">
-          <span>அமேஸ் டைம்ஸ் (Amaze Times Daily E-Paper)</span>
-          <span>பதிப்பு: {page.editionDateFormatted} • இன்றைய ராசிபலன் உள்ளே!</span>
-          <span>© 2026 Amaze Times • பக்கம் {page.pageNumber}</span>
+        <div className="border-t-2 border-slate-900 pt-1 mt-1.5 flex items-center justify-between text-[9px] font-bold text-slate-700 whitespace-nowrap flex-nowrap">
+          <span className="shrink-0">அமேஸ் டைம்ஸ் (Amaze Times Daily E-Paper)</span>
+          <span className="shrink-0">பதிப்பு: {page.editionDateFormatted} • இன்றைய ராசிபலன் உள்ளே!</span>
+          <span className="shrink-0">© 2026 Amaze Times • பக்கம் {page.pageNumber}</span>
         </div>
       </div>
     );
@@ -626,14 +633,14 @@ function DailyNewspaperPage({ page, editionName }) {
 
   return (
     <div className="w-[794px] h-[1123px] bg-[#fdfcf7] text-[#111827] px-7 py-4 flex flex-col justify-between font-tamil border border-slate-300 shadow-inner overflow-hidden">
-      <div className="flex-1 flex flex-col gap-3.5 overflow-hidden">
+      <div className="flex-1 flex flex-col gap-3 overflow-hidden">
         {/* Running Newspaper Broadsheet Header */}
-        <div className="flex items-center justify-between border-b-2 border-slate-950 pb-1.5">
+        <div className="flex items-center justify-between border-b-2 border-slate-950 pb-2">
           <div className="flex items-center gap-2">
             <span className="bg-slate-950 text-white text-xs font-black px-2.5 py-0.5">அமேஸ் டைம்ஸ்</span>
             <span className="text-sm font-black text-red-700 uppercase tracking-wide">{page.section}</span>
           </div>
-          <div className="text-[10px] font-bold text-slate-700 flex items-center gap-3">
+          <div className="text-[10px] font-bold text-slate-700 flex items-center gap-3 whitespace-nowrap shrink-0">
             <span>பதிப்பு: {page.editionDateFormatted}</span>
             <span className="bg-slate-200 px-2 py-0.5 rounded font-black text-slate-950">பக்கம் {page.pageNumber}</span>
           </div>
@@ -641,43 +648,43 @@ function DailyNewspaperPage({ page, editionName }) {
 
         {/* STORY 1: TOP FULL BROADSHEET NEWS ARTICLE WITH LARGE CRISP PHOTO */}
         {storyOne && (
-          <article className={`flex flex-col overflow-hidden ${storyTwo ? 'border-b-2 border-slate-900 pb-3' : 'flex-1'}`}>
+          <article className={`flex flex-col overflow-hidden ${storyTwo ? 'border-b-2 border-slate-900 pb-2.5' : 'flex-1'}`}>
             <div className="flex items-center gap-2 mb-1">
               <span className="bg-red-700 text-white text-[9px] font-black px-2 py-0.5 uppercase">
                 {storyOne.category}
               </span>
               {storyOne.district && <span className="text-[9.5px] font-bold text-slate-600">📍 {storyOne.district}</span>}
-              <span className="text-[9.5px] font-bold text-slate-600 ml-auto">
+              <span className="text-[9.5px] font-bold text-slate-600 ml-auto whitespace-nowrap">
                 நிருபர்: {storyOne.author} • {storyOne.publishedDateIst}
               </span>
             </div>
 
-            <h2 className="text-[19px] font-black leading-[1.22] text-slate-950 mb-2">
+            <h2 className="text-[18px] font-black leading-[1.22] text-slate-950 mb-1.5">
               {storyOne.title}
             </h2>
 
-            <div className="grid grid-cols-12 gap-4 items-start">
+            <div className="grid grid-cols-12 gap-3.5 items-start">
               {/* Large Prominent Zero-Crop Editorial Photo (6 Cols!) */}
               <div className="col-span-6">
                 <div className="border-2 border-slate-900 p-1 bg-slate-100 shadow-sm">
                   <img
                     src={getSafeRenderImageUrl(storyOne.image)}
                     alt={storyOne.title}
-                    className={`w-full ${storyTwo ? 'h-[215px]' : 'h-[320px]'} object-contain bg-slate-100 block mx-auto`}
+                    className={`w-full ${storyTwo ? 'h-[165px]' : 'h-[280px]'} object-contain bg-slate-100 block mx-auto`}
                     onError={(e) => { e.target.src = '/Amaze times.jpg'; }}
                   />
                 </div>
                 {storyOne.subtitle && (
-                  <p className="text-[9.5px] font-bold text-slate-700 bg-slate-100 border-x border-b border-slate-400 px-2 py-1 leading-snug">
+                  <p className="text-[9.5px] font-bold text-slate-700 bg-slate-100 border-x border-b border-slate-400 px-2 py-0.5 leading-snug">
                     {storyOne.subtitle}
                   </p>
                 )}
               </div>
 
               {/* Lead Paragraphs beside photo */}
-              <div className="col-span-6 text-[11px] leading-[1.58] text-slate-900 overflow-hidden">
+              <div className="col-span-6 text-[10.5px] leading-[1.52] text-slate-900 overflow-hidden">
                 {storyOne.summary && (
-                  <p className="font-bold text-slate-950 bg-amber-50/70 border-l-3 border-red-700 pl-2 py-1 mb-2 text-[10.8px] leading-snug text-justify">
+                  <p className="font-bold text-slate-950 bg-amber-50/70 border-l-3 border-red-700 pl-2 py-1 mb-1.5 text-[10.5px] leading-snug text-justify">
                     {storyOne.summary}
                   </p>
                 )}
@@ -689,10 +696,17 @@ function DailyNewspaperPage({ page, editionName }) {
 
             {/* Continuation Full Broadsheet 2-Column Body */}
             {(storyOne.paragraphs || []).length > 2 && (
-              <div className="columns-2 gap-4 text-[10.8px] leading-[1.56] text-slate-900 mt-2 overflow-hidden">
-                {(storyOne.paragraphs || []).slice(2, storyTwo ? 5 : 10).map((p, idx) => (
-                  <p key={idx} className="mb-1.5 text-justify">{p}</p>
-                ))}
+              <div className="grid grid-cols-2 gap-3.5 text-[10.5px] leading-[1.52] text-slate-900 mt-1.5 overflow-hidden">
+                <div>
+                  {(storyOne.paragraphs || []).slice(2, 3).map((p, idx) => (
+                    <p key={idx} className="text-justify">{p}</p>
+                  ))}
+                </div>
+                <div>
+                  {(storyOne.paragraphs || []).slice(3, 4).map((p, idx) => (
+                    <p key={idx} className="text-justify">{p}</p>
+                  ))}
+                </div>
               </div>
             )}
           </article>
@@ -700,48 +714,50 @@ function DailyNewspaperPage({ page, editionName }) {
 
         {/* STORY 2: BOTTOM FULL BROADSHEET NEWS ARTICLE WITH LARGE CRISP PHOTO */}
         {storyTwo && (
-          <article className="flex-1 flex flex-col overflow-hidden">
-            <div className="flex items-center gap-2 mb-1">
-              <span className="bg-slate-900 text-amber-300 text-[9px] font-black px-2 py-0.5 uppercase">
-                {storyTwo.category}
-              </span>
-              {storyTwo.district && <span className="text-[9.5px] font-bold text-slate-600">📍 {storyTwo.district}</span>}
-              <span className="text-[9.5px] font-bold text-slate-600 ml-auto">
-                நிருபர்: {storyTwo.author} • {storyTwo.publishedDateIst}
-              </span>
-            </div>
-
-            <h3 className="text-[17.5px] font-black leading-[1.24] text-slate-950 mb-2">
-              {storyTwo.title}
-            </h3>
-
-            <div className="grid grid-cols-12 gap-4 items-start flex-1 overflow-hidden">
-              {/* Full Text Left 6 Cols */}
-              <div className="col-span-6 text-[10.8px] leading-[1.58] text-slate-900 overflow-hidden">
-                {(storyTwo.paragraphs?.length ? storyTwo.paragraphs : [storyTwo.summary]).slice(0, 3).map((p, idx) => (
-                  <DropCapParagraph key={idx} text={p} isFirst={idx === 0} />
-                ))}
+          <article className="flex-1 flex flex-col justify-between overflow-hidden">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="bg-slate-900 text-amber-300 text-[9px] font-black px-2 py-0.5 uppercase">
+                  {storyTwo.category}
+                </span>
+                {storyTwo.district && <span className="text-[9.5px] font-bold text-slate-600">📍 {storyTwo.district}</span>}
+                <span className="text-[9.5px] font-bold text-slate-600 ml-auto whitespace-nowrap">
+                  நிருபர்: {storyTwo.author} • {storyTwo.publishedDateIst}
+                </span>
               </div>
 
-              {/* Large Prominent Zero-Crop Editorial Photo Right 6 Cols */}
-              <div className="col-span-6 flex flex-col gap-2 overflow-hidden">
-                <div className="border-2 border-slate-900 p-1 bg-slate-100 shadow-sm">
-                  <img
-                    src={getSafeRenderImageUrl(storyTwo.image)}
-                    alt={storyTwo.title}
-                    className="w-full h-[205px] object-contain bg-slate-100 block mx-auto"
-                    onError={(e) => { e.target.src = '/Amaze times.jpg'; }}
-                  />
-                </div>
-                <div className="text-[10.6px] leading-[1.55] text-slate-900 text-justify overflow-hidden">
-                  {(storyTwo.paragraphs || []).slice(3, 5).map((p, idx) => (
-                    <p key={idx} className="mb-1.5">{p}</p>
+              <h3 className="text-[17px] font-black leading-[1.24] text-slate-950 mb-1.5">
+                {storyTwo.title}
+              </h3>
+
+              <div className="grid grid-cols-12 gap-3.5 items-start overflow-hidden">
+                {/* Full Text Left 6 Cols */}
+                <div className="col-span-6 text-[10.5px] leading-[1.52] text-slate-900 overflow-hidden space-y-1">
+                  {(storyTwo.paragraphs?.length ? storyTwo.paragraphs : [storyTwo.summary]).slice(0, 3).map((p, idx) => (
+                    <DropCapParagraph key={idx} text={p} isFirst={idx === 0} />
                   ))}
-                  {!(storyTwo.paragraphs || [])[3] && storyTwo.summary && (
-                    <p className="font-bold text-slate-800 bg-slate-100 border-l-3 border-slate-900 pl-2 py-1 text-[10.2px]">
-                      {storyTwo.summary}
-                    </p>
-                  )}
+                </div>
+
+                {/* Large Prominent Zero-Crop Editorial Photo Right 6 Cols */}
+                <div className="col-span-6 flex flex-col gap-1.5 overflow-hidden">
+                  <div className="border-2 border-slate-900 p-1 bg-slate-100 shadow-sm">
+                    <img
+                      src={getSafeRenderImageUrl(storyTwo.image)}
+                      alt={storyTwo.title}
+                      className="w-full h-[155px] object-contain bg-slate-100 block mx-auto"
+                      onError={(e) => { e.target.src = '/Amaze times.jpg'; }}
+                    />
+                  </div>
+                  <div className="text-[10.5px] leading-[1.52] text-slate-900 text-justify overflow-hidden space-y-1">
+                    {(storyTwo.paragraphs || []).slice(3, 5).map((p, idx) => (
+                      <p key={idx}>{p}</p>
+                    ))}
+                    {!(storyTwo.paragraphs || [])[3] && storyTwo.summary && (
+                      <p className="font-bold text-slate-800 bg-slate-100 border-l-3 border-slate-900 pl-2 py-0.5 text-[10px]">
+                        {storyTwo.summary}
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -750,10 +766,10 @@ function DailyNewspaperPage({ page, editionName }) {
       </div>
 
       {/* Footer */}
-      <div className="border-t-2 border-slate-900 pt-1 mt-1.5 flex items-center justify-between text-[9px] font-bold text-slate-700">
-        <span>அமேஸ் டைம்ஸ் | {page.section}</span>
-        <span>பதிப்பு: {page.editionDateFormatted} (முழு செய்தி வடிவம்)</span>
-        <span>பக்கம் {page.pageNumber}</span>
+      <div className="border-t-2 border-slate-900 pt-1 mt-1.5 flex items-center justify-between text-[9px] font-bold text-slate-700 whitespace-nowrap flex-nowrap">
+        <span className="shrink-0">அமேஸ் டைம்ஸ் | {page.section}</span>
+        <span className="shrink-0">பதிப்பு: {page.editionDateFormatted} (முழு செய்தி வடிவம்)</span>
+        <span className="shrink-0">பக்கம் {page.pageNumber}</span>
       </div>
     </div>
   );
@@ -1065,7 +1081,7 @@ function MonthlyMagazinePage({ page }) {
                   <img
                     src={getSafeRenderImageUrl(primary.image)}
                     alt={primary.title}
-                    className={`w-full ${secondary ? 'h-[235px]' : 'h-[340px]'} object-contain bg-slate-100 block mx-auto`}
+                    className={`w-full ${secondary ? 'h-[195px]' : 'h-[330px]'} object-contain bg-slate-100 block mx-auto`}
                     onError={(e) => { e.target.src = '/Amaze times.jpg'; }}
                   />
                   <div className="bg-slate-900 text-white border-t border-black px-2.5 py-1 text-[9.5px] font-black flex justify-between mt-0.5">
@@ -1104,7 +1120,7 @@ function MonthlyMagazinePage({ page }) {
                   <img
                     src={getSafeRenderImageUrl(secondary.image)}
                     alt={secondary.title}
-                    className="w-full h-[210px] object-contain bg-slate-100 block mx-auto"
+                    className="w-full h-[175px] object-contain bg-slate-100 block mx-auto"
                     onError={(e) => { e.target.src = '/Amaze times.jpg'; }}
                   />
                 </div>

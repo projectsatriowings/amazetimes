@@ -504,16 +504,13 @@ router.get('/enewspaper/archive-covers', async (req, res) => {
       const iso = dt.toISOString().split('T')[0];
       const sourceDate = subtractOneDayStr(iso);
 
-      // Prefer a story from that edition's source day (D-1) or edition day (D), never duplicating an image across cards
+      // Strictly enforce <= iso: Past news is ok, NEVER future/newer news relative to that edition date!
       let pick = pool.find(a => !usedIds.has(a.id) && (a.dateIst === sourceDate || a.dateIst === iso));
       if (!pick) {
         pick = pool.find(a => !usedIds.has(a.id) && a.dateIst <= iso);
       }
       if (!pick) {
-        pick = pool.find(a => !usedIds.has(a.id));
-      }
-      if (!pick && pool.length > 0) {
-        pick = pool[i % pool.length];
+        pick = pool.find(a => a.dateIst <= iso);
       }
 
       if (pick) {
@@ -523,6 +520,13 @@ router.get('/enewspaper/archive-covers', async (req, res) => {
           headline: pick.title,
           category: pick.category,
           coverImage: pick.image
+        };
+      } else {
+        covers[iso] = {
+          articleId: `arch-${iso}`,
+          headline: `அமேஸ் டைம்ஸ் நாளிதழ் — ${formatDateDDMMYYYY(iso)}`,
+          category: 'தமிழ்நாடு',
+          coverImage: '/Amaze times.jpg'
         };
       }
     }
@@ -545,6 +549,7 @@ router.get('/enewspaper', async (req, res) => {
     const editionDate = (req.query.date && /^\d{4}-\d{2}-\d{2}$/.test(req.query.date))
       ? req.query.date
       : todayIst;
+    const isToday = (editionDate === todayIst);
     const editionParam = req.query.edition || 'main';
     const sourceNewsDate = subtractOneDayStr(editionDate);
 
@@ -554,18 +559,39 @@ router.get('/enewspaper', async (req, res) => {
       return res.json(cachedPaper);
     }
 
-    // 1. All news published strictly on D-1 (sourceNewsDate in IST) — lightweight image URL projection
+    // 0. For past editions, return immutable saved snapshot from database if already archived
+    const snapshotKey = `epaper_snapshot_${editionDate}_${editionParam}`;
+    if (!isToday) {
+      try {
+        const snapRes = await query('SELECT data FROM site_content WHERE key = $1 LIMIT 1', [snapshotKey]);
+        if (snapRes.rows.length > 0 && snapRes.rows[0].data && snapRes.rows[0].data.pages?.length > 0) {
+          setCachedValue(enewspaperCache, cacheKey, snapRes.rows[0].data);
+          return res.json(snapRes.rows[0].data);
+        }
+      } catch (e) {
+        console.warn('Epaper snapshot lookup error:', e.message);
+      }
+    }
+
+    // 1. Stories published for this edition:
+    // Today's paper loads news published TODAY (editionDate) + yesterday (sourceNewsDate).
+    // Past paper strictly loads news published on or before that edition's date!
     const exactRes = await query(`
       SELECT ${PRINT_NEWS_COLUMNS_SQL} FROM news
       WHERE status = 'published'
-        AND (COALESCE(published_at, created_at) AT TIME ZONE 'Asia/Kolkata')::date = $1::date
-      ORDER BY is_lead_hero DESC, is_top_story DESC, is_breaking DESC, COALESCE(views_count, 0) DESC, COALESCE(published_at, created_at) DESC
-    `, [sourceNewsDate]);
+        AND (
+          (COALESCE(published_at, created_at) AT TIME ZONE 'Asia/Kolkata')::date = $1::date
+          OR (COALESCE(published_at, created_at) AT TIME ZONE 'Asia/Kolkata')::date = $2::date
+        )
+      ORDER BY
+        (CASE WHEN (COALESCE(published_at, created_at) AT TIME ZONE 'Asia/Kolkata')::date = $2::date THEN 1 ELSE 0 END) DESC,
+        is_lead_hero DESC, is_top_story DESC, is_breaking DESC, COALESCE(views_count, 0) DESC, COALESCE(published_at, created_at) DESC
+    `, [sourceNewsDate, editionDate]);
 
     const exactArticles = exactRes.rows.map(formatNewsRow).map(formatForPrint);
     const exactSourceCount = exactArticles.length;
 
-    // 2. Partitioned Query up to D-1: Ensures recent news items from EVERY SINGLE category without megabyte base64!
+    // 2. Partitioned Query strictly up to editionDate: Past news is ok as filler, NEVER newer/present news!
     const diverseRes = await query(`
       WITH ranked AS (
         SELECT ${PRINT_NEWS_COLUMNS_SQL},
@@ -582,7 +608,7 @@ router.get('/enewspaper', async (req, res) => {
       WHERE cat_rank <= 10
       ORDER BY (COALESCE(published_at, created_at) AT TIME ZONE 'Asia/Kolkata')::date DESC,
                is_lead_hero DESC, is_top_story DESC, COALESCE(views_count, 0) DESC
-    `, [sourceNewsDate]);
+    `, [editionDate]);
 
     let allPool = [...exactArticles];
     const seenIds = new Set(exactArticles.map(a => String(a.id)));
@@ -595,20 +621,24 @@ router.get('/enewspaper', async (req, res) => {
       }
     }
 
-    // If completely empty (future/early edge case), load across whole published pool partitioned by category
+    // 3. Fallback Query strictly capped at editionDate (Past news is ok, NEVER future/newer news relative to edition!)
     if (allPool.length < 15) {
       const anyRes = await query(`
         WITH ranked AS (
           SELECT ${PRINT_NEWS_COLUMNS_SQL},
                  ROW_NUMBER() OVER (
                    PARTITION BY category
-                   ORDER BY COALESCE(published_at, created_at) DESC
+                   ORDER BY (COALESCE(published_at, created_at) AT TIME ZONE 'Asia/Kolkata')::date DESC,
+                            COALESCE(published_at, created_at) DESC
                  ) as cat_rank
-          FROM news WHERE status = 'published'
+          FROM news
+          WHERE status = 'published'
+            AND (COALESCE(published_at, created_at) AT TIME ZONE 'Asia/Kolkata')::date <= $1::date
         )
         SELECT * FROM ranked WHERE cat_rank <= 6
-        ORDER BY COALESCE(published_at, created_at) DESC
-      `);
+        ORDER BY (COALESCE(published_at, created_at) AT TIME ZONE 'Asia/Kolkata')::date DESC,
+                 COALESCE(published_at, created_at) DESC
+      `, [editionDate]);
       for (const row of anyRes.rows) {
         const formatted = formatForPrint(formatNewsRow(row));
         if (!seenIds.has(String(formatted.id))) {
@@ -830,6 +860,20 @@ router.get('/enewspaper', async (req, res) => {
         { code: 'special', label: 'சிறப்புத் தொகுப்புப் பதிப்பு (Special Issue)' }
       ]
     };
+
+    // Permanently save past newspaper editions by date into the database so historical papers remain frozen
+    if (!isToday) {
+      try {
+        await query(`
+          INSERT INTO site_content (key, data, updated_at)
+          VALUES ($1, $2, NOW())
+          ON CONFLICT (key) DO UPDATE SET data = EXCLUDED.data, updated_at = NOW()
+        `, [snapshotKey, JSON.stringify(responsePayload)]);
+      } catch (saveErr) {
+        console.warn('Failed to save past epaper snapshot:', saveErr.message);
+      }
+    }
+
     setCachedValue(enewspaperCache, cacheKey, responsePayload);
     res.json(responsePayload);
   } catch (err) {
@@ -910,9 +954,10 @@ router.get('/magazine/candidates', async (req, res) => {
 
 router.get('/magazine', async (req, res) => {
   try {
+    const todayIst = getIstDateStr();
     const now = new Date();
-    const defaultYear = String(now.getFullYear());
-    const defaultMonth = String(now.getMonth() + 1).padStart(2, '0');
+    const defaultYear = todayIst.slice(0, 4);
+    const defaultMonth = todayIst.slice(5, 7);
 
     const reqYear = req.query.year || defaultYear;
     const reqMonth = req.query.month ? String(req.query.month).padStart(2, '0') : defaultMonth;
@@ -969,42 +1014,98 @@ router.get('/magazine', async (req, res) => {
     const useYearNum = parseInt(useYear, 10);
     const useMonthNum = parseInt(useMonth, 10);
 
+    const [curY, curM] = todayIst.split('-').map(Number);
+    const isPastMagazine = (useYearNum < curY || (useYearNum === curY && useMonthNum < curM));
+
+    // 0. For past month magazines, return saved immutable snapshot from database if exists
+    const magSnapshotKey = `magazine_snapshot_${useYearNum}_${useMonthNum}`;
+    if (isPastMagazine) {
+      try {
+        const snapRes = await query('SELECT data FROM site_content WHERE key = $1 LIMIT 1', [magSnapshotKey]);
+        if (snapRes.rows.length > 0 && snapRes.rows[0].data && snapRes.rows[0].data.pages?.length > 0) {
+          setCachedValue(magazineCache, magCacheKey, snapRes.rows[0].data);
+          return res.json(snapRes.rows[0].data);
+        }
+      } catch (e) {
+        console.warn('Magazine snapshot lookup error:', e.message);
+      }
+    }
+
+    const lastDayOfMonth = new Date(useYearNum, useMonthNum, 0).getDate();
+    const monthEndIso = `${useYearNum}-${String(useMonthNum).padStart(2, '0')}-${String(lastDayOfMonth).padStart(2, '0')}`;
+
     // Prevent stale browser/CDN caching when new breaking news is published
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
 
-    // 1. Always fetch the absolute latest Breaking News / Lead Hero with a valid image for the Magazine Cover!
-    const latestCoverRes = await query(`
-      SELECT ${PRINT_NEWS_COLUMNS_SQL} FROM news
-      WHERE status = 'published'
-        AND main_image IS NOT NULL
-        AND TRIM(main_image) != ''
-        AND main_image != '/Amaze times.jpg'
-      ORDER BY
-        (CASE WHEN is_breaking = true OR is_lead_hero = true THEN 1 ELSE 0 END) DESC,
-        COALESCE(published_at, created_at) DESC
-      LIMIT 1
-    `);
+    // 1. Cover Story: For past magazines, strictly capped at monthEndIso! For current month, latest breaking news!
+    const latestCoverRes = isPastMagazine
+      ? await query(`
+          SELECT ${PRINT_NEWS_COLUMNS_SQL} FROM news
+          WHERE status = 'published'
+            AND main_image IS NOT NULL
+            AND TRIM(main_image) != ''
+            AND main_image != '/Amaze times.jpg'
+            AND (COALESCE(published_at, created_at) AT TIME ZONE 'Asia/Kolkata')::date <= $1::date
+          ORDER BY
+            (CASE WHEN EXTRACT(YEAR FROM COALESCE(published_at, created_at) AT TIME ZONE 'Asia/Kolkata') = $2
+                   AND EXTRACT(MONTH FROM COALESCE(published_at, created_at) AT TIME ZONE 'Asia/Kolkata') = $3 THEN 1 ELSE 0 END) DESC,
+            (CASE WHEN is_breaking = true OR is_lead_hero = true THEN 1 ELSE 0 END) DESC,
+            COALESCE(published_at, created_at) DESC
+          LIMIT 1
+        `, [monthEndIso, useYearNum, useMonthNum])
+      : await query(`
+          SELECT ${PRINT_NEWS_COLUMNS_SQL} FROM news
+          WHERE status = 'published'
+            AND main_image IS NOT NULL
+            AND TRIM(main_image) != ''
+            AND main_image != '/Amaze times.jpg'
+          ORDER BY
+            (CASE WHEN is_breaking = true OR is_lead_hero = true THEN 1 ELSE 0 END) DESC,
+            COALESCE(published_at, created_at) DESC
+          LIMIT 1
+        `);
 
-    // 2. Partitioned Query across ALL categories prioritizing the active issue month & latest Breaking / Lead stories!
-    const newsRes = await query(`
-      WITH ranked AS (
-        SELECT ${PRINT_NEWS_COLUMNS_SQL},
-               ROW_NUMBER() OVER (
-                 PARTITION BY category
-                 ORDER BY CASE WHEN EXTRACT(YEAR FROM COALESCE(published_at, created_at) AT TIME ZONE 'Asia/Kolkata') = $1 
-                                AND EXTRACT(MONTH FROM COALESCE(published_at, created_at) AT TIME ZONE 'Asia/Kolkata') = $2 THEN 0 ELSE 1 END,
-                          (CASE WHEN is_breaking = true OR is_lead_hero = true THEN 1 ELSE 0 END) DESC,
-                          is_top_story DESC,
-                          COALESCE(published_at, created_at) DESC
-               ) as cat_rank
-        FROM news WHERE status = 'published'
-      )
-      SELECT * FROM ranked WHERE cat_rank <= 4
-      ORDER BY (CASE WHEN is_breaking = true OR is_lead_hero = true THEN 1 ELSE 0 END) DESC,
-               COALESCE(published_at, created_at) DESC,
-               is_top_story DESC
-      LIMIT 40
-    `, [useYearNum, useMonthNum]);
+    // 2. Partitioned Query across ALL categories: For past magazines, strictly capped at monthEndIso (past news is ok, never future!)
+    const newsRes = isPastMagazine
+      ? await query(`
+          WITH ranked AS (
+            SELECT ${PRINT_NEWS_COLUMNS_SQL},
+                   ROW_NUMBER() OVER (
+                     PARTITION BY category
+                     ORDER BY CASE WHEN EXTRACT(YEAR FROM COALESCE(published_at, created_at) AT TIME ZONE 'Asia/Kolkata') = $1 
+                                    AND EXTRACT(MONTH FROM COALESCE(published_at, created_at) AT TIME ZONE 'Asia/Kolkata') = $2 THEN 0 ELSE 1 END,
+                              (CASE WHEN is_breaking = true OR is_lead_hero = true THEN 1 ELSE 0 END) DESC,
+                              is_top_story DESC,
+                              COALESCE(published_at, created_at) DESC
+                   ) as cat_rank
+            FROM news WHERE status = 'published'
+              AND (COALESCE(published_at, created_at) AT TIME ZONE 'Asia/Kolkata')::date <= $3::date
+          )
+          SELECT * FROM ranked WHERE cat_rank <= 4
+          ORDER BY (CASE WHEN is_breaking = true OR is_lead_hero = true THEN 1 ELSE 0 END) DESC,
+                   COALESCE(published_at, created_at) DESC,
+                   is_top_story DESC
+          LIMIT 40
+        `, [useYearNum, useMonthNum, monthEndIso])
+      : await query(`
+          WITH ranked AS (
+            SELECT ${PRINT_NEWS_COLUMNS_SQL},
+                   ROW_NUMBER() OVER (
+                     PARTITION BY category
+                     ORDER BY CASE WHEN EXTRACT(YEAR FROM COALESCE(published_at, created_at) AT TIME ZONE 'Asia/Kolkata') = $1 
+                                    AND EXTRACT(MONTH FROM COALESCE(published_at, created_at) AT TIME ZONE 'Asia/Kolkata') = $2 THEN 0 ELSE 1 END,
+                              (CASE WHEN is_breaking = true OR is_lead_hero = true THEN 1 ELSE 0 END) DESC,
+                              is_top_story DESC,
+                              COALESCE(published_at, created_at) DESC
+                   ) as cat_rank
+            FROM news WHERE status = 'published'
+          )
+          SELECT * FROM ranked WHERE cat_rank <= 4
+          ORDER BY (CASE WHEN is_breaking = true OR is_lead_hero = true THEN 1 ELSE 0 END) DESC,
+                   COALESCE(published_at, created_at) DESC,
+                   is_top_story DESC
+          LIMIT 40
+        `, [useYearNum, useMonthNum]);
 
     let rankedArticles = newsRes.rows.map(formatNewsRow).map(formatForPrint);
 
@@ -1176,6 +1277,19 @@ router.get('/magazine', async (req, res) => {
       bestNewsCandidates,
       availableEditions: editionsList
     };
+    // Permanently save past magazine editions by month into the database so historical issues remain frozen
+    if (isPastMagazine) {
+      try {
+        await query(`
+          INSERT INTO site_content (key, data, updated_at)
+          VALUES ($1, $2, NOW())
+          ON CONFLICT (key) DO UPDATE SET data = EXCLUDED.data, updated_at = NOW()
+        `, [magSnapshotKey, JSON.stringify(magPayload)]);
+      } catch (saveErr) {
+        console.warn('Failed to save past magazine snapshot:', saveErr.message);
+      }
+    }
+
     setCachedValue(magazineCache, magCacheKey, magPayload);
     res.json(magPayload);
   } catch (err) {
