@@ -121,7 +121,8 @@ import {
   Radio,
   Vote,
   Feather,
-  Star
+  Star,
+  MapPin
 } from 'lucide-react';
 
 const getArticleViews = (article) => {
