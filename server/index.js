@@ -439,42 +439,44 @@ const attachServerErrorHandler = (srv) => {
   });
 };
 
-// Start HTTP server immediately on standard port 5000 bound to 0.0.0.0
-server = app.listen(PORT, HOST, () => {
-  console.log(`🌐 Amaze Times Express API Server running on http://${HOST}:${PORT}`);
-  console.log(`📁 Uploads available at http://localhost:${PORT}/uploads`);
-  attachServerErrorHandler(server);
+// Start HTTP server immediately on standard port 5000 bound to 0.0.0.0 (standalone process; skip inside Vercel serverless)
+if (!process.env.VERCEL && !process.env.AWS_LAMBDA_FUNCTION_NAME) {
+  server = app.listen(PORT, HOST, () => {
+    console.log(`🌐 Amaze Times Express API Server running on http://${HOST}:${PORT}`);
+    console.log(`📁 Uploads available at http://localhost:${PORT}/uploads`);
+    attachServerErrorHandler(server);
 
-  // Background Database Verification & Cache Pre-warming
-  initDb().then(() => {
-    console.log(`📡 Connected to Neon PostgreSQL pooler (auto-reconnect enabled)`);
+    // Background Database Verification & Cache Pre-warming
+    initDb().then(() => {
+      console.log(`📡 Connected to Neon PostgreSQL pooler (auto-reconnect enabled)`);
 
-    // 1. Pre-warm news cache for 0ms sub-millisecond response times
-    warmNewsCache().catch(err => {
-      console.warn('⚠️ [NewsCache] Notice on warming cache:', err?.message || err);
-    });
-
-    // 2. Initial market rate auto-sync on server boot
-    fetchAndSyncMarketRates().catch(err => {
-      console.warn('⚠️ [MarketRateService] Initial startup sync notice:', err.message);
-    });
-
-    // 3. Schedule recurring market rate sync every 6 hours
-    const SIX_HOURS = 6 * 60 * 60 * 1000;
-    setInterval(() => {
-      fetchAndSyncMarketRates().catch(err => {
-        console.warn('⚠️ [MarketRateService] Recurring 6-hr sync notice:', err.message);
+      // 1. Pre-warm news cache for 0ms sub-millisecond response times
+      warmNewsCache().catch(err => {
+        console.warn('⚠️ [NewsCache] Notice on warming cache:', err?.message || err);
       });
-    }, SIX_HOURS);
 
-    // 4. Neon DB compute keep-alive ping every 4 minutes (prevents serverless suspension & cold-start delays)
-    const FOUR_MINUTES = 4 * 60 * 1000;
-    setInterval(() => {
-      query('SELECT 1;').catch(() => {});
-    }, FOUR_MINUTES);
-  }).catch(err => {
-    console.error('❌ Failed to verify database on startup:', err);
+      // 2. Initial market rate auto-sync on server boot
+      fetchAndSyncMarketRates().catch(err => {
+        console.warn('⚠️ [MarketRateService] Initial startup sync notice:', err.message);
+      });
+
+      // 3. Schedule recurring market rate sync every 6 hours
+      const SIX_HOURS = 6 * 60 * 60 * 1000;
+      setInterval(() => {
+        fetchAndSyncMarketRates().catch(err => {
+          console.warn('⚠️ [MarketRateService] Recurring 6-hr sync notice:', err.message);
+        });
+      }, SIX_HOURS);
+
+      // 4. Neon DB compute keep-alive ping every 4 minutes (prevents serverless suspension & cold-start delays)
+      const FOUR_MINUTES = 4 * 60 * 1000;
+      setInterval(() => {
+        query('SELECT 1;').catch(() => {});
+      }, FOUR_MINUTES);
+    }).catch(err => {
+      console.error('❌ Failed to verify database on startup:', err);
+    });
   });
-});
+}
 
 export default app;
