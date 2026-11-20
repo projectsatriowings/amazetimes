@@ -1468,7 +1468,7 @@ export default function App() {
                 {/* 2. DOMAIN-SPECIFIC HUBS (Scoped to active category) */}
                 {activeCategory === 'districts' && (
                   <DistrictNewsHub
-                    articles={leadData ? [leadData, ...displayCards] : displayCards}
+                    articles={backendArticles.length > 0 ? backendArticles : (leadData ? [leadData, ...displayCards] : displayCards)}
                     onOpenArticle={openArticleModal}
                     onOpenEPaper={() => setIsEPaperOpen(true)}
                   />
@@ -1533,7 +1533,7 @@ export default function App() {
                     />
 
                     <DistrictNewsHub
-                      articles={displayCards}
+                      articles={backendArticles.length > 0 ? backendArticles : displayCards}
                       onOpenArticle={openArticleModal}
                       onOpenEPaper={() => setIsEPaperOpen(true)}
                     />

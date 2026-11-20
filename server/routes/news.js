@@ -22,10 +22,10 @@ const router = express.Router();
 const inFlightNewsCreations = new Map();
 const recentClientRequestIds = new Map();
 
-// Fast lightweight SQL projection for list feeds (excludes giant HTML content & offloads base64 images to cached /api/news/:id/image)
+// Fast lightweight SQL projection for list feeds (excludes giant image data & offloads base64 images to cached /api/news/:id/image)
 const LIST_COLUMNS_SQL = `
   id, title, subtitle, summary,
-  LEFT(COALESCE(content, ''), 260) AS content,
+  content,
   category, sub_category, district,
   CASE WHEN main_image LIKE 'data:%' THEN '/api/news/' || id || '/image' ELSE main_image END AS main_image,
   seo_keywords, tags, is_breaking, is_lead_hero, is_top_story,

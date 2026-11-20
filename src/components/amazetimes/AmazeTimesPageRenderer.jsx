@@ -231,14 +231,14 @@ function DailyNewspaperPage({ page, editionName }) {
           </div>
 
           {/* 1. SIX TAMIL RIDDLES (2-Column Balanced Grid) */}
-          <section className="bg-white border-2 border-indigo-900/75 rounded-lg p-3 shadow-sm">
-            <div className="bg-indigo-900 text-amber-300 text-[11px] font-black px-3 py-1 rounded mb-2 flex items-center justify-between">
+          <section className="bg-white border-2 border-indigo-900/75 rounded-lg p-2 shadow-sm">
+            <div className="bg-indigo-900 text-amber-300 text-[10.5px] font-black px-2.5 py-0.5 rounded mb-1.5 flex items-center justify-between">
               <span>🎭 இன்றைய 6 சுவாரசியமான தமிழ் விடுகதைகள் (Tamil Riddles)</span>
-              <span className="text-[9.5px] text-indigo-100">விடைகள் பக்கத்தின் கீழே!</span>
+              <span className="text-[9px] text-indigo-100">விடைகள் கீழே!</span>
             </div>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-1.5">
               {riddles.slice(0, 6).map((r, idx) => (
-                <div key={idx} className="p-2 bg-indigo-50/80 border-l-4 border-indigo-700 rounded-r text-[10.6px] font-bold text-slate-950 leading-snug">
+                <div key={idx} className="p-1.5 bg-indigo-50/80 border-l-4 border-indigo-700 rounded-r text-[10px] font-bold text-slate-950 leading-tight">
                   {r.q}
                 </div>
               ))}
@@ -246,29 +246,29 @@ function DailyNewspaperPage({ page, editionName }) {
           </section>
 
           {/* 2. TWO MATH & LOGIC BRAIN PUZZLES + FOUR WORD CLUES */}
-          <div className="grid grid-cols-12 gap-3">
+          <div className="grid grid-cols-12 gap-2">
             {/* Left 7 Cols: 2 Math & Logic Puzzles */}
-            <div className="col-span-7 bg-white border-2 border-rose-800/75 rounded-lg p-3 flex flex-col gap-2">
-              <div className="bg-rose-700 text-white text-[10.5px] font-black px-2.5 py-0.5 rounded inline-block self-start">
+            <div className="col-span-7 bg-white border-2 border-rose-800/75 rounded-lg p-2 flex flex-col gap-1.5">
+              <div className="bg-rose-700 text-white text-[10px] font-black px-2 py-0.5 rounded inline-block self-start">
                 🔢 கணித &amp; தர்க்கப் புதிர்கள் (Math &amp; Logic Teasers)
               </div>
               {puzzles.slice(0, 2).map((pz, idx) => (
-                <div key={idx} className="bg-rose-50/70 border border-rose-200 rounded p-2">
-                  <span className="text-[9.5px] font-black text-rose-800 block mb-0.5">புதிர் #{idx + 1}: {pz.title}</span>
-                  <p className="text-[10.6px] font-extrabold text-slate-950 leading-snug">{pz.question}</p>
+                <div key={idx} className="bg-rose-50/70 border border-rose-200 rounded p-1.5">
+                  <span className="text-[9px] font-black text-rose-800 block mb-0.5">புதிர் #{idx + 1}: {pz.title}</span>
+                  <p className="text-[10px] font-extrabold text-slate-950 leading-tight">{pz.question}</p>
                 </div>
               ))}
             </div>
 
             {/* Right 5 Cols: 4 Tamil Word Games */}
-            <div className="col-span-5 bg-white border-2 border-amber-700/75 rounded-lg p-3 flex flex-col justify-between">
+            <div className="col-span-5 bg-white border-2 border-amber-700/75 rounded-lg p-2 flex flex-col justify-between">
               <div>
-                <div className="bg-amber-700 text-white text-[10.5px] font-black px-2.5 py-0.5 rounded inline-block mb-2">
+                <div className="bg-amber-700 text-white text-[10px] font-black px-2 py-0.5 rounded inline-block mb-1.5">
                   🔤 தமிழ் வார்த்தை விளையாட்டு
                 </div>
-                <div className="space-y-1.5">
+                <div className="space-y-1">
                   {wordGames.slice(0, 4).map((wg, idx) => (
-                    <div key={idx} className="bg-amber-50 border border-amber-300 rounded px-2 py-1.5 text-[10.2px] font-bold text-slate-950 leading-snug">
+                    <div key={idx} className="bg-amber-50 border border-amber-300 rounded px-1.5 py-1 text-[9.8px] font-bold text-slate-950 leading-tight">
                       {wg.clue}
                     </div>
                   ))}
@@ -278,15 +278,15 @@ function DailyNewspaperPage({ page, editionName }) {
           </div>
 
           {/* 3. FIVE DAILY GK QUIZ QUESTIONS (TNPSC & School Students Special!) */}
-          <section className="bg-white border-2 border-purple-800/75 rounded-lg p-3 shadow-sm flex-1 flex flex-col justify-between overflow-hidden">
+          <section className="bg-white border-2 border-purple-800/75 rounded-lg p-2 shadow-sm flex-1 flex flex-col justify-between overflow-hidden">
             <div>
-              <div className="bg-purple-800 text-amber-200 text-[10.8px] font-black px-3 py-1 rounded mb-2 flex items-center justify-between">
+              <div className="bg-purple-800 text-amber-200 text-[10.2px] font-black px-2.5 py-0.5 rounded mb-1.5 flex items-center justify-between">
                 <span>🎯 இன்றைய பொது அறிவு வினாடி வினா (Daily GK &amp; TNPSC Quiz — 5 கேள்விகள்)</span>
-                <span className="text-[9px] text-purple-100">மாணவர் &amp; போட்டித் தேர்வுச் சிறப்பு</span>
+                <span className="text-[8.5px] text-purple-100">மாணவர் சிறப்பு</span>
               </div>
-              <div className="space-y-1.5">
+              <div className="space-y-1">
                 {gkQuiz.slice(0, 5).map((q, idx) => (
-                  <div key={idx} className="bg-purple-50/70 border-l-3 border-purple-700 px-2.5 py-1.5 rounded-r text-[10.5px] font-extrabold text-slate-950 leading-snug">
+                  <div key={idx} className="bg-purple-50/70 border-l-3 border-purple-700 px-2 py-1 rounded-r text-[10px] font-extrabold text-slate-950 leading-tight">
                     {q.q || q.question}
                   </div>
                 ))}
@@ -294,13 +294,13 @@ function DailyNewspaperPage({ page, editionName }) {
             </div>
 
             {/* 4. THREE DAILY HEALTH & LIFESTYLE TIPS */}
-            <div className="mt-2 pt-2 border-t border-lime-300 bg-lime-50 rounded-md p-2 border border-lime-500/50">
-              <span className="text-[10px] font-black text-lime-900 block mb-1">
+            <div className="mt-1.5 pt-1.5 border-t border-lime-300 bg-lime-50 rounded-md p-1.5 border border-lime-500/50">
+              <span className="text-[9.5px] font-black text-lime-900 block mb-0.5">
                 🌿 இன்றைய ஆரோக்கியம் &amp; வாழ்வியல் குறிப்புகள் (Daily Health Tips)
               </span>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-3 gap-1.5">
                 {healthTips.slice(0, 3).map((tip, idx) => (
-                  <div key={idx} className="bg-white border border-lime-300 rounded p-1.5 text-[9.4px] leading-snug text-slate-800 font-semibold">
+                  <div key={idx} className="bg-white border border-lime-300 rounded p-1 text-[9px] leading-tight text-slate-800 font-semibold">
                     • {tip}
                   </div>
                 ))}
@@ -309,11 +309,11 @@ function DailyNewspaperPage({ page, editionName }) {
           </section>
 
           {/* 5. COMPLETE ANSWERS KEY BOX AT BOTTOM */}
-          <div className="bg-slate-900 text-white rounded-lg px-3.5 py-2 border-2 border-amber-400">
-            <div className="text-[9.5px] font-black text-amber-300 uppercase tracking-wider mb-1">
+          <div className="bg-slate-900 text-white rounded-lg px-3 py-1.5 border-2 border-amber-400">
+            <div className="text-[9px] font-black text-amber-300 uppercase tracking-wider mb-0.5">
               ✅ இன்றைய முழுமையான விடைகள் பெட்டி (Complete Answers Key):
             </div>
-            <div className="space-y-0.5 text-[9px] text-slate-100 leading-snug">
+            <div className="space-y-0.5 text-[8.5px] text-slate-100 leading-tight">
               <div>
                 <b className="text-amber-300">விடுகதைகள்:</b>{' '}
                 {riddles.map((r, i) => `(${i + 1}) ${r.a}`).join(' • ')}

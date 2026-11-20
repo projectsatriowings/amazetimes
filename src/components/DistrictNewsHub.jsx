@@ -148,16 +148,16 @@ export default function DistrictNewsHub({ articles = [], onOpenArticle, onOpenEP
     };
   }, [normalizedArticles, activeDistrictKey]);
 
-  // Final cards to display: direct matches first. If fewer than 4, append related TN news so grid is always complete
+  // Final cards to display: direct matches first. If fewer than 8, append related TN news so grid is always complete
   const displayList = useMemo(() => {
     if (activeDistrictKey === 'all') {
       return directMatches;
     }
-    if (directMatches.length >= 4) {
+    if (directMatches.length >= 8) {
       return directMatches;
     }
-    // Blend with related state news to guarantee minimum 4 cards with clear badges
-    const needed = Math.max(0, 4 - directMatches.length);
+    // Blend with related state news to guarantee minimum 8 cards with clear badges
+    const needed = Math.max(0, 8 - directMatches.length);
     return [...directMatches, ...relatedMatches.slice(0, needed)];
   }, [directMatches, relatedMatches, activeDistrictKey]);
 

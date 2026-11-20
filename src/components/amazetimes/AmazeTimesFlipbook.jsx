@@ -155,8 +155,8 @@ export default function AmazeTimesFlipbook({
   // Active static spread (when not flipping)
   const activeSpread = getSpreadForPage(pages, displayedPage, totalPages, isDualPageMode);
 
-  // Stage dimensions: In dual mode, stage is always 1596px dual-page; in single mode, 794px
-  const stageIsSpread = isDualPageMode;
+  // Stage dimensions: In dual mode with an actual 2-page spread, stage is 1596px; for cover or single page, 794px
+  const stageIsSpread = isDualPageMode && activeSpread.showingSpread;
   const baseWidth = stageIsSpread ? 794 * 2 + 8 : 794;
   const baseHeight = 1123;
 
