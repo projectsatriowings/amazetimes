@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
-  ChevronLeft, ChevronRight, Scissors, ShieldAlert
+  ChevronLeft, ChevronRight, Scissors, ShieldAlert, Sparkles, Newspaper, BookOpen, Calendar, ShieldCheck, RotateCcw
 } from 'lucide-react';
 import AmazeTimesPageRenderer from './AmazeTimesPageRenderer';
 
@@ -378,58 +378,170 @@ export default function AmazeTimesFlipbook({
     );
   };
 
-  // Elegant Book Cover Board for closed front cover (left side on Page 1) and back cover (right side on last page)
+  // Prestigious Hardcover Board for closed front cover (left side on Page 1) and back cover (right side on last page)
   const renderCoverBoard = (side = 'front') => {
+    const dateLabel = pages[0]?.editionDateFormatted || new Date().toLocaleDateString('ta-IN', { day: 'numeric', month: 'long', year: 'numeric' });
+    const isFront = side === 'front';
+
     return (
       <div
-        className={`w-[794px] h-[1123px] flex-shrink-0 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex flex-col items-center justify-center p-12 text-center select-none relative overflow-hidden ${
-          side === 'front' ? 'border-r border-slate-800/80' : 'border-l border-slate-800/80'
+        className={`w-[794px] h-[1123px] flex-shrink-0 bg-gradient-to-b from-[#070b14] via-[#0d1527] to-[#060a12] flex flex-col items-center justify-between p-12 text-center select-none relative overflow-hidden ${
+          isFront ? 'border-r-2 border-slate-800/90' : 'border-l-2 border-slate-800/90'
         }`}
       >
-        <div className="absolute inset-0 opacity-[0.035] pointer-events-none flex items-center justify-center">
-          <div className="w-[500px] h-[500px] rounded-full border-[28px] border-amber-400" />
+        {/* Elegant Broadsheet Double Gold Border */}
+        <div className="absolute inset-5 border-2 border-amber-500/25 rounded-2xl pointer-events-none" />
+        <div className="absolute inset-7 border border-amber-500/15 rounded-xl pointer-events-none" />
+
+        {/* Ornate Corner Accents */}
+        <div className="absolute top-8 left-8 text-amber-400/40 text-base select-none pointer-events-none font-serif">❖</div>
+        <div className="absolute top-8 right-8 text-amber-400/40 text-base select-none pointer-events-none font-serif">❖</div>
+        <div className="absolute bottom-8 left-8 text-amber-400/40 text-base select-none pointer-events-none font-serif">❖</div>
+        <div className="absolute bottom-8 right-8 text-amber-400/40 text-base select-none pointer-events-none font-serif">❖</div>
+
+        {/* Subtle Watermark Texture */}
+        <div className="absolute inset-0 opacity-[0.03] pointer-events-none flex items-center justify-center">
+          <div className="w-[580px] h-[580px] rounded-full border-[36px] border-amber-400" />
         </div>
 
-        <div className="w-24 h-24 rounded-3xl bg-gradient-to-tr from-amber-500/25 to-amber-300/10 border-2 border-amber-400/40 flex items-center justify-center mb-6 shadow-2xl backdrop-blur-md">
-          <span className="font-serif text-5xl font-black text-amber-400">அ</span>
+        {/* 1. TOP HEADER RIBBON */}
+        <div className="relative z-10 w-full pt-3 flex flex-col items-center">
+          <div className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-slate-900/90 border border-amber-400/30 text-[11px] font-bold text-amber-300 tracking-wider uppercase shadow-md">
+            <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+            <span>அமேஸ் டைம்ஸ் அதிகாரப்பூர்வ டிஜிட்டல் பதிப்பு</span>
+          </div>
+          <div className="text-[11px] text-slate-400 font-tamil mt-2">
+            {editionName || 'தமிழ்நாடு முதன்மைப் பதிப்பு'} • {dateLabel}
+          </div>
         </div>
 
-        <h2 className="text-3xl font-black text-amber-400 tracking-wide mb-2 font-tamil">
-          அமேஸ் டைம்ஸ்
-        </h2>
-        <p className="text-sm font-bold text-slate-300 tracking-widest uppercase mb-4">
-          Amaze Times Media Network
-        </p>
+        {/* 2. HERO BRAND CENTERPIECE (PROPER AMAZE TIMES LOGO) */}
+        <div className="relative z-10 w-full flex flex-col items-center my-auto">
+          {/* Logo Card with Glow */}
+          <div className="relative mb-5 flex items-center justify-center">
+            <div className="absolute -inset-4 bg-gradient-to-tr from-amber-500/20 via-red-600/15 to-transparent rounded-3xl blur-2xl pointer-events-none" />
+            <div className="relative px-6 py-4 rounded-2xl bg-slate-900/95 border-2 border-amber-400/35 shadow-[0_15px_35px_rgba(0,0,0,0.85)] flex items-center justify-center backdrop-blur-md">
+              <img
+                src="/amaze-times-logo.webp"
+                alt="அமேஸ் டைம்ஸ்"
+                className="h-24 w-auto object-contain drop-shadow-[0_10px_20px_rgba(0,0,0,0.9)]"
+                onError={(e) => { e.currentTarget.src = '/Amaze times.jpg'; }}
+              />
+            </div>
+          </div>
 
-        <div className="h-0.5 w-36 bg-gradient-to-r from-transparent via-amber-400/60 to-transparent mb-6" />
+          <h1 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-amber-400 to-amber-100 tracking-wide font-tamil mb-1 drop-shadow-md">
+            அமேஸ் டைம்ஸ்
+          </h1>
+          <p className="text-xs font-black tracking-[0.22em] text-slate-300 uppercase mb-3 font-sans">
+            AMAZE TIMES MEDIA NETWORK
+          </p>
 
-        <div className="inline-flex items-center gap-2 bg-slate-900/90 border border-amber-500/30 px-5 py-2.5 rounded-full text-xs font-semibold text-amber-300/90 mb-8 shadow-lg">
-          <span>{publicationType === 'magazine' ? 'மாதாந்திர இதழ் • Monthly Magazine' : 'தினசரி மின்-நாளிதழ் • Daily E-Paper'}</span>
+          <div className="flex items-center justify-center gap-3 w-full max-w-xs mb-5">
+            <div className="h-px flex-1 bg-gradient-to-r from-transparent via-amber-400/50 to-transparent" />
+            <span className="text-amber-400 text-xs">❖</span>
+            <div className="h-px flex-1 bg-gradient-to-r from-transparent via-amber-400/50 to-transparent" />
+          </div>
+
+          <div className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-gradient-to-r from-amber-500/15 via-amber-400/25 to-amber-500/15 border border-amber-400/40 text-amber-300 font-bold text-xs mb-7 shadow-lg backdrop-blur-sm">
+            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+            <span>{publicationType === 'magazine' ? 'மாதாந்திர இதழ் • Monthly Magazine' : 'தினசரி மின்-நாளிதழ் • Daily E-Paper'}</span>
+            <span className="text-amber-400/60">•</span>
+            <span>{totalPages} பக்கங்கள்</span>
+          </div>
+
+          {/* 3. FOUR HIGHLIGHTS CARDS (NEAT FILLED 2x2 GRID) */}
+          {isFront ? (
+            <div className="grid grid-cols-2 gap-3.5 w-full max-w-lg mb-7 text-left">
+              <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800/90 shadow-lg flex items-start gap-3">
+                <div className="w-9 h-9 rounded-lg bg-red-600/20 border border-red-500/30 flex items-center justify-center shrink-0 text-red-400">
+                  <Newspaper className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="text-xs font-black text-slate-100 font-tamil">{totalPages} சிறப்புப் பக்கங்கள்</div>
+                  <div className="text-[11px] text-slate-400 font-tamil leading-tight mt-0.5">முக்கிய அரசியல், தமிழ்நாடு & வணிகச் செய்திகள்</div>
+                </div>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800/90 shadow-lg flex items-start gap-3">
+                <div className="w-9 h-9 rounded-lg bg-amber-500/20 border border-amber-500/30 flex items-center justify-center shrink-0 text-amber-400">
+                  <Calendar className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="text-xs font-black text-slate-100 font-tamil">இன்றைய ராசிபலன்</div>
+                  <div className="text-[11px] text-slate-400 font-tamil leading-tight mt-0.5">12 ராசிகளின் பலன்கள் & பஞ்சாங்கம்</div>
+                </div>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800/90 shadow-lg flex items-start gap-3">
+                <div className="w-9 h-9 rounded-lg bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center shrink-0 text-emerald-400">
+                  <BookOpen className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="text-xs font-black text-slate-100 font-tamil">திருக்குறள் & சிறுகதை</div>
+                  <div className="text-[11px] text-slate-400 font-tamil leading-tight mt-0.5">அதிகார உரை, பழமொழிகள் & சிறுவர் கதை</div>
+                </div>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800/90 shadow-lg flex items-start gap-3">
+                <div className="w-9 h-9 rounded-lg bg-blue-500/20 border border-blue-500/30 flex items-center justify-center shrink-0 text-blue-400">
+                  <Sparkles className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="text-xs font-black text-slate-100 font-tamil">புதிர்கள் & விடுகதைகள்</div>
+                  <div className="text-[11px] text-slate-400 font-tamil leading-tight mt-0.5">மூளைக்கு வேலை, பொது அறிவு வினாடி வினா</div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="w-full max-w-md p-5 rounded-2xl bg-slate-900/80 border border-slate-800/90 shadow-xl mb-7 text-center">
+              <div className="text-amber-400 font-black text-base font-tamil mb-1.5">
+                வாசிப்புக்கு நன்றி! (Thank You)
+              </div>
+              <p className="text-xs text-slate-300 font-tamil leading-relaxed max-w-sm mx-auto">
+                இன்றைய பதிப்பின் அனைத்து 14 பக்கங்கள், பிரத்யேக சிறப்புச் செய்திகள், ராசிபலன் மற்றும் புதிர்கள் இத்துடன் நிறைவு பெறுகின்றன.
+              </p>
+            </div>
+          )}
+
+          {/* 4. PRIMARY ACTION BUTTON */}
+          {isFront ? (
+            <div className="w-full max-w-sm flex flex-col items-center">
+              <button
+                onClick={() => handlePageNavigation('next')}
+                className="group/cta flex items-center justify-center gap-3 w-full px-6 py-3.5 rounded-xl bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 hover:from-amber-400 hover:to-amber-300 text-slate-950 font-black text-sm tracking-wide transition-all shadow-[0_10px_30px_rgba(245,158,11,0.35)] hover:shadow-[0_15px_35px_rgba(245,158,11,0.5)] hover:scale-[1.02] cursor-pointer mb-2.5"
+              >
+                <span className="font-tamil">வாசிக்கத் தொடங்குக (பக்கம் 2)</span>
+                <ChevronRight className="w-4 h-4 group-hover/cta:translate-x-1 transition-transform" />
+              </button>
+              <div className="text-[11px] text-slate-400 font-tamil">
+                விசைப்பலகையின் ➔ (Right Arrow) அல்லது சுட்டியைப் பயன்படுத்தி பக்கத்தைத் திருப்பலாம்.
+              </div>
+            </div>
+          ) : (
+            <div className="w-full max-w-sm flex flex-col items-center">
+              <button
+                onClick={() => onPageChange(1)}
+                className="flex items-center justify-center gap-2.5 w-full px-6 py-3.5 rounded-xl bg-slate-800 hover:bg-amber-500 text-slate-100 hover:text-slate-950 font-black text-xs transition-colors shadow-xl cursor-pointer mb-2.5"
+              >
+                <RotateCcw className="w-4 h-4" />
+                <span className="font-tamil">முதல் பக்கத்திற்குத் திரும்புக (Front Cover)</span>
+              </button>
+              <div className="text-[11px] text-slate-400 font-tamil">
+                அமேஸ் டைம்ஸ் மின்-நாளிதழை தினமும் வாசிக்க amazetimes.com தளத்தைப் பார்வையிடவும்.
+              </div>
+            </div>
+          )}
         </div>
 
-        <p className="text-xs text-slate-400 max-w-sm leading-relaxed mb-6 font-tamil">
-          {side === 'front'
-            ? 'அமேஸ் டைம்ஸ் டிஜிட்டல் பதிப்பை வாசிக்க அடுத்த பக்கத்திற்கு செல்லவும்.'
-            : 'இன்றைய பதிப்பின் அனைத்து முக்கிய பக்கங்கள், பிரத்யேக செய்திகள் மற்றும் புதிர்கள் இத்துடன் நிறைவு பெறுகின்றன.'}
-        </p>
-
-        {side === 'front' ? (
-          <button
-            onClick={() => handlePageNavigation('next')}
-            className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs transition-transform hover:scale-105 shadow-xl cursor-pointer"
-          >
-            <span>வாசிக்கத் தொடங்குக (பக்கம் 2)</span>
-            <ChevronRight className="w-4 h-4" />
-          </button>
-        ) : (
-          <button
-            onClick={() => onPageChange(1)}
-            className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-slate-800 hover:bg-amber-500 text-slate-200 hover:text-slate-950 font-black text-xs transition-colors shadow-xl cursor-pointer"
-          >
-            <ChevronLeft className="w-4 h-4" />
-            <span>முதல் பக்கத்திற்குத் திரும்புக</span>
-          </button>
-        )}
+        {/* 5. FOOTER AUTHENTIC IMPRINT */}
+        <div className="relative z-10 w-full max-w-lg pt-4 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-500 font-tamil">
+          <div className="flex items-center gap-2 text-slate-400">
+            <ShieldCheck className="w-4 h-4 text-emerald-400" />
+            <span>அங்கீகரிக்கப்பட்ட டிஜிட்டல் மின்-நாளிதழ்</span>
+          </div>
+          <div className="text-slate-400">© 2026 அமேஸ் டைம்ஸ் மீடியா நெட்வொர்க்</div>
+        </div>
       </div>
     );
   };
