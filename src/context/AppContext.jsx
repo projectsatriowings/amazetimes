@@ -393,7 +393,7 @@ export const AppProvider = ({ children }) => {
 
     const connectSSE = () => {
       try {
-        const baseUrl = api.baseUrl || (import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:5000/api' : '/api'));
+        const baseUrl = api.baseUrl || import.meta.env.VITE_API_URL || '/api';
         const sseUrl = `${baseUrl}/news/live-stream`;
         eventSource = new EventSource(sseUrl);
 

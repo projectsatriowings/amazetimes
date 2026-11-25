@@ -27,7 +27,14 @@ const COVER_NEWS_COLUMNS_SQL = `
 const CACHE_TTL_MS = 120 * 1000; // 2 minutes RAM cache for instant sub-2ms repeat loads
 const enewspaperCache = new Map();
 const magazineCache = new Map();
-const archiveCoversCache = new Map();
+// Cache invalidation helpers
+export function clearArchiveCoversCache() {
+  archiveCoversCache.clear();
+}
+export function clearEnewspaperCache() {
+  enewspaperCache.clear();
+  archiveCoversCache.clear();
+}
 
 function getCachedValue(map, key) {
   const entry = map.get(key);
@@ -473,29 +480,55 @@ router.get('/enewspaper/archive-covers', async (req, res) => {
       return res.json(cached);
     }
 
+    const [y, m, d] = todayIst.split('-').map(Number);
+    const baseUtc = new Date(Date.UTC(y, m - 1, d));
+    const startDate = new Date(baseUtc.getTime() - (days + 4) * 86400000).toISOString().split('T')[0];
+    const endDate = todayIst;
+
+    // 1. Fetch custom saved editions from epaper_editions first
+    const editionsRes = await query(`
+      SELECT edition_date::text as edate, title, cover_image_url, lead_article_id
+      FROM epaper_editions
+      WHERE edition_date >= $1 AND edition_date <= $2
+    `, [startDate, endDate]);
+
+    const customEditions = {};
+    (editionsRes.rows || []).forEach(e => {
+      customEditions[e.edate] = e;
+    });
+
+    // 2. Fetch all published candidate articles across the entire date window with priority ordering
     const newsRes = await query(`
-      SELECT ${COVER_NEWS_COLUMNS_SQL}
+      SELECT id, title, category, main_image, is_lead_hero, is_breaking, is_top_story,
+             COALESCE(display_order, 0) as display_order,
+             (COALESCE(published_at, created_at) AT TIME ZONE 'Asia/Kolkata')::date::text as pdate
       FROM news
       WHERE status = 'published'
         AND main_image IS NOT NULL
         AND TRIM(main_image) != ''
         AND main_image != '/Amaze times.jpg'
+        AND (COALESCE(published_at, created_at) AT TIME ZONE 'Asia/Kolkata')::date >= $1
+        AND (COALESCE(published_at, created_at) AT TIME ZONE 'Asia/Kolkata')::date <= $2
       ORDER BY
-        (CASE WHEN is_lead_hero = true OR is_breaking = true THEN 1 ELSE 0 END) DESC,
+        (COALESCE(published_at, created_at) AT TIME ZONE 'Asia/Kolkata')::date DESC,
+        (CASE WHEN is_lead_hero = true THEN 3 WHEN is_breaking = true THEN 2 WHEN is_top_story = true THEN 1 ELSE 0 END) DESC,
+        COALESCE(display_order, 0) DESC,
         COALESCE(published_at, created_at) DESC
-      LIMIT 80
-    `);
+    `, [startDate, endDate]);
 
-    const pool = newsRes.rows.map(r => ({
-      id: String(r.id),
-      title: cleanPlainText(r.title),
-      category: r.category || 'தமிழ்நாடு',
-      image: ensureHttpsUrl(r.main_image || '/og-image.jpg'),
-      dateIst: getIstDateStr(r.published_at || r.created_at)
-    }));
+    // Group candidates by date
+    const byDate = {};
+    (newsRes.rows || []).forEach(r => {
+      if (!byDate[r.pdate]) byDate[r.pdate] = [];
+      byDate[r.pdate].push({
+        id: String(r.id),
+        title: cleanPlainText(r.title),
+        category: r.category || 'தமிழ்நாடு',
+        image: ensureHttpsUrl(r.main_image || '/og-image.jpg'),
+        dateIst: r.pdate
+      });
+    });
 
-    const [y, m, d] = todayIst.split('-').map(Number);
-    const baseUtc = new Date(Date.UTC(y, m - 1, d));
     const usedIds = new Set();
     const covers = {};
 
@@ -504,13 +537,33 @@ router.get('/enewspaper/archive-covers', async (req, res) => {
       const iso = dt.toISOString().split('T')[0];
       const sourceDate = subtractOneDayStr(iso);
 
-      // Strictly enforce <= iso: Past news is ok, NEVER future/newer news relative to that edition date!
-      let pick = pool.find(a => !usedIds.has(a.id) && (a.dateIst === sourceDate || a.dateIst === iso));
-      if (!pick) {
-        pick = pool.find(a => !usedIds.has(a.id) && a.dateIst <= iso);
+      // Check if admin has a saved custom edition with cover image
+      if (customEditions[iso] && customEditions[iso].cover_image_url && customEditions[iso].cover_image_url !== '/Amaze times.jpg') {
+        covers[iso] = {
+          articleId: `ed-${iso}`,
+          headline: customEditions[iso].title,
+          category: 'தினசரி இதழ்',
+          coverImage: ensureHttpsUrl(customEditions[iso].cover_image_url)
+        };
+        continue;
       }
+
+      // Try finding top article for sourceDate (D-1 news for D edition) or same day (iso)
+      const dayCandidates = [
+        ...(byDate[sourceDate] || []),
+        ...(byDate[iso] || [])
+      ];
+
+      let pick = dayCandidates.find(a => !usedIds.has(a.id));
+
+      // If that day has no unused candidates, search nearest past days (up to 7 days back)
       if (!pick) {
-        pick = pool.find(a => a.dateIst <= iso);
+        for (let back = 2; back <= 7; back++) {
+          const pastDate = new Date(dt.getTime() - back * 86400000).toISOString().split('T')[0];
+          const pastList = byDate[pastDate] || [];
+          pick = pastList.find(a => !usedIds.has(a.id));
+          if (pick) break;
+        }
       }
 
       if (pick) {
@@ -526,7 +579,7 @@ router.get('/enewspaper/archive-covers', async (req, res) => {
           articleId: `arch-${iso}`,
           headline: `அமேஸ் டைம்ஸ் நாளிதழ் — ${formatDateDDMMYYYY(iso)}`,
           category: 'தமிழ்நாடு',
-          coverImage: '/Amaze times.jpg'
+          coverImage: '/og-image.jpg'
         };
       }
     }
@@ -573,7 +626,36 @@ router.get('/enewspaper', async (req, res) => {
       }
     }
 
-    // 1. Stories published for this edition:
+    // 1. Check if admin configured custom article order for this edition
+    let customOrderedArticles = null;
+    let customLeadArticleId = null;
+    try {
+      const edConfigRes = await query(
+        'SELECT article_order, lead_article_id FROM epaper_editions WHERE edition_date = $1 LIMIT 1',
+        [editionDate]
+      );
+      if (edConfigRes.rows.length > 0) {
+        const row = edConfigRes.rows[0];
+        customLeadArticleId = row.lead_article_id;
+        const ord = row.article_order;
+        if (Array.isArray(ord) && ord.length > 0) {
+          const ids = ord.map(Number).filter(Boolean);
+          if (ids.length > 0) {
+            const ordRes = await query(`
+              SELECT ${PRINT_NEWS_COLUMNS_SQL} FROM news
+              WHERE id = ANY($1::int[]) AND status = 'published'
+            `, [ids]);
+            const ordMap = new Map();
+            ordRes.rows.forEach(r => ordMap.set(r.id, formatForPrint(formatNewsRow(r))));
+            customOrderedArticles = ids.map(id => ordMap.get(id)).filter(Boolean);
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Custom epaper edition lookup error:', e.message);
+    }
+
+    // 2. Stories published for this edition:
     // Today's paper loads news published TODAY (editionDate) + yesterday (sourceNewsDate).
     // Past paper strictly loads news published on or before that edition's date!
     const exactRes = await query(`
@@ -588,7 +670,26 @@ router.get('/enewspaper', async (req, res) => {
         is_lead_hero DESC, is_top_story DESC, is_breaking DESC, COALESCE(views_count, 0) DESC, COALESCE(published_at, created_at) DESC
     `, [sourceNewsDate, editionDate]);
 
-    const exactArticles = exactRes.rows.map(formatNewsRow).map(formatForPrint);
+    const queriedArticles = exactRes.rows.map(formatNewsRow).map(formatForPrint);
+    let exactArticles = queriedArticles;
+
+    if (customOrderedArticles && customOrderedArticles.length > 0) {
+      // Merge admin's ordered articles first, then any other exact articles
+      const customSet = new Set(customOrderedArticles.map(a => String(a.id)));
+      const remaining = queriedArticles.filter(a => !customSet.has(String(a.id)));
+      exactArticles = [...customOrderedArticles, ...remaining];
+    }
+
+    if (customLeadArticleId) {
+      const leadIdx = exactArticles.findIndex(a => Number(a.id) === Number(customLeadArticleId));
+      if (leadIdx > 0) {
+        const [lead] = exactArticles.splice(leadIdx, 1);
+        lead.isLeadHero = true;
+        lead.is_lead_hero = true;
+        exactArticles.unshift(lead);
+      }
+    }
+
     const exactSourceCount = exactArticles.length;
 
     // 2. Partitioned Query strictly up to editionDate: Past news is ok as filler, NEVER newer/present news!
@@ -853,6 +954,17 @@ router.get('/enewspaper', async (req, res) => {
       success: true,
       publication,
       pages,
+      articles: allPool.map(a => ({
+        id: a.id,
+        title: a.title,
+        category: a.category,
+        subCategory: a.subCategory,
+        district: a.district,
+        image: a.image,
+        isLeadHero: Boolean(a.isLeadHero || a.is_lead_hero),
+        publishedAt: a.publishedAt,
+        viewsCount: a.viewsCount
+      })),
       availableDates: archiveDates.length > 0 ? archiveDates : [todayIst],
       availableEditions: [
         { code: 'main', label: 'தமிழ்நாடு முதன்மைப் பதிப்பு (Main Edition)' },
@@ -1122,11 +1234,14 @@ router.get('/magazine', async (req, res) => {
     const extraContent = await getEditorialAndBlogStories();
     rankedArticles = [...rankedArticles, ...extraContent];
 
-    // If Admin specifically selected stories, prioritize them first
+    // If Admin specifically selected stories, prioritize them in exact chosen order first
     if (Array.isArray(activeMag.selectedArticleIds) && activeMag.selectedArticleIds.length > 0) {
-      const selectedSet = new Set(activeMag.selectedArticleIds.map(String));
-      const picked = rankedArticles.filter(a => selectedSet.has(String(a.id)));
-      const rest = rankedArticles.filter(a => !selectedSet.has(String(a.id)));
+      const articleMap = new Map(rankedArticles.map(a => [String(a.id), a]));
+      const picked = activeMag.selectedArticleIds
+        .map(id => articleMap.get(String(id)))
+        .filter(Boolean);
+      const pickedSet = new Set(picked.map(a => String(a.id)));
+      const rest = rankedArticles.filter(a => !pickedSet.has(String(a.id)));
       rankedArticles = [...picked, ...rest];
     }
 

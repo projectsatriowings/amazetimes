@@ -1,6 +1,7 @@
 import express from 'express';
 import { query } from '../db.js';
 import { authenticate, requireAdmin } from '../middleware/auth.js';
+import { clearEnewspaperCache } from './amazetimesReader.js';
 
 const router = express.Router();
 
@@ -18,6 +19,10 @@ const formatEpaperRow = (r) => ({
   pagesCount: r.page_count,
   file_size_mb: r.file_size_mb,
   fileSize: r.file_size_mb ? `${r.file_size_mb} MB` : '12.4 MB',
+  article_order: r.article_order || [],
+  articleOrder: r.article_order || [],
+  lead_article_id: r.lead_article_id || null,
+  leadArticleId: r.lead_article_id || null,
   created_at: r.created_at
 });
 
@@ -25,7 +30,7 @@ const formatEpaperRow = (r) => ({
 router.get('/', async (req, res) => {
   try {
     const result = await query(
-      'SELECT id, title, edition_date, pdf_url, cover_image_url, page_count, file_size_mb, created_at FROM epaper_editions ORDER BY edition_date DESC LIMIT 50'
+      'SELECT id, title, edition_date, pdf_url, cover_image_url, page_count, file_size_mb, article_order, lead_article_id, created_at FROM epaper_editions ORDER BY edition_date DESC LIMIT 50'
     );
     const formatted = result.rows.map(formatEpaperRow);
     res.json({ success: true, data: formatted, editions: formatted, epapers: formatted });
@@ -38,7 +43,7 @@ router.get('/', async (req, res) => {
 router.get('/latest', async (req, res) => {
   try {
     const result = await query(
-      'SELECT id, title, edition_date, pdf_url, cover_image_url, page_count, file_size_mb, created_at FROM epaper_editions ORDER BY edition_date DESC LIMIT 1'
+      'SELECT id, title, edition_date, pdf_url, cover_image_url, page_count, file_size_mb, article_order, lead_article_id, created_at FROM epaper_editions ORDER BY edition_date DESC LIMIT 1'
     );
     if (result.rows.length === 0) {
       return res.status(404).json({ success: false, message: 'இ-பேப்பர் பதிப்பு கிடைக்கவில்லை' });
@@ -53,7 +58,7 @@ router.get('/latest', async (req, res) => {
 router.get('/archive', async (req, res) => {
   try {
     const result = await query(
-      'SELECT id, title, edition_date, pdf_url, cover_image_url, page_count, file_size_mb FROM epaper_editions ORDER BY edition_date DESC LIMIT 30'
+      'SELECT id, title, edition_date, pdf_url, cover_image_url, page_count, file_size_mb, article_order, lead_article_id FROM epaper_editions ORDER BY edition_date DESC LIMIT 30'
     );
     res.json({ success: true, editions: result.rows.map(formatEpaperRow) });
   } catch (error) {
@@ -71,18 +76,22 @@ router.post('/', authenticate, requireAdmin, async (req, res) => {
     const page_count = parseInt(req.body.page_count || req.body.pagesCount || 12, 10);
     const rawSize = req.body.file_size_mb || req.body.fileSize || '8.5';
     const file_size_mb = parseFloat(String(rawSize).replace(/[^0-9.]/g, '')) || 8.5;
+    const article_order = JSON.stringify(req.body.article_order || req.body.articleOrder || []);
+    const lead_article_id = req.body.lead_article_id || req.body.leadArticleId || null;
 
     if (!title || !edition_date) {
       return res.status(400).json({ success: false, message: 'தலைப்பு மற்றும் தேதி தேவை' });
     }
 
     const result = await query(`
-      INSERT INTO epaper_editions (title, edition_date, pdf_url, cover_image_url, page_count, file_size_mb, created_by)
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      INSERT INTO epaper_editions (title, edition_date, pdf_url, cover_image_url, page_count, file_size_mb, article_order, lead_article_id, created_by)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
       ON CONFLICT (edition_date) DO UPDATE
-      SET title = $1, pdf_url = $3, cover_image_url = $4, page_count = $5, file_size_mb = $6
+      SET title = $1, pdf_url = $3, cover_image_url = $4, page_count = $5, file_size_mb = $6, article_order = $7, lead_article_id = $8
       RETURNING *;
-    `, [title, edition_date, pdf_url, cover_image_url, page_count, file_size_mb, req.user?.id || null]);
+    `, [title, edition_date, pdf_url, cover_image_url, page_count, file_size_mb, article_order, lead_article_id, req.user?.id || null]);
+
+    clearEnewspaperCache();
 
     const row = formatEpaperRow(result.rows[0]);
     res.status(201).json({ success: true, message: 'இ-பேப்பர் பதிப்பு வெளியிடப்பட்டது', epaper: row, data: row });
@@ -102,6 +111,8 @@ router.put('/:id', authenticate, requireAdmin, async (req, res) => {
     const page_count = parseInt(req.body.page_count || req.body.pagesCount || 12, 10);
     const rawSize = req.body.file_size_mb || req.body.fileSize || '8.5';
     const file_size_mb = parseFloat(String(rawSize).replace(/[^0-9.]/g, '')) || 8.5;
+    const article_order = req.body.article_order || req.body.articleOrder ? JSON.stringify(req.body.article_order || req.body.articleOrder) : null;
+    const lead_article_id = req.body.lead_article_id || req.body.leadArticleId || null;
 
     const result = await query(`
       UPDATE epaper_editions
@@ -110,14 +121,19 @@ router.put('/:id', authenticate, requireAdmin, async (req, res) => {
           pdf_url = COALESCE($3, pdf_url),
           cover_image_url = COALESCE($4, cover_image_url),
           page_count = COALESCE($5, page_count),
-          file_size_mb = COALESCE($6, file_size_mb)
-      WHERE id = $7
+          file_size_mb = COALESCE($6, file_size_mb),
+          article_order = COALESCE($7, article_order),
+          lead_article_id = COALESCE($8, lead_article_id)
+      WHERE id = $9
       RETURNING *;
-    `, [title, edition_date, pdf_url, cover_image_url, page_count, file_size_mb, id]);
+    `, [title, edition_date, pdf_url, cover_image_url, page_count, file_size_mb, article_order, lead_article_id, id]);
 
     if (result.rows.length === 0) {
       return res.status(404).json({ success: false, message: 'பதிப்பு கிடைக்கவில்லை' });
     }
+
+    clearEnewspaperCache();
+
     const row = formatEpaperRow(result.rows[0]);
     res.json({ success: true, message: 'இ-பேப்பர் பதிப்பு புதுப்பிக்கப்பட்டது', epaper: row, data: row });
   } catch (error) {

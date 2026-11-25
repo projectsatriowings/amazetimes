@@ -15,6 +15,7 @@ import {
   invalidateNewsCache,
   registerSseClient
 } from '../services/newsCacheService.js';
+import { clearEnewspaperCache } from './amazetimesReader.js';
 
 const router = express.Router();
 
@@ -739,6 +740,51 @@ router.post('/:id/make-first', authenticate, requireReporterOrAdmin, async (req,
 
   } catch (err) {
     console.error('Error in make-first:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// PUT /api/news/reorder - Batch update news display order & priority flags
+router.put('/reorder', authenticate, requireReporterOrAdmin, async (req, res) => {
+  try {
+    const { items } = req.body;
+    if (!Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ success: false, message: 'வரிசைப்படுத்த வேண்டிய செய்திகளின் பட்டியல் தேவை' });
+    }
+
+    for (const item of items) {
+      const id = parseInt(item.id || item._id, 10);
+      if (!id) continue;
+      const order = parseInt(item.displayOrder !== undefined ? item.displayOrder : (item.display_order !== undefined ? item.display_order : item.order), 10) || 0;
+      const isLead = item.isLeadHero !== undefined ? Boolean(item.isLeadHero) : (item.is_lead_hero !== undefined ? Boolean(item.is_lead_hero) : undefined);
+      const isTop = item.isTopStory !== undefined ? Boolean(item.isTopStory) : (item.is_top_story !== undefined ? Boolean(item.is_top_story) : undefined);
+
+      if (isLead !== undefined || isTop !== undefined) {
+        await query(`
+          UPDATE news
+          SET display_order = $2,
+              is_lead_hero = COALESCE($3, is_lead_hero),
+              is_top_story = COALESCE($4, is_top_story)
+          WHERE id = $1
+        `, [id, order, isLead, isTop]);
+      } else {
+        await query(`
+          UPDATE news
+          SET display_order = $2
+          WHERE id = $1
+        `, [id, order]);
+      }
+    }
+
+    invalidateNewsCache('all');
+    clearEnewspaperCache();
+
+    res.json({
+      success: true,
+      message: 'செய்திகளின் புதிய வரிசை வெற்றிகரமாக சேமிக்கப்பட்டது!'
+    });
+  } catch (err) {
+    console.error('Error reordering news:', err);
     res.status(500).json({ success: false, message: err.message });
   }
 });

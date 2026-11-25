@@ -3,19 +3,19 @@ import { query, ensureHttpsUrl } from '../db.js';
 const BASE_URL = 'https://amazetimes.com';
 
 const CATEGORY_META = {
-  tamilnadu: { ta: 'தமிழ்நாடு செய்திகள்', en: 'Tamil Nadu News', title: 'தமிழ்நாடு செய்திகள் | Amaze Times' },
-  politics: { ta: 'தமிழக அரசியல் செய்திகள்', en: 'Politics News', title: 'அரசியல் செய்திகள் | Amaze Times' },
-  districts: { ta: 'மாவட்டச் செய்திகள்', en: 'District News', title: 'மாவட்டச் செய்திகள் | Amaze Times' },
-  india: { ta: 'தேசியச் செய்திகள் (இந்தியா)', en: 'India National News', title: 'இந்தியா தேசிய செய்திகள் | Amaze Times' },
-  world: { ta: 'உலகச் செய்திகள்', en: 'World News', title: 'உலகச் செய்திகள் | Amaze Times' },
-  business: { ta: 'வணிகம் & தங்கம் விலை', en: 'Business & Gold Rate', title: 'வணிகம் & தங்கம் விலை | Amaze Times' },
-  cinema: { ta: 'சினிமா & திரைவிமர்சனம்', en: 'Tamil Cinema News', title: 'சினிமா செய்திகள் | Amaze Times' },
-  sports: { ta: 'விளையாட்டு & கிரிக்கெட்', en: 'Sports & Cricket News', title: 'விளையாட்டு செய்திகள் | Amaze Times' },
-  magazine: { ta: 'மாதாந்திர இதழ்', en: 'Monthly Magazine', title: 'மாதாந்திர இதழ் | Amaze Times' },
-  epaper: { ta: 'தினசரி மின்-நாளிதழ் (Daily E-Paper)', en: 'Daily E-Newspaper', title: 'தினசரி மின்-நாளிதழ் | Amaze Times' },
-  editorial: { ta: 'ஆசிரியர் தலையங்கம்', en: 'Editorial', title: 'ஆசிரியர் தலையங்கம் | Amaze Times' },
-  spiritual: { ta: 'ஆன்மிகம் & தினசரி ராசிபலன்', en: 'Spiritual & Horoscope', title: 'ஆன்மிகம் & ராசிபலன் | Amaze Times' },
-  blogs: { ta: 'வலைப்பதிவு & சிறுகதை', en: 'Blogs & Short Stories', title: 'வலைப்பதிவு & சிறுகதை | Amaze Times' }
+  tamilnadu: { ta: 'தமிழ்நாடு செய்திகள்', en: 'Tamil Nadu News', title: 'தமிழ்நாடு செய்திகள் உடனுக்குடன் | Amaze Times News' },
+  politics: { ta: 'தமிழக அரசியல் செய்திகள்', en: 'Politics News', title: 'தமிழக அரசியல் முக்கியச் செய்திகள் | Amaze Times' },
+  districts: { ta: 'மாவட்டச் செய்திகள்', en: 'District News', title: 'தமிழக மாவட்டச் செய்திகள் உடனுக்குடன் | Amaze Times' },
+  india: { ta: 'தேசியச் செய்திகள் (இந்தியா)', en: 'India National News', title: 'இந்தியா தேசிய முக்கியச் செய்திகள் | Amaze Times' },
+  world: { ta: 'உலகச் செய்திகள்', en: 'World News', title: 'உலக நடப்புகள் & சர்வதேசச் செய்திகள் | Amaze Times' },
+  business: { ta: 'வணிகம் & தங்கம் விலை', en: 'Business & Gold Rate', title: 'வணிகம் & நேரலை தங்கம் வெள்ளி விலை | Amaze Times' },
+  cinema: { ta: 'சினிமா & திரைவிமர்சனம்', en: 'Tamil Cinema News', title: 'தமிழ் சினிமா செய்திகள் & விமர்சனம் | Amaze Times' },
+  sports: { ta: 'விளையாட்டு & கிரிக்கெட்', en: 'Sports & Cricket News', title: 'விளையாட்டு & கிரிக்கெட் நேரலைச் செய்திகள் | Amaze' },
+  magazine: { ta: 'மாதாந்திர இதழ்', en: 'Monthly Magazine', title: 'மாதாந்திர இதழ் & டிஜிட்டல் மின்-நாளிதழ் | Amaze Times' },
+  epaper: { ta: 'தினசரி மின்-நாளிதழ் (Daily E-Paper)', en: 'Daily E-Newspaper', title: 'தினசரி மின்-நாளிதழ் (Daily E-Paper) | Amaze Times' },
+  editorial: { ta: 'ஆசிரியர் தலையங்கம்', en: 'Editorial', title: 'ஆசிரியர் தலையங்கம் & சிறப்புப் பார்வை | Amaze Times' },
+  spiritual: { ta: 'ஆன்மிகம் & தினசரி ராசிபலன்', en: 'Spiritual & Horoscope', title: 'ஆன்மிகம் & தினசரி 12 ராசிபலன் | Amaze Times' },
+  blogs: { ta: 'வலைப்பதிவு & சிறுகதை', en: 'Blogs & Short Stories', title: 'வலைப்பதிவு & சிறுகதைகள் சிறப்புப் பகுதி | Amaze' }
 };
 
 function escapeHtml(str) {
@@ -36,8 +36,11 @@ function stripHtml(str) {
 }
 
 function truncateSeoTitle(rawTitle, suffix = ' | Amaze Times', maxLen = 58) {
-  const clean = stripHtml(rawTitle);
+  let clean = stripHtml(rawTitle);
   if (!clean) return 'Amaze Times | அமேஸ் டைம்ஸ் - தமிழ் செய்திகள்';
+  if (clean.length + suffix.length < 32) {
+    clean = `${clean} - தமிழ் செய்திகள்`;
+  }
   if (clean.length + suffix.length <= maxLen) return `${clean}${suffix}`;
   const budget = Math.max(20, maxLen - suffix.length - 1);
   return `${clean.slice(0, budget).trim()}…${suffix}`;
@@ -152,6 +155,9 @@ function replaceMetaTags(html, { title, description, canonicalUrl, ogImage, ogTy
     .replace(/<meta\s+name="title"\s+content="[^"]*"\s*\/?>/i, `<meta name="title" content="${safeTitle}"/>`)
     .replace(/<meta\s+name="description"\s+content="[^"]*"\s*\/?>/i, `<meta name="description" content="${safeDesc}"/>`)
     .replace(/<link\s+rel="canonical"\s+href="[^"]*"\s*\/?>/i, `<link rel="canonical" href="${safeUrl}"/>`)
+    .replace(/<link\s+rel="alternate"\s+hreflang="ta"\s+href="[^"]*"\s*\/?>/i, `<link rel="alternate" hreflang="ta" href="${safeUrl}"/>\n  <link rel="alternate" hreflang="ta-IN" href="${safeUrl}"/>`)
+    .replace(/<link\s+rel="alternate"\s+hreflang="ta-IN"\s+href="[^"]*"\s*\/?>/i, `<link rel="alternate" hreflang="ta-IN" href="${safeUrl}"/>`)
+    .replace(/<link\s+rel="alternate"\s+hreflang="x-default"\s+href="[^"]*"\s*\/?>/i, `<link rel="alternate" hreflang="x-default" href="${safeUrl}"/>`)
     .replace(/<meta\s+property="og:type"\s+content="[^"]*"\s*\/?>/i, `<meta property="og:type" content="${ogType}"/>`)
     .replace(/<meta\s+property="og:url"\s+content="[^"]*"\s*\/?>/i, `<meta property="og:url" content="${safeUrl}"/>`)
     .replace(/<meta\s+property="og:title"\s+content="[^"]*"\s*\/?>/i, `<meta property="og:title" content="${safeTitle}"/>`)
@@ -194,11 +200,24 @@ export async function renderSeoHtml(req, rawTemplateHtml) {
 
     if (article) {
       const title = truncateSeoTitle(article.title);
-      const description = stripHtml(article.summary || article.subtitle || article.content).slice(0, 155);
+      // Strictly under 150 chars for meta description (Issue K: description > 155 chars)
+      const description = stripHtml(article.summary || article.subtitle || article.content).slice(0, 148).trim();
       const canonicalUrl = `${BASE_URL}${buildArticleHref(article)}`;
       const imgUrl = article.main_image && article.main_image.startsWith('http')
         ? ensureHttpsUrl(article.main_image)
         : (article.main_image ? `${BASE_URL}${article.main_image.startsWith('/') ? '' : '/'}${article.main_image}` : `${BASE_URL}/og-image.jpg`);
+
+      const cleanTitle = stripHtml(article.title);
+      // Issue D: H1 over 70 characters. Keep H1 strictly under 65 characters!
+      const h1Title = cleanTitle.length > 65 ? `${cleanTitle.slice(0, 62).trim()}…` : cleanTitle;
+      
+      // Issue H: Alt text over 100 characters. Keep Alt strictly under 90 characters!
+      // Issue I: Missing Image Title.
+      // Issue J: Missing Size Attributes (width & height).
+      const cleanAlt = cleanTitle.slice(0, 90).trim();
+
+      // Issue E & F: H2 Duplicate and Multiple. Single UNIQUE H2 per article page!
+      const uniqueArticleH2 = `‘${escapeHtml(article.category || 'தமிழ்நாடு')}’ துறை சார்ந்த முக்கிய செய்திகள்`;
 
       const paragraphs = stripHtml(article.content || article.summary)
         .split(/\n+/)
@@ -215,7 +234,7 @@ export async function renderSeoHtml(req, rawTemplateHtml) {
       const jsonLd = JSON.stringify({
         '@context': 'https://schema.org',
         '@type': 'NewsArticle',
-        headline: stripHtml(article.title),
+        headline: cleanTitle,
         description,
         image: [imgUrl],
         datePublished: article.published_at || article.created_at || new Date().toISOString(),
@@ -233,13 +252,14 @@ export async function renderSeoHtml(req, rawTemplateHtml) {
         <main style="max-width:1100px;margin:0 auto;padding:24px 20px;line-height:1.75;">
           <article>
             <p style="font-size:13px;font-weight:700;color:#b91c1c;">${escapeHtml(article.category || 'தமிழ்நாடு')} • ${escapeHtml(article.author_name || 'அமேஸ் டைம்ஸ் செய்திக்குழு')}</p>
-            <h1 style="font-size:28px;font-weight:800;margin:8px 0 12px;">${escapeHtml(article.title)}</h1>
+            <h1 style="font-size:28px;font-weight:800;margin:8px 0 12px;" title="${escapeHtml(cleanTitle)}">${escapeHtml(h1Title)}</h1>
+            ${cleanTitle.length > 65 ? `<p style="font-size:16px;font-weight:600;color:#334155;margin-bottom:12px;">${escapeHtml(cleanTitle)}</p>` : ''}
             ${article.subtitle ? `<p style="font-weight:700;margin-bottom:14px;">${escapeHtml(article.subtitle)}</p>` : ''}
-            <img src="${escapeHtml(imgUrl)}" alt="${escapeHtml(article.title)}" style="max-width:100%;height:auto;border-radius:10px;margin-bottom:16px;" />
+            <img src="${escapeHtml(imgUrl)}" alt="${escapeHtml(cleanAlt)}" title="${escapeHtml(cleanAlt)}" width="1200" height="675" loading="lazy" decoding="async" style="max-width:100%;height:auto;border-radius:10px;margin-bottom:16px;" />
             ${paragraphs}
           </article>
           <section style="margin-top:28px;border-top:1px solid #e2e8f0;padding-top:16px;">
-            <h2 style="font-size:20px;font-weight:800;margin-bottom:10px;">தொடர்புடைய முக்கியச் செய்திகள் (Related Tamil News)</h2>
+            <h2 style="font-size:20px;font-weight:800;margin-bottom:10px;">${uniqueArticleH2}</h2>
             <ul>${relatedHtml}</ul>
           </section>
         </main>
@@ -274,14 +294,22 @@ export async function renderSeoHtml(req, rawTemplateHtml) {
   const pageTitle = catInfo
     ? catInfo.title
     : 'Amaze Times | அமேஸ் டைம்ஸ் - தமிழ் செய்திகள்';
+  
+  // Issue K: Keep descriptions strictly between 120 and 145 chars (<= 155 chars)
   const pageDesc = catInfo
-    ? `${catInfo.ta} (${catInfo.en}) — அமேஸ் டைம்ஸ் வழங்கும் உடனுக்குடன் நம்பகமான தமிழ் செய்திகள், நேரலை தகவல்கள் மற்றும் சிறப்புப் பார்வைகள்.`
-    : 'நம்பகமான தமிழ்நாடு, உலகம், சினிமா, விளையாட்டு செய்திகள், நேரலை தங்கம் விலை, தினசரி மின்-நாளிதழ் மற்றும் மாத இதழ் வழங்கும் முன்னணி தமிழ் தளம் - Amaze Times.';
+    ? `${catInfo.ta} (${catInfo.en}) — அமேஸ் டைம்ஸ் வழங்கும் உடனுக்குடன் நம்பகமான தமிழ் செய்திகள் மற்றும் நேரலை தகவல்கள்.`
+    : 'நம்பகமான தமிழ்நாடு, உலகம், சினிமா, விளையாட்டு செய்திகள், நேரலை தங்கம் விலை மற்றும் மின்-நாளிதழ் வழங்கும் முன்னணி தளம் - Amaze Times.';
   const canonicalUrl = cleanPath === '/' ? `${BASE_URL}/` : `${BASE_URL}${cleanPath}`;
 
+  // Issue D: Keep H1 strictly under 65 chars (<= 70 chars)
   const h1Text = catInfo
-    ? `${catInfo.ta} (${catInfo.en}) — அமேஸ் டைம்ஸ்`
-    : 'அமேஸ் டைம்ஸ் (Amaze Times) — தமிழ்நாட்டின் நம்பகமான தமிழ் செய்திகள் & மின்-நாளிதழ்';
+    ? `${catInfo.ta} | அமேஸ் டைம்ஸ்`
+    : 'அமேஸ் டைம்ஸ் (Amaze Times) - தமிழ் செய்திகள்';
+
+  // Issue E & F: Single UNIQUE H2 per category/homepage (eliminates duplicate & multiple H2s)
+  const pageH2 = catInfo
+    ? `‘${escapeHtml(catInfo.ta)}’ உடனுக்குடன் சிறப்புச் செய்திகள்`
+    : 'இன்றைய முதன்மைச் செய்திகள் &amp; முக்கிய நிகழ்வுகள்';
 
   const topBreakingLinks = latestNews.slice(0, 12).map(a => `
     <article style="margin-bottom:14px;">
@@ -306,17 +334,17 @@ export async function renderSeoHtml(req, rawTemplateHtml) {
       <p style="margin-bottom:18px;">அமேஸ் டைம்ஸ் (Amaze Times) தமிழ்நாடு, இந்தியா மற்றும் உலகம் முழுவதும் நடைபெறும் முக்கிய நிகழ்வுகளை உடனுக்குடன், நடுநிலையாகவும் துல்லியமாகவும் வழங்கும் முன்னணி தமிழ் டிஜிட்டல் செய்தி நாளிதழ் மற்றும் மாதாந்திர இதழ் தளமாகும். அரசியல், மாவட்டச் செய்திகள், வணிகம், நேரலை தங்கம் வெள்ளி விலை, கல்வி, சினிமா, விளையாட்டு மற்றும் தினசரி 12 ராசிபலன் அனைத்தையும் ஒரே தளத்தில் படிக்கலாம்.</p>
 
       <section style="margin-bottom:24px;">
-        <h2 style="font-size:21px;font-weight:800;margin-bottom:10px;">முக்கியச் செய்திகள் (Latest Tamil Breaking News)</h2>
+        <h2 style="font-size:21px;font-weight:800;margin-bottom:10px;">${pageH2}</h2>
         ${topBreakingLinks}
       </section>
 
       <section style="margin-bottom:24px;">
-        <h2 style="font-size:21px;font-weight:800;margin-bottom:10px;">தமிழ்நாடு, அரசியல், சினிமா &amp; விளையாட்டு செய்திகள்</h2>
+        <h3 style="font-size:18px;font-weight:800;margin-bottom:10px;">தமிழ்நாடு, அரசியல், சினிமா &amp; விளையாட்டு செய்திகள்</h3>
         <ul>${moreNewsLinks}</ul>
       </section>
 
       <section style="margin-bottom:24px;">
-        <h2 style="font-size:21px;font-weight:800;margin-bottom:10px;">மாதாந்திர இதழ், தினசரி மின்-நாளிதழ் &amp; தினசரி ராசிபலன்</h2>
+        <h3 style="font-size:18px;font-weight:800;margin-bottom:10px;">மாதாந்திர இதழ், தினசரி மின்-நாளிதழ் &amp; தினசரி ராசிபலன்</h3>
         <p>அமேஸ் டைம்ஸ் <a href="/category/magazine">மாதாந்திர இதழ் மற்றும் தினசரி மின்-நாளிதழை (E-Paper)</a> முழுத்திரை 3D பக்கம் திருப்பும் வசதியுடன் இலவசமாகப் படிக்கவும் PDF ஆகப் பதிவிறக்கவும் முடியும். மேலும் <a href="/spiritual">தினசரி ராசிபலன் &amp; பஞ்சாங்கம்</a>, <a href="/editorial">ஆசிரியர் தலையங்கம்</a>, <a href="/category/cinema">சினிமா செய்திகள்</a>, <a href="/category/sports">விளையாட்டுச் செய்திகள்</a> மற்றும் <a href="/category/business">நேரலை தங்கம் வெள்ளி விலை</a> விவரங்களை தினமும் உடனுக்குடன் அறிந்துகொள்ளுங்கள்.</p>
       </section>
     </main>

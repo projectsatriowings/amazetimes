@@ -18,7 +18,10 @@ import {
   RefreshCw,
   Image as ImageIcon,
   Award,
-  Layers
+  Layers,
+  ArrowUp,
+  ArrowDown,
+  Star
 } from 'lucide-react';
 import { exportPublicationToPdf } from '../../utils/pdfExporter';
 import AmazeTimesPageRenderer from '../amazetimes/AmazeTimesPageRenderer';
@@ -108,6 +111,68 @@ export const AdminMagazineManager = () => {
     selectedArticleIds: [],
     mastheadConfig: { ...DEFAULT_MASTHEAD }
   });
+
+  // Story Sequence & Tab State
+  const [magazineStoryTab, setMagazineStoryTab] = useState('order'); // 'order' | 'pool'
+  const [candidateCategoryFilter, setCandidateCategoryFilter] = useState('all');
+  const [candidateSearchQuery, setCandidateSearchQuery] = useState('');
+
+  const moveMagazineArticleUp = (idx) => {
+    if (idx <= 0) return;
+    setForm(prev => {
+      const arr = [...prev.selectedArticleIds];
+      const temp = arr[idx];
+      arr[idx] = arr[idx - 1];
+      arr[idx - 1] = temp;
+      return { ...prev, selectedArticleIds: arr };
+    });
+  };
+
+  const moveMagazineArticleDown = (idx) => {
+    setForm(prev => {
+      if (idx >= prev.selectedArticleIds.length - 1) return prev;
+      const arr = [...prev.selectedArticleIds];
+      const temp = arr[idx];
+      arr[idx] = arr[idx + 1];
+      arr[idx + 1] = temp;
+      return { ...prev, selectedArticleIds: arr };
+    });
+  };
+
+  const setMagazineCoverStory = (cand) => {
+    setForm(prev => {
+      const filtered = prev.selectedArticleIds.filter(id => id !== cand.id);
+      return {
+        ...prev,
+        selectedArticleIds: [cand.id, ...filtered],
+        coverImage: cand.mainImage || prev.coverImage,
+        coverHeadline: cand.title || prev.coverHeadline
+      };
+    });
+    if (showToast) showToast(`'${cand.title?.slice(0, 30)}...' இதழின் அட்டைப்படக் கட்டுரையாக அமைக்கப்பட்டது!`);
+  };
+
+  const selectTopStoriesAcrossPillars = () => {
+    const pillars = ['தமிழ்நாடு', 'அரசியல்', 'இந்தியா', 'உலகம்', 'வணிகம்', 'கல்வி', 'சினிமா', 'விளையாட்டு'];
+    const chosen = [];
+    pillars.forEach(p => {
+      const matches = candidates.filter(c => (c.category || '').includes(p) || p.includes(c.category || ''));
+      matches.slice(0, 2).forEach(m => {
+        if (!chosen.includes(m.id)) chosen.push(m.id);
+      });
+    });
+    candidates.forEach(c => {
+      if (chosen.length < 16 && !chosen.includes(c.id)) {
+        chosen.push(c.id);
+      }
+    });
+    setForm(prev => ({
+      ...prev,
+      selectedArticleIds: chosen,
+      pagesCount: Math.max(8, Math.ceil(chosen.length / 2) + 1)
+    }));
+    if (showToast) showToast('8 முக்கியப் பிரிவுகளிலிருந்தும் சிறந்த செய்திகள் தேர்ந்தெடுக்கப்பட்டன!');
+  };
 
   // Load Last Month Best News Candidates
   const fetchBestNewsCandidates = useCallback(async (yr, mo) => {
@@ -808,53 +873,265 @@ export const AdminMagazineManager = () => {
                 </div>
               </div>
 
-              {/* CURATE LAST MONTH IMPORTANT NEWS FOR TEMPLATE */}
-              <div className="bg-slate-900/70 border border-slate-800 rounded-2xl p-4 space-y-2.5">
-                <div className="flex items-center justify-between">
-                  <h4 className="font-black text-white flex items-center gap-2 text-sm">
-                    <Layers className="w-4 h-4 text-emerald-400" />
-                    <span>இதழில் இடம்பெறும் முக்கியச் செய்திகள் ({form.selectedArticleIds.length} தேர்வு செய்யப்பட்டது)</span>
-                  </h4>
-                  <button
-                    type="button"
-                    onClick={() => setForm(prev => ({
-                      ...prev,
-                      selectedArticleIds: prev.selectedArticleIds.length > 0 ? [] : candidates.slice(0, 15).map(c => c.id)
-                    }))}
-                    className="text-[11px] font-bold text-amber-400 hover:underline cursor-pointer"
-                  >
-                    {form.selectedArticleIds.length > 0 ? 'அனைத்தையும் நீக்கு' : 'சிறந்த 15 செய்திகளைத் தேர்ந்தெடு'}
-                  </button>
+              {/* CURATE LAST MONTH IMPORTANT NEWS FOR TEMPLATE & MANAGE STORY ORDER */}
+              <div className="bg-slate-900/70 border border-slate-800 rounded-2xl p-4 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
+                  <div className="flex items-center gap-2">
+                    <Layers className="w-5 h-5 text-emerald-400" />
+                    <div>
+                      <h4 className="font-black text-white text-sm">
+                        இதழில் இடம்பெறும் முக்கியச் செய்திகள் &amp; வரிசை மேலாண்மை
+                      </h4>
+                      <p className="text-[11px] text-slate-400">
+                        தேர்ந்தெடுக்கப்பட்ட செய்திகள்: <strong className="text-amber-300">{form.selectedArticleIds.length}</strong> (பக்கங்கள்: ~{form.pagesCount})
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Tabs: Story Sequence vs Pick from Pool */}
+                  <div className="flex items-center gap-1.5 bg-[#050915] p-1 rounded-xl border border-slate-800">
+                    <button
+                      type="button"
+                      onClick={() => setMagazineStoryTab('order')}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-black cursor-pointer transition ${
+                        magazineStoryTab === 'order'
+                          ? 'bg-amber-500 text-slate-950 shadow'
+                          : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      📋 இதழ் வரிசை ({form.selectedArticleIds.length})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setMagazineStoryTab('pool')}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-black cursor-pointer transition ${
+                        magazineStoryTab === 'pool'
+                          ? 'bg-amber-500 text-slate-950 shadow'
+                          : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      ➕ செய்திகள் தேர்வு ({candidates.length})
+                    </button>
+                  </div>
                 </div>
 
-                <div className="max-h-48 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-2 pr-1">
-                  {candidates.map((cand) => {
-                    const checked = form.selectedArticleIds.includes(cand.id);
-                    return (
-                      <label
-                        key={cand.id}
-                        className={`flex items-start gap-2.5 p-2 rounded-xl border cursor-pointer transition text-xs ${
-                          checked
-                            ? 'bg-emerald-950/30 border-emerald-500/50 text-white'
-                            : 'bg-[#050915] border-slate-800 text-slate-400 hover:border-slate-700'
-                        }`}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={checked}
-                          onChange={() => toggleArticleSelection(cand.id)}
-                          className="mt-1 accent-emerald-500 cursor-pointer"
-                        />
-                        <div className="min-w-0 flex-1">
-                          <p className="font-bold line-clamp-2 leading-snug">{cand.title}</p>
-                          <span className="text-[10px] text-amber-400/90 font-semibold">
-                            {cand.category} • 👁 {cand.viewsCount || 0}
-                          </span>
-                        </div>
-                      </label>
-                    );
-                  })}
+                {/* Quick Selection Presets */}
+                <div className="flex flex-wrap items-center gap-2 text-xs">
+                  <button
+                    type="button"
+                    onClick={selectTopStoriesAcrossPillars}
+                    className="px-2.5 py-1 rounded-lg bg-emerald-950/60 hover:bg-emerald-900/80 text-emerald-300 border border-emerald-700/50 font-bold flex items-center gap-1 cursor-pointer transition"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                    <span>8 முக்கியப் பிரிவுகளிலிருந்தும் தேர்வு செய்க (8 Pillars)</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const top15 = candidates.slice(0, 15).map(c => c.id);
+                      setForm(prev => ({
+                        ...prev,
+                        selectedArticleIds: top15,
+                        pagesCount: Math.max(8, Math.ceil(top15.length / 2) + 1)
+                      }));
+                    }}
+                    className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 font-bold cursor-pointer transition"
+                  >
+                    சிறந்த 15 செய்திகள்
+                  </button>
+
+                  {form.selectedArticleIds.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setForm(prev => ({ ...prev, selectedArticleIds: [] }))}
+                      className="px-2.5 py-1 rounded-lg bg-red-950/40 hover:bg-red-900/60 text-red-300 border border-red-800/40 font-bold cursor-pointer transition ml-auto"
+                    >
+                      அனைத்தையும் நீக்கு
+                    </button>
+                  )}
                 </div>
+
+                {/* TAB 1: ORDER MANAGEMENT */}
+                {magazineStoryTab === 'order' && (
+                  <div className="space-y-2">
+                    {form.selectedArticleIds.length === 0 ? (
+                      <div className="py-8 text-center text-xs text-slate-500 border border-dashed border-slate-800 rounded-xl">
+                        செய்திகள் எதுவும் தேர்ந்தெடுக்கப்படவில்லை. 'செய்திகள் தேர்வு' தாவலுக்குச் சென்று சேர்க்கவும்.
+                      </div>
+                    ) : (
+                      <div className="max-h-64 overflow-y-auto space-y-2 pr-1">
+                        {form.selectedArticleIds.map((artId, idx) => {
+                          const cand = candidates.find(c => String(c.id) === String(artId));
+                          const isLeadCover = idx === 0;
+                          return (
+                            <div
+                              key={artId}
+                              className={`flex items-center justify-between gap-3 p-2.5 rounded-xl border transition ${
+                                isLeadCover
+                                  ? 'bg-amber-950/30 border-amber-500/60 shadow-md ring-1 ring-amber-500/30'
+                                  : 'bg-[#050915] border-slate-800 hover:border-slate-700'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                                <span className={`w-6 h-6 rounded-lg flex items-center justify-center font-black text-xs shrink-0 ${
+                                  isLeadCover ? 'bg-amber-500 text-slate-950' : 'bg-slate-800 text-slate-300'
+                                }`}>
+                                  {idx + 1}
+                                </span>
+
+                                {cand?.mainImage && (
+                                  <div className="w-12 h-9 rounded bg-slate-900 border border-slate-700 overflow-hidden shrink-0">
+                                    <img
+                                      src={getMediaUrl(cand.mainImage)}
+                                      alt=""
+                                      className="w-full h-full object-cover"
+                                      onError={(e) => { e.target.src = '/Amaze times.jpg'; }}
+                                    />
+                                  </div>
+                                )}
+
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex items-center gap-1.5 mb-0.5">
+                                    {cand?.category && (
+                                      <span className="text-[9px] bg-slate-800 text-amber-400 font-bold px-1.5 py-0.5 rounded">
+                                        {cand.category}
+                                      </span>
+                                    )}
+                                    {isLeadCover && (
+                                      <span className="text-[9px] bg-amber-500/20 text-amber-300 font-black px-1.5 py-0.5 rounded border border-amber-500/40 flex items-center gap-0.5">
+                                        <Star className="w-2.5 h-2.5 fill-amber-400 text-amber-400" /> அட்டைப்பட முதன்மைக் கட்டுரை
+                                      </span>
+                                    )}
+                                  </div>
+                                  <p className="font-bold text-xs text-white line-clamp-1">
+                                    {cand?.title || `செய்தி #${artId}`}
+                                  </p>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-1 shrink-0">
+                                <button
+                                  type="button"
+                                  onClick={() => moveMagazineArticleUp(idx)}
+                                  disabled={idx === 0}
+                                  title="மேலே நகர்த்து"
+                                  className="p-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition"
+                                >
+                                  <ArrowUp className="w-3.5 h-3.5" />
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() => moveMagazineArticleDown(idx)}
+                                  disabled={idx === form.selectedArticleIds.length - 1}
+                                  title="கீழே நகர்த்து"
+                                  className="p-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition"
+                                >
+                                  <ArrowDown className="w-3.5 h-3.5" />
+                                </button>
+
+                                {cand && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setMagazineCoverStory(cand)}
+                                    title="இதழின் அட்டைப்படக் கட்டுரையாக மாற்று"
+                                    className={`px-2 py-1 rounded-lg text-[10px] font-black flex items-center gap-1 cursor-pointer transition border ${
+                                      isLeadCover
+                                        ? 'bg-amber-500 text-slate-950 border-amber-400 shadow'
+                                        : 'bg-slate-800 hover:bg-amber-500/20 text-amber-300 border-slate-700'
+                                    }`}
+                                  >
+                                    <Star className={`w-3 h-3 ${isLeadCover ? 'fill-slate-950' : ''}`} />
+                                    <span>{isLeadCover ? 'அட்டைக்கட்டுரை' : 'அட்டை ஆக்கு'}</span>
+                                  </button>
+                                )}
+
+                                <button
+                                  type="button"
+                                  onClick={() => toggleArticleSelection(artId)}
+                                  title="இதழிலிருந்து நீக்கு"
+                                  className="p-1 rounded-lg bg-slate-800 hover:bg-red-900/60 text-slate-400 hover:text-red-300 cursor-pointer transition"
+                                >
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* TAB 2: CANDIDATE NEWS POOL */}
+                {magazineStoryTab === 'pool' && (
+                  <div className="space-y-2.5">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <div className="relative">
+                        <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                        <input
+                          type="text"
+                          placeholder="செய்தி தலைப்பில் தேட..."
+                          value={candidateSearchQuery}
+                          onChange={(e) => setCandidateSearchQuery(e.target.value)}
+                          className="w-full bg-[#050915] border border-slate-700 rounded-lg pl-8 pr-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-amber-500"
+                        />
+                      </div>
+
+                      <select
+                        value={candidateCategoryFilter}
+                        onChange={(e) => setCandidateCategoryFilter(e.target.value)}
+                        className="bg-[#050915] border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white font-bold"
+                      >
+                        <option value="all">அனைத்து பிரிவுகள் (All 8 Pillars)</option>
+                        <option value="தமிழ்நாடு">தமிழ்நாடு</option>
+                        <option value="அரசியல்">அரசியல்</option>
+                        <option value="இந்தியா">இந்தியா</option>
+                        <option value="உலகம்">உலகம்</option>
+                        <option value="வணிகம்">வணிகம்</option>
+                        <option value="கல்வி">கல்வி</option>
+                        <option value="சினிமா">சினிமா</option>
+                        <option value="விளையாட்டு">விளையாட்டு</option>
+                      </select>
+                    </div>
+
+                    <div className="max-h-56 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-2 pr-1">
+                      {candidates
+                        .filter(cand => {
+                          if (candidateCategoryFilter !== 'all' && cand.category !== candidateCategoryFilter) return false;
+                          if (!candidateSearchQuery.trim()) return true;
+                          return (cand.title || '').toLowerCase().includes(candidateSearchQuery.toLowerCase());
+                        })
+                        .map((cand) => {
+                          const checked = form.selectedArticleIds.includes(cand.id);
+                          return (
+                            <label
+                              key={cand.id}
+                              className={`flex items-start gap-2.5 p-2 rounded-xl border cursor-pointer transition text-xs ${
+                                checked
+                                  ? 'bg-emerald-950/30 border-emerald-500/50 text-white'
+                                  : 'bg-[#050915] border-slate-800 text-slate-400 hover:border-slate-700'
+                              }`}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={checked}
+                                onChange={() => toggleArticleSelection(cand.id)}
+                                className="mt-1 accent-emerald-500 cursor-pointer"
+                              />
+                              <div className="min-w-0 flex-1">
+                                <p className="font-bold line-clamp-2 leading-snug">{cand.title}</p>
+                                <span className="text-[10px] text-amber-400/90 font-semibold">
+                                  {cand.category} • 👁 {cand.viewsCount || 0}
+                                </span>
+                              </div>
+                            </label>
+                          );
+                        })}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* PAGE 1 MASTHEAD TEMPLATE SETTINGS ("அடுத்த தலைமுறை" Style Box) */}

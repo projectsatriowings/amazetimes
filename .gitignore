@@ -34,3 +34,7 @@ Thumbs.db
 # Temporary image caches
 public/news_images_307/
 public/news_images_pdf/
+
+# Local client export folders
+Amaze_Times_Curated_Magazine_39_Images/
+Amaze_Times_Curated_Magazine_Content/

@@ -122,7 +122,11 @@ import {
   Vote,
   Feather,
   Star,
-  MapPin
+  MapPin,
+  ArrowUp,
+  ArrowDown,
+  ArrowUpDown,
+  SlidersHorizontal
 } from 'lucide-react';
 
 const getArticleViews = (article) => {
@@ -149,6 +153,11 @@ export const AdminDashboard = () => {
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [districtFilter, setDistrictFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [dateFilter, setDateFilter] = useState('all'); // 'all' | 'today' | 'yesterday' | 'custom'
+  const [customFilterDate, setCustomFilterDate] = useState('');
+  const [sortOrder, setSortOrder] = useState('order'); // 'order' | 'newest' | 'views'
+  const [editedOrders, setEditedOrders] = useState({});
+  const [isSavingOrders, setIsSavingOrders] = useState(false);
 
   // Data States
   const [articles, setArticles] = useState([]);
@@ -536,7 +545,7 @@ export const AdminDashboard = () => {
     try {
       const res = await api.makeNewsFirst(id);
       if (res && res.success) {
-        showToast('செய்தி #1 முதன்மை இடத்திற்கு மாற்றப்பட்டது!');
+        showToast('செய்தி #1 முதன்மை இடத்திற்கு மாற்றப்பட்டது!', 'success');
         window.dispatchEvent(new CustomEvent('amaze:content_updated'));
         await loadAdminData();
         if (typeof fetchNews === 'function') fetchNews();
@@ -544,7 +553,81 @@ export const AdminDashboard = () => {
         throw new Error(res?.message || 'Failed');
       }
     } catch (e) {
-      showToast('பிழை: ' + e.message);
+      showToast('பிழை: ' + e.message, 'error');
+    }
+  };
+
+  const handleMoveArticleOrder = async (articleId, direction) => {
+    const list = getFilteredArticles();
+    const idx = list.findIndex(a => String(a.id || a._id) === String(articleId));
+    if (idx === -1) return;
+    const targetIdx = idx + direction;
+    if (targetIdx < 0 || targetIdx >= list.length) return;
+
+    const currentArt = list[idx];
+    const targetArt = list[targetIdx];
+
+    const currentOrder = parseInt(editedOrders[currentArt.id || currentArt._id] ?? (currentArt.displayOrder || currentArt.display_order || 0), 10);
+    const targetOrder = parseInt(editedOrders[targetArt.id || targetArt._id] ?? (targetArt.displayOrder || targetArt.display_order || 0), 10);
+
+    let newCurrentOrder = targetOrder;
+    let newTargetOrder = currentOrder;
+    if (newCurrentOrder === newTargetOrder) {
+      if (direction === -1) {
+        newCurrentOrder = targetOrder + 10;
+      } else {
+        newCurrentOrder = Math.max(0, targetOrder - 10);
+      }
+    }
+
+    try {
+      const itemsToUpdate = [
+        { id: currentArt.id || currentArt._id, displayOrder: newCurrentOrder },
+        { id: targetArt.id || targetArt._id, displayOrder: newTargetOrder }
+      ];
+      const res = await api.reorderNews(itemsToUpdate);
+      if (res && res.success) {
+        showToast('வரிசை மாற்றப்பட்டது!', 'success');
+        window.dispatchEvent(new CustomEvent('amaze:content_updated'));
+        await loadAdminData();
+      }
+    } catch (err) {
+      showToast('வரிசை மாற்றுவதில் பிழை: ' + err.message, 'error');
+    }
+  };
+
+  const handleOrderInputChange = (articleId, val) => {
+    setEditedOrders(prev => ({
+      ...prev,
+      [articleId]: val
+    }));
+  };
+
+  const handleSaveAllOrders = async () => {
+    const ids = Object.keys(editedOrders);
+    if (ids.length === 0) {
+      showToast('மாற்றப்பட்ட வரிசைகள் எதுவும் இல்லை', 'info');
+      return;
+    }
+    try {
+      setIsSavingOrders(true);
+      const items = ids.map(id => ({
+        id: parseInt(id, 10),
+        displayOrder: parseInt(editedOrders[id], 10) || 0
+      }));
+      const res = await api.reorderNews(items);
+      if (res && res.success) {
+        showToast('அனைத்து செய்திகளின் புதிய வரிசை வெற்றிகரமாக சேமிக்கப்பட்டது!', 'success');
+        setEditedOrders({});
+        window.dispatchEvent(new CustomEvent('amaze:content_updated'));
+        await loadAdminData();
+      } else {
+        showToast(res?.message || 'சேமிப்பதில் பிழை', 'error');
+      }
+    } catch (err) {
+      showToast('பிழை: ' + err.message, 'error');
+    } finally {
+      setIsSavingOrders(false);
     }
   };
 
@@ -782,9 +865,18 @@ export const AdminDashboard = () => {
     }
   };
 
-  // Filtered Articles for Newsghuru-style Table
+  // Filtered Articles for Newsghuru-style Table with Date Filtering & Sorting
   const getFilteredArticles = () => {
-    return articles.filter((art) => {
+    let todayIst = '';
+    let yesterdayIst = '';
+    try {
+      todayIst = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date());
+      yesterdayIst = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date(Date.now() - 86400000));
+    } catch {
+      todayIst = new Date().toISOString().split('T')[0];
+    }
+
+    const filtered = articles.filter((art) => {
       const artStatus = String(art.status || 'published').toLowerCase();
       
       // Tab filter
@@ -801,6 +893,20 @@ export const AdminDashboard = () => {
       }
       if (districtFilter !== 'all' && String(art.district || 'all').toLowerCase() !== String(districtFilter).toLowerCase()) return false;
 
+      // Date Filter
+      if (dateFilter !== 'all') {
+        const rawDate = art.publishedAt || art.published_at || art.createdAt || art.created_at;
+        let artDateIst = '';
+        try {
+          artDateIst = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date(rawDate));
+        } catch {
+          artDateIst = String(rawDate).split('T')[0];
+        }
+        if (dateFilter === 'today' && artDateIst !== todayIst) return false;
+        if (dateFilter === 'yesterday' && artDateIst !== yesterdayIst) return false;
+        if (dateFilter === 'custom' && customFilterDate && artDateIst !== customFilterDate) return false;
+      }
+
       // Search Filter
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
@@ -811,6 +917,22 @@ export const AdminDashboard = () => {
         return titleMatch || summaryMatch || authorMatch || catMatch;
       }
       return true;
+    });
+
+    return filtered.sort((a, b) => {
+      if (sortOrder === 'order') {
+        const orderA = parseInt(editedOrders[a.id || a._id] ?? (a.displayOrder || a.display_order || 0), 10);
+        const orderB = parseInt(editedOrders[b.id || b._id] ?? (b.displayOrder || b.display_order || 0), 10);
+        if (orderB !== orderA) return orderB - orderA;
+        return new Date(b.publishedAt || b.published_at || b.createdAt || 0) - new Date(a.publishedAt || a.published_at || a.createdAt || 0);
+      }
+      if (sortOrder === 'newest') {
+        return new Date(b.publishedAt || b.published_at || b.createdAt || 0) - new Date(a.publishedAt || a.published_at || a.createdAt || 0);
+      }
+      if (sortOrder === 'views') {
+        return (parseInt(b.viewsCount || 0, 10)) - (parseInt(a.viewsCount || 0, 10));
+      }
+      return 0;
     });
   };
 
@@ -1534,75 +1656,178 @@ export const AdminDashboard = () => {
               </div>
 
               {/* NEWSGHURU RICH FILTERS BAR */}
-              <div className="bg-[#0f172a] rounded-2xl border border-slate-800 p-4 shadow-xl flex flex-col md:flex-row items-center justify-between gap-4">
-                {/* Search Input */}
-                <div className="relative w-full md:w-80">
-                  <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
-                  <input
-                    type="text"
-                    placeholder="செய்தி தலைப்பு, நிருபர் தேடுக..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full bg-[#050915] border border-slate-700 focus:border-amber-500 rounded-xl pl-10 pr-4 py-2 text-xs text-white focus:outline-none"
-                  />
+              <div className="bg-[#0f172a] rounded-2xl border border-slate-800 p-4 shadow-xl space-y-3">
+                <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                  {/* Search Input */}
+                  <div className="relative w-full md:w-80">
+                    <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                    <input
+                      type="text"
+                      placeholder="செய்தி தலைப்பு, நிருபர் தேடுக..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full bg-[#050915] border border-slate-700 focus:border-amber-500 rounded-xl pl-10 pr-4 py-2 text-xs text-white focus:outline-none"
+                    />
+                  </div>
+
+                  {/* Dropdown Filters */}
+                  <div className="flex flex-wrap items-center gap-3 w-full md:w-auto text-xs">
+                    <select
+                      value={categoryFilter}
+                      onChange={(e) => setCategoryFilter(e.target.value)}
+                      className="bg-[#050915] border border-slate-700 rounded-xl px-3 py-2 text-slate-200 focus:outline-none font-tamil"
+                    >
+                      <option value="all">அனைத்து பிரிவுகள்</option>
+                      <option value="தமிழ்நாடு">தமிழ்நாடு</option>
+                      <option value="அரசியல்">அரசியல்</option>
+                      <option value="தேசியம்">தேசியம் (இந்தியா)</option>
+                      <option value="உலகம்">உலகம் (சர்வதேசம்)</option>
+                      <option value="வணிகம்">வணிகம்</option>
+                      <option value="ஆன்மிகம்">ஆன்மிகம்</option>
+                      <option value="தொழில்நுட்பம்">தொழில்நுட்பம்</option>
+                      <option value="விளையாட்டு">விளையாட்டு</option>
+                      <option value="சினிமா">சினிமா</option>
+                      <option value="தலையங்கம்">தலையங்கம்</option>
+                    </select>
+
+                    <select
+                      value={statusFilter}
+                      onChange={(e) => setStatusFilter(e.target.value)}
+                      className="bg-[#050915] border border-slate-700 rounded-xl px-3 py-2 text-slate-200 focus:outline-none"
+                    >
+                      <option value="all">அனைத்து நிலைகள்</option>
+                      <option value="published">Published</option>
+                      <option value="pending">Pending Approval</option>
+                      <option value="draft">Draft</option>
+                    </select>
+
+                    <select
+                      value={districtFilter}
+                      onChange={(e) => setDistrictFilter(e.target.value)}
+                      className="bg-[#050915] border border-slate-700 rounded-xl px-3 py-2 text-amber-300 font-bold focus:outline-none font-tamil"
+                    >
+                      <option value="all">அனைத்து மாவட்டங்கள்</option>
+                      {DISTRICT_LIST.filter(d => d !== 'அனைத்து மாவட்டங்கள்').map((d) => (
+                        <option key={d} value={d}>{d}</option>
+                      ))}
+                    </select>
+
+                    {/* Sort Order Selector */}
+                    <div className="flex items-center gap-1.5 bg-[#050915] border border-slate-700 rounded-xl px-2.5 py-1 text-slate-300">
+                      <ArrowUpDown className="w-3.5 h-3.5 text-amber-400" />
+                      <select
+                        value={sortOrder}
+                        onChange={(e) => setSortOrder(e.target.value)}
+                        className="bg-transparent text-amber-300 font-bold focus:outline-none cursor-pointer"
+                      >
+                        <option value="order" className="bg-slate-900 text-white">வரிசைப்படி (Custom Order #1, #2...)</option>
+                        <option value="newest" className="bg-slate-900 text-white">புதியவை முதலில் (Newest First)</option>
+                        <option value="views" className="bg-slate-900 text-white">அதிக பார்வை (Most Views)</option>
+                      </select>
+                    </div>
+                  </div>
                 </div>
 
-                {/* Dropdown Filters */}
-                <div className="flex flex-wrap items-center gap-3 w-full md:w-auto text-xs">
-                  <select
-                    value={categoryFilter}
-                    onChange={(e) => setCategoryFilter(e.target.value)}
-                    className="bg-[#050915] border border-slate-700 rounded-xl px-3 py-2 text-slate-200 focus:outline-none font-tamil"
-                  >
-                    <option value="all">அனைத்து பிரிவுகள்</option>
-                    <option value="தமிழ்நாடு">தமிழ்நாடு</option>
-                    <option value="அரசியல்">அரசியல்</option>
-                    <option value="தேசியம்">தேசியம் (இந்தியா)</option>
-                    <option value="உலகம்">உலகம் (சர்வதேசம்)</option>
-                    <option value="வணிகம்">வணிகம்</option>
-                    <option value="ஆன்மிகம்">ஆன்மிகம்</option>
-                    <option value="தொழில்நுட்பம்">தொழில்நுட்பம்</option>
-                    <option value="விளையாட்டு">விளையாட்டு</option>
-                    <option value="சினிமா">சினிமா</option>
-                    <option value="தலையங்கம்">தலையங்கம்</option>
-                  </select>
+                {/* Date Quick Filter Bar (Essential for daily news management) */}
+                <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-800/80 text-xs">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-slate-400 font-bold text-[11px] flex items-center gap-1">
+                      <Calendar className="w-3.5 h-3.5 text-amber-400" />
+                      <span>தேதி வாரியாக:</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => { setDateFilter('all'); setCustomFilterDate(''); }}
+                      className={`px-3 py-1 rounded-lg font-bold transition cursor-pointer text-xs ${
+                        dateFilter === 'all'
+                          ? 'bg-amber-500 text-slate-950 font-black shadow'
+                          : 'bg-slate-800/80 text-slate-300 hover:bg-slate-700'
+                      }`}
+                    >
+                      அனைத்து தேதிகள்
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setDateFilter('today'); setCustomFilterDate(''); }}
+                      className={`px-3 py-1 rounded-lg font-bold transition cursor-pointer text-xs ${
+                        dateFilter === 'today'
+                          ? 'bg-emerald-500 text-slate-950 font-black shadow'
+                          : 'bg-slate-800/80 text-emerald-300 hover:bg-slate-700'
+                      }`}
+                    >
+                      ★ இன்று (Today's News)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setDateFilter('yesterday'); setCustomFilterDate(''); }}
+                      className={`px-3 py-1 rounded-lg font-bold transition cursor-pointer text-xs ${
+                        dateFilter === 'yesterday'
+                          ? 'bg-sky-500 text-slate-950 font-black shadow'
+                          : 'bg-slate-800/80 text-sky-300 hover:bg-slate-700'
+                      }`}
+                    >
+                      நேற்று (Yesterday)
+                    </button>
+                    <div className="flex items-center gap-1.5 bg-[#050915] border border-slate-700 rounded-lg px-2 py-0.5">
+                      <span className="text-slate-400 text-[10px]">தேதி:</span>
+                      <input
+                        type="date"
+                        value={customFilterDate}
+                        onChange={(e) => {
+                          setCustomFilterDate(e.target.value);
+                          setDateFilter(e.target.value ? 'custom' : 'all');
+                        }}
+                        className="bg-transparent text-amber-300 text-xs font-bold focus:outline-none"
+                      />
+                    </div>
+                  </div>
 
-                  <select
-                    value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value)}
-                    className="bg-[#050915] border border-slate-700 rounded-xl px-3 py-2 text-slate-200 focus:outline-none"
-                  >
-                    <option value="all">அனைத்து நிலைகள்</option>
-                    <option value="published">Published</option>
-                    <option value="pending">Pending Approval</option>
-                    <option value="draft">Draft</option>
-                  </select>
-
-                  <select
-                    value={districtFilter}
-                    onChange={(e) => setDistrictFilter(e.target.value)}
-                    className="bg-[#050915] border border-slate-700 rounded-xl px-3 py-2 text-amber-300 font-bold focus:outline-none font-tamil"
-                  >
-                    <option value="all">அனைத்து மாவட்டங்கள்</option>
-                    {DISTRICT_LIST.filter(d => d !== 'அனைத்து மாவட்டங்கள்').map((d) => (
-                      <option key={d} value={d}>{d}</option>
-                    ))}
-                  </select>
+                  {/* Save Orders Button */}
+                  {Object.keys(editedOrders).length > 0 && (
+                    <button
+                      type="button"
+                      onClick={handleSaveAllOrders}
+                      disabled={isSavingOrders}
+                      className="px-4 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs shadow-lg flex items-center gap-1.5 cursor-pointer animate-pulse transition"
+                    >
+                      <Check className="w-4 h-4" />
+                      <span>{isSavingOrders ? 'சேமிக்கப்படுகிறது...' : `${Object.keys(editedOrders).length} புதிய வரிசைகளைச் சேமி (Save Order)`}</span>
+                    </button>
+                  )}
                 </div>
               </div>
 
               {/* RICH ALL NEWS TABLE */}
               <div className="bg-[#0f172a] rounded-2xl border border-slate-800 overflow-hidden shadow-xl">
-                <div className="p-4 border-b border-slate-800 flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wider font-tamil">
-                    மொத்த செய்திகள்: {getFilteredArticles().length} Items
-                  </span>
+                <div className="p-4 border-b border-slate-800 flex items-center justify-between flex-wrap gap-2">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider font-tamil">
+                      மொத்த செய்திகள்: <b className="text-amber-400">{getFilteredArticles().length}</b>
+                    </span>
+                    {dateFilter !== 'all' && (
+                      <span className="bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded text-[11px] font-bold">
+                        தேதி வடிகட்டி: {dateFilter === 'today' ? 'இன்று' : (dateFilter === 'yesterday' ? 'நேற்று' : customFilterDate)}
+                      </span>
+                    )}
+                  </div>
+                  {Object.keys(editedOrders).length > 0 && (
+                    <button
+                      type="button"
+                      onClick={handleSaveAllOrders}
+                      disabled={isSavingOrders}
+                      className="px-3.5 py-1.5 rounded-lg bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs shadow flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Check className="w-3.5 h-3.5" />
+                      <span>வரிசையைச் சேமி</span>
+                    </button>
+                  )}
                 </div>
 
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs sm:text-sm text-slate-300">
                     <thead className="bg-slate-900/90 text-amber-400 font-extrabold uppercase text-[11px] tracking-wider border-b border-slate-800 font-tamil">
                       <tr>
+                        <th className="p-4 w-24 text-center">வரிசை (Order)</th>
                         <th className="p-4">படம்</th>
                         <th className="p-4">செய்தி தலைப்பு</th>
                         <th className="p-4">பிரிவு</th>
@@ -1616,90 +1841,137 @@ export const AdminDashboard = () => {
                     <tbody className="divide-y divide-slate-800/60 font-tamil">
                       {getFilteredArticles().length === 0 ? (
                         <tr>
-                          <td colSpan="8" className="p-8 text-center text-slate-500 font-sans">
+                          <td colSpan="9" className="p-8 text-center text-slate-500 font-sans">
                             செய்திகள் எதுவும் காணப்படவில்லை.
                           </td>
                         </tr>
                       ) : (
-                        getFilteredArticles().map((item) => (
-                          <tr key={item._id || item.id} className="hover:bg-slate-800/40 transition">
-                            <td className="p-4">
-                              <img
-                                src={item.mainImage || 'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&q=80&w=200'}
-                                alt="Thumbnail"
-                                className="w-12 h-10 rounded-lg object-cover border border-slate-700 bg-slate-900"
-                              />
-                            </td>
-                            <td className="p-4 font-bold text-white max-w-xs">
-                              <div className="line-clamp-2">{item.title}</div>
-                            </td>
-                            <td className="p-4">
-                              <span className="bg-slate-800 text-amber-400 px-2.5 py-1 rounded text-xs font-bold border border-slate-700">
-                                {item.category}
-                              </span>
-                            </td>
-                            <td className="p-4">
-                              <span className={`px-2 py-0.5 rounded text-[11px] font-bold ${
-                                item.district && item.district !== 'all'
-                                  ? 'bg-amber-500/20 text-amber-300 border border-amber-400/30'
-                                  : 'text-slate-500'
-                              }`}>
-                                {item.district && item.district !== 'all' ? item.district : 'பொது'}
-                              </span>
-                            </td>
-                            <td className="p-4 text-slate-400">{item.authorName || item.author?.name || 'ஆசிரியர்'}</td>
-                            <td className="p-4">
-                              <span
-                                className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase border ${
-                                  item.status === 'published'
-                                    ? 'bg-emerald-950/80 text-emerald-400 border-emerald-700'
-                                    : 'bg-amber-950/80 text-amber-300 border-amber-700'
-                                }`}
-                              >
-                                {item.status}
-                              </span>
-                            </td>
-                            <td className="p-4 font-mono font-bold text-amber-400">{item.viewsCount || 0}</td>
-                            <td className="p-4 text-right space-x-1.5 whitespace-nowrap">
-                              <button
-                                onClick={() => handleMakeFirst(item._id || item.id)}
-                                title="முகப்புப் பக்கத்தில் #1 முதன்மை இடத்திற்கு மாற்று"
-                                className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black px-2.5 py-1 rounded-lg text-xs cursor-pointer transition shadow inline-flex items-center gap-1"
-                              >
-                                <Star className="w-3.5 h-3.5 fill-slate-950" />
-                                <span>#1 முதன்மை</span>
-                              </button>
-                              {item.status !== 'published' && (
-                                <button
-                                  onClick={() => handlePublishStatus(item._id || item.id, 'published')}
-                                  className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-2.5 py-1 rounded-lg text-xs cursor-pointer transition"
+                        getFilteredArticles().map((item) => {
+                          const currentDisplayOrder = editedOrders[item.id || item._id] !== undefined
+                            ? editedOrders[item.id || item._id]
+                            : (item.displayOrder || item.display_order || 0);
+
+                          return (
+                            <tr key={item._id || item.id} className="hover:bg-slate-800/40 transition">
+                              {/* News Order Editing Column */}
+                              <td className="p-3 text-center">
+                                <div className="flex items-center justify-center gap-1">
+                                  <input
+                                    type="number"
+                                    value={currentDisplayOrder}
+                                    onChange={(e) => handleOrderInputChange(item.id || item._id, e.target.value)}
+                                    title="வரிசை எண் (Display Order) — அதிக எண் முதலில் வரும்"
+                                    className="w-14 text-center bg-slate-950 border border-slate-700 text-amber-400 font-black text-xs rounded-lg p-1.5 focus:border-amber-400 focus:outline-none"
+                                  />
+                                  <div className="flex flex-col gap-0.5">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleMoveArticleOrder(item._id || item.id, -1)}
+                                      title="மேலே நகர்த்து"
+                                      className="p-1 rounded bg-slate-800 hover:bg-amber-400 hover:text-slate-950 text-slate-300 transition cursor-pointer"
+                                    >
+                                      <ArrowUp className="w-3 h-3" />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleMoveArticleOrder(item._id || item.id, 1)}
+                                      title="கீழே நகர்த்து"
+                                      className="p-1 rounded bg-slate-800 hover:bg-amber-400 hover:text-slate-950 text-slate-300 transition cursor-pointer"
+                                    >
+                                      <ArrowDown className="w-3 h-3" />
+                                    </button>
+                                  </div>
+                                </div>
+                                {Boolean(item.isLeadHero || item.is_lead_hero) && (
+                                  <span className="block mt-1 text-[9px] font-black text-amber-400 bg-amber-950/80 border border-amber-600/40 rounded px-1 py-0.2">
+                                    ⭐ முதன்மை
+                                  </span>
+                                )}
+                              </td>
+
+                              <td className="p-4">
+                                <img
+                                  src={item.mainImage || 'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&q=80&w=200'}
+                                  alt="Thumbnail"
+                                  className="w-12 h-10 rounded-lg object-cover border border-slate-700 bg-slate-900"
+                                />
+                              </td>
+                              <td className="p-4 font-bold text-white max-w-xs">
+                                <div className="line-clamp-2">{item.title}</div>
+                                {item.publishedAt && (
+                                  <span className="text-[10px] text-slate-500 font-sans block mt-0.5">
+                                    {new Date(item.publishedAt).toLocaleDateString('ta-IN')}
+                                  </span>
+                                )}
+                              </td>
+                              <td className="p-4">
+                                <span className="bg-slate-800 text-amber-400 px-2.5 py-1 rounded text-xs font-bold border border-slate-700">
+                                  {item.category}
+                                </span>
+                              </td>
+                              <td className="p-4">
+                                <span className={`px-2 py-0.5 rounded text-[11px] font-bold ${
+                                  item.district && item.district !== 'all'
+                                    ? 'bg-amber-500/20 text-amber-300 border border-amber-400/30'
+                                    : 'text-slate-500'
+                               }`}>
+                                  {item.district && item.district !== 'all' ? item.district : 'பொது'}
+                                </span>
+                              </td>
+                              <td className="p-4 text-slate-400">{item.authorName || item.author?.name || 'ஆசிரியர்'}</td>
+                              <td className="p-4">
+                                <span
+                                  className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase border ${
+                                    item.status === 'published'
+                                      ? 'bg-emerald-950/80 text-emerald-400 border-emerald-700'
+                                      : 'bg-amber-950/80 text-amber-300 border-amber-700'
+                                  }`}
                                 >
-                                  வெளியிடு
-                                </button>
-                              )}
-                              {item.status !== 'rejected' && (
+                                  {item.status}
+                                </span>
+                              </td>
+                              <td className="p-4 font-mono font-bold text-amber-400">{item.viewsCount || 0}</td>
+                              <td className="p-4 text-right space-x-1.5 whitespace-nowrap">
                                 <button
-                                  onClick={() => handlePublishStatus(item._id || item.id, 'rejected')}
-                                  className="bg-slate-700 hover:bg-slate-600 text-rose-300 font-bold px-2.5 py-1 rounded-lg text-xs cursor-pointer transition"
+                                  onClick={() => handleMakeFirst(item._id || item.id)}
+                                  title="முகப்புப் பக்கத்தில் #1 முதன்மை இடத்திற்கு மாற்று"
+                                  className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black px-2.5 py-1 rounded-lg text-xs cursor-pointer transition shadow inline-flex items-center gap-1"
                                 >
-                                  நிராகரி
+                                  <Star className="w-3.5 h-3.5 fill-slate-950" />
+                                  <span>#1 முதன்மை</span>
                                 </button>
-                              )}
-                              <button
-                                onClick={() => handleOpenNewsModal(item)}
-                                className="bg-blue-600 hover:bg-blue-500 text-white font-bold px-2.5 py-1 rounded-lg text-xs cursor-pointer transition"
-                              >
-                                திருத்து
-                              </button>
-                              <button
-                                onClick={() => handleDeleteNews(item._id || item.id)}
-                                className="bg-red-600 hover:bg-red-500 text-white font-bold px-2.5 py-1 rounded-lg text-xs cursor-pointer transition"
-                              >
-                                நீக்கு
-                              </button>
-                            </td>
-                          </tr>
-                        ))
+                                {item.status !== 'published' && (
+                                  <button
+                                    onClick={() => handlePublishStatus(item._id || item.id, 'published')}
+                                    className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-2.5 py-1 rounded-lg text-xs cursor-pointer transition"
+                                  >
+                                    வெளியிடு
+                                  </button>
+                                )}
+                                {item.status !== 'rejected' && (
+                                  <button
+                                    onClick={() => handlePublishStatus(item._id || item.id, 'rejected')}
+                                    className="bg-slate-700 hover:bg-slate-600 text-rose-300 font-bold px-2.5 py-1 rounded-lg text-xs cursor-pointer transition"
+                                  >
+                                    நிராகரி
+                                  </button>
+                                )}
+                                <button
+                                  onClick={() => handleOpenNewsModal(item)}
+                                  className="bg-blue-600 hover:bg-blue-500 text-white font-bold px-2.5 py-1 rounded-lg text-xs cursor-pointer transition"
+                                >
+                                  திருத்து
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteNews(item._id || item.id)}
+                                  className="bg-red-600 hover:bg-red-500 text-white font-bold px-2.5 py-1 rounded-lg text-xs cursor-pointer transition"
+                                >
+                                  நீக்கு
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })
                       )}
                     </tbody>
                   </table>

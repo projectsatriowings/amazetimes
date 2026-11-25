@@ -4,6 +4,7 @@ import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
+import sharp from 'sharp';
 
 import { initDb } from './initDb.js';
 import authRoutes from './routes/auth.js';
@@ -75,7 +76,13 @@ process.on('uncaughtException', (err) => {
 
 // High capacity middleware: 100MB capacity for large e-papers and media
 app.use(compression());
-app.use(cors());
+app.use(cors({
+  origin: true,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin']
+}));
+app.options('*', cors());
 
 // Canonical URL & HTTPS 301 Permanent Redirection Middleware (SEO High Issue)
 app.use(async (req, res, next) => {
@@ -141,8 +148,17 @@ app.get('/uploads/:filename', async (req, res) => {
     const r = await fetch(remoteUrl, { signal: controller.signal });
     clearTimeout(timer);
     if (r.ok) {
-      const ct = r.headers.get('content-type') || 'image/png';
-      const buf = Buffer.from(await r.arrayBuffer());
+      let ct = r.headers.get('content-type') || 'image/png';
+      let buf = Buffer.from(await r.arrayBuffer());
+      if (buf.length > 95000 && ct.startsWith('image/') && !ct.includes('svg')) {
+        try {
+          buf = await sharp(buf)
+            .resize({ width: 1200, withoutEnlargement: true })
+            .webp({ quality: 80 })
+            .toBuffer();
+          ct = 'image/webp';
+        } catch (_) {}
+      }
       res.setHeader('Content-Type', ct);
       res.setHeader('Access-Control-Allow-Origin', '*');
       res.setHeader('Cache-Control', 'public, max-age=86400');

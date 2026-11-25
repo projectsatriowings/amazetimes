@@ -92,13 +92,17 @@ function buildUniqueCoversFromPool(pool, pastDays) {
     if (!pick) {
       pick = candidates.find(c => !usedIds.has(c.id));
     }
-    if (!pick && candidates.length > 0) {
-      pick = candidates[idx % candidates.length];
-    }
     if (pick) {
       usedIds.add(pick.id);
       usedImages.add(pick.coverImage);
       map[day.iso] = pick;
+    } else {
+      map[day.iso] = {
+        id: `day-${day.iso}`,
+        headline: `${day.tamilLabel} — அமேஸ் டைம்ஸ் நாளிதழ்`,
+        category: 'தினசரி இதழ்',
+        coverImage: '/og-image.jpg'
+      };
     }
   });
   return map;
@@ -148,7 +152,7 @@ export default function DailyNewspaperHubSection({
 
       // Guaranteed fallback: load latest published Amaze Times stories directly from /api/news
       try {
-        const newsRes = await fetch('/api/news?limit=50&status=published');
+        const newsRes = await fetch('/api/news?limit=120&status=published');
         if (newsRes.ok) {
           const nd = await newsRes.json();
           const list = Array.isArray(nd?.articles) ? nd.articles : (Array.isArray(nd?.news) ? nd.news : (Array.isArray(nd) ? nd : []));

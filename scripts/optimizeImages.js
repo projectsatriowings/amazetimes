@@ -78,7 +78,7 @@ async function run() {
           left: Math.round((size - meta.width) / 2)
         }])
         .withMetadata(false)
-        .png()
+        .png({ compressionLevel: 9, quality: 80, palette: true })
         .toBuffer();
     }
 

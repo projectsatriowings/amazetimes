@@ -554,14 +554,13 @@ export default function Header({
               }}
             >
               <div className="bg-white p-1 rounded-xl sm:rounded-2xl shadow-sm ring-1 sm:ring-2 ring-[#0e2a7a]/40 group-hover:ring-amber-400 transition-all border border-slate-200 flex items-center justify-center shrink-0">
-                <img src="/amaze-times-logo.webp" alt="அமேஸ் டைம்ஸ்" width="48" height="64" className="h-8 sm:h-11 md:h-13 w-auto object-contain rounded-lg sm:rounded-xl" />
+                <img src="/amaze-times-logo.webp" alt="அமேஸ் டைம்ஸ்" title="அமேஸ் டைம்ஸ் லோகோ" width="48" height="64" className="h-8 sm:h-11 md:h-13 w-auto object-contain rounded-lg sm:rounded-xl" />
               </div>
               <div className="flex flex-col text-left">
                 <div className="flex items-center gap-1.5 sm:gap-2 flex-nowrap">
-                  <h1 className="font-title font-black text-xl sm:text-2xl md:text-3xl lg:text-4xl text-[#0a1945] dark:text-slate-100 group-hover:text-red-600 dark:group-hover:text-amber-400 transition-colors whitespace-nowrap leading-tight m-0 inline">
+                  <span className="font-title font-black text-xl sm:text-2xl md:text-3xl lg:text-4xl text-[#0a1945] dark:text-slate-100 group-hover:text-red-600 dark:group-hover:text-amber-400 transition-colors whitespace-nowrap leading-tight m-0 inline">
                     அமேஸ் டைம்ஸ்
-                    <span className="sr-only"> - தமிழ் செய்திகள், தமிழ்நாடு, உலகம் &amp; நேரலை நிலவரம்</span>
-                  </h1>
+                  </span>
                   <span className="bg-red-600 text-white text-[8px] sm:text-[10px] font-black px-1 sm:px-2 py-0.5 rounded uppercase tracking-wider shadow-sm shrink-0">
                     DIGITAL
                   </span>

@@ -1,5 +1,31 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Newspaper, Upload, Plus, Trash2, Calendar, FileText, CheckCircle2, Lock, Sparkles, MapPin, Image as ImageIcon, Edit, X, Download, Eye, RefreshCw, BookOpen } from 'lucide-react';
+import {
+  Newspaper,
+  Upload,
+  Plus,
+  Trash2,
+  Calendar,
+  FileText,
+  CheckCircle2,
+  Lock,
+  Sparkles,
+  MapPin,
+  Image as ImageIcon,
+  Edit,
+  X,
+  Download,
+  Eye,
+  RefreshCw,
+  BookOpen,
+  ArrowUp,
+  ArrowDown,
+  Star,
+  Search,
+  Check,
+  Layers,
+  Save,
+  RotateCcw
+} from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { api, getMediaUrl } from '../../services/api';
 import { getMonthYearString, getMonthLabel, getAvailableMonths } from '../../utils/monthUtils';
@@ -31,6 +57,17 @@ export const AdminEpaperManager = () => {
   const [isLiveReaderOpen, setIsLiveReaderOpen] = useState(false);
   const [pdfExportProgress, setPdfExportProgress] = useState(null);
 
+  // Story Sequence & Edition Customization States
+  const [editionArticles, setEditionArticles] = useState([]);
+  const [selectedLeadId, setSelectedLeadId] = useState(null);
+  const [hasOrderChanges, setHasOrderChanges] = useState(false);
+  const [isSavingEdition, setIsSavingEdition] = useState(false);
+  const [showAddArticleModal, setShowAddArticleModal] = useState(false);
+  const [availableNewsPool, setAvailableNewsPool] = useState([]);
+  const [loadingNewsPool, setLoadingNewsPool] = useState(false);
+  const [newsSearchTerm, setNewsSearchTerm] = useState('');
+  const [newsCategoryFilter, setNewsCategoryFilter] = useState('all');
+
   const fetchAutoCompiledEpaper = useCallback(async () => {
     try {
       setLoadingAuto(true);
@@ -49,6 +86,127 @@ export const AdminEpaperManager = () => {
   useEffect(() => {
     fetchAutoCompiledEpaper();
   }, [fetchAutoCompiledEpaper]);
+
+  // Sync articles when autoData updates
+  useEffect(() => {
+    if (autoData?.articles && Array.isArray(autoData.articles)) {
+      setEditionArticles(autoData.articles);
+      setSelectedLeadId(autoData.publication?.lead_article_id || autoData.articles[0]?.id || null);
+      setHasOrderChanges(false);
+    }
+  }, [autoData]);
+
+  const moveArticleUp = (index) => {
+    if (index <= 0) return;
+    const nextList = [...editionArticles];
+    const item = nextList[index];
+    nextList[index] = nextList[index - 1];
+    nextList[index - 1] = item;
+    setEditionArticles(nextList);
+    setHasOrderChanges(true);
+  };
+
+  const moveArticleDown = (index) => {
+    if (index >= editionArticles.length - 1) return;
+    const nextList = [...editionArticles];
+    const item = nextList[index];
+    nextList[index] = nextList[index + 1];
+    nextList[index + 1] = item;
+    setEditionArticles(nextList);
+    setHasOrderChanges(true);
+  };
+
+  const handleMakeLead = (article) => {
+    setSelectedLeadId(article.id);
+    const others = editionArticles.filter(a => a.id !== article.id);
+    setEditionArticles([article, ...others]);
+    setHasOrderChanges(true);
+    showToast(`'${article.title?.slice(0, 35)}...' முதல் பக்க முதன்மைச் செய்தியாக அமைக்கப்பட்டது!`);
+  };
+
+  const handleRemoveArticle = (articleId) => {
+    if (editionArticles.length <= 1) {
+      showToast('இதழில் குறைந்தபட்சம் ஒரு செய்தி இருக்க வேண்டும்');
+      return;
+    }
+    const nextList = editionArticles.filter(a => a.id !== articleId);
+    setEditionArticles(nextList);
+    if (selectedLeadId === articleId) {
+      setSelectedLeadId(nextList[0]?.id || null);
+    }
+    setHasOrderChanges(true);
+  };
+
+  const handleOpenAddModal = async () => {
+    setShowAddArticleModal(true);
+    if (availableNewsPool.length === 0) {
+      try {
+        setLoadingNewsPool(true);
+        const res = await api.getNews({ limit: 120 });
+        if (res && res.success && Array.isArray(res.data)) {
+          setAvailableNewsPool(res.data);
+        }
+      } catch (e) {
+        console.warn('Failed to load news pool for edition:', e);
+      } finally {
+        setLoadingNewsPool(false);
+      }
+    }
+  };
+
+  const handleAddArticleToEdition = (article) => {
+    if (editionArticles.some(a => a.id === article.id)) {
+      showToast('இந்தச் செய்தி ஏற்கனவே இதழில் சேர்க்கப்பட்டுள்ளது');
+      return;
+    }
+    const formatted = {
+      id: article.id,
+      title: article.title,
+      category: article.category,
+      district: article.district,
+      image_url: article.main_image || article.image_url,
+      created_at: article.created_at,
+      views_count: article.views_count,
+      is_lead_hero: false,
+      is_breaking: article.is_breaking,
+      is_top_story: article.is_top_story
+    };
+    setEditionArticles(prev => [...prev, formatted]);
+    setHasOrderChanges(true);
+    showToast('செய்தி இதழில் சேர்க்கப்பட்டது!');
+  };
+
+  const handleSaveCustomOrderAndPublish = async () => {
+    if (!autoData?.publication || editionArticles.length === 0) return;
+    try {
+      setIsSavingEdition(true);
+      const pub = autoData.publication;
+      const leadItem = editionArticles.find(a => a.id === selectedLeadId) || editionArticles[0];
+      const res = await api.createEpaper({
+        title: pub.title,
+        edition_date: autoDate,
+        edition: autoEdition,
+        pdf_url: 'auto-compiled',
+        cover_image_url: leadItem?.image_url || pub.cover_image_url || '/Amaze times.jpg',
+        page_count: autoData.pages?.length || 14,
+        file_size_mb: 6.5,
+        article_order: editionArticles.map(a => a.id),
+        lead_article_id: selectedLeadId || editionArticles[0]?.id
+      });
+      if (res && res.success) {
+        showToast(`${autoDate} இதழின் புதிய வரிசை மற்றும் முதன்மைச் செய்தி சேமிக்கப்பட்டு வெளியிடப்பட்டது!`);
+        setHasOrderChanges(false);
+        await fetchAutoCompiledEpaper();
+        fetchEpapers();
+      } else {
+        showToast(res?.message || 'சேமிப்பதில் பிழை');
+      }
+    } catch (err) {
+      showToast('சேவையகப் பிழை: ' + err.message);
+    } finally {
+      setIsSavingEdition(false);
+    }
+  };
 
   const handleDownloadAutoPdf = async () => {
     if (!autoData || !Array.isArray(autoData.pages) || autoData.pages.length === 0) {
@@ -425,6 +583,313 @@ export const AdminEpaperManager = () => {
                       </div>
                     </div>
                   ))}
+                </div>
+              </div>
+            )}
+
+            {/* INTERACTIVE EDITION STORIES & PAGE ORDER MANAGEMENT STUDIO */}
+            <div className="bg-[#050c1e] border border-amber-500/30 rounded-2xl p-5 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <Layers className="w-5 h-5 text-amber-400" />
+                    <h4 className="text-base font-black text-white">
+                      இன்றைய இதழின் செய்திகள் &amp; பக்க வரிசை மேலாண்மை (Edition Stories &amp; Page Order)
+                    </h4>
+                    {autoData.publication?.is_custom_edition && (
+                      <span className="bg-amber-500/20 text-amber-300 text-[10px] font-black px-2 py-0.5 rounded-full border border-amber-500/30">
+                        நிர்வாகி தனிப்பயன் வரிசை (Custom Ordered)
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-slate-400">
+                    செய்திகளின் வரிசையை மாற்றலாம் (▲ / ▼), முதல் பக்க முதன்மைச் செய்தியைத் தேர்ந்தெடுக்கலாம் அல்லது கூடுதல் செய்திகளை இணைக்கலாம்.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={handleOpenAddModal}
+                    className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold text-xs border border-slate-700 flex items-center gap-1.5 cursor-pointer transition shadow"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>கூடுதல் செய்தி சேர்</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleSaveCustomOrderAndPublish}
+                    disabled={isSavingEdition}
+                    className={`px-4 py-2 rounded-xl font-black text-xs flex items-center gap-2 cursor-pointer transition shadow-lg ${
+                      hasOrderChanges
+                        ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-slate-950 animate-pulse'
+                        : 'bg-emerald-700/80 hover:bg-emerald-600 text-white'
+                    }`}
+                  >
+                    <Save className="w-4 h-4" />
+                    <span>{isSavingEdition ? 'சேமிக்கப்படுகிறது...' : hasOrderChanges ? 'வரிசையைச் சேமித்து வெளியிடு *' : 'வரிசையைச் சேமி'}</span>
+                  </button>
+                </div>
+              </div>
+
+              {hasOrderChanges && (
+                <div className="bg-amber-950/40 border border-amber-500/40 text-amber-300 text-xs px-4 py-2.5 rounded-xl flex items-center justify-between">
+                  <span>⚠️ வரிசையில் மாற்றங்கள் செய்யப்பட்டுள்ளன. வாசகர்களுக்கும் PDF-க்கும் புதுப்பிக்க <b>'வரிசையைச் சேமித்து வெளியிடு'</b> அழுத்தவும்.</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (autoData?.articles) {
+                        setEditionArticles(autoData.articles);
+                        setSelectedLeadId(autoData.publication?.lead_article_id || autoData.articles[0]?.id);
+                        setHasOrderChanges(false);
+                      }
+                    }}
+                    className="text-[11px] underline text-slate-400 hover:text-white cursor-pointer ml-3 flex items-center gap-1"
+                  >
+                    <RotateCcw className="w-3 h-3" /> மாற்றங்களை ரத்து செய்
+                  </button>
+                </div>
+              )}
+
+              {/* STORIES LIST */}
+              <div className="space-y-2 max-h-[500px] overflow-y-auto pr-1">
+                {editionArticles.map((art, idx) => {
+                  const isLead = art.id === selectedLeadId || (!selectedLeadId && idx === 0);
+                  let pageEstimate = '';
+                  if (idx === 0) pageEstimate = 'பக்கம் 1 • முதன்மைச் செய்தி (Lead Hero)';
+                  else if (idx === 1) pageEstimate = 'பக்கம் 1 • துணைச் செய்தி (Lead Secondary)';
+                  else if (idx <= 3) pageEstimate = 'பக்கம் 2 • மாநிலச் செய்திகள்';
+                  else if (idx <= 5) pageEstimate = 'பக்கம் 3 • மாவட்டச் செய்திகள்';
+                  else if (idx <= 7) pageEstimate = 'பக்கம் 4 • அரசியல் & முக்கிய நிகழ்வுகள்';
+                  else if (idx <= 9) pageEstimate = 'பக்கம் 5 • வணிகம் & பொருளாதாரம்';
+                  else if (idx <= 11) pageEstimate = 'பக்கம் 6 • உலகச் செய்திகள் & அறிவியல்';
+                  else if (idx <= 13) pageEstimate = 'பக்கம் 7 • சினிமா & கலாச்சாரம்';
+                  else pageEstimate = `பக்கம் ${Math.min(14, Math.floor(idx / 2) + 1)} • பொதுச் செய்திகள்`;
+
+                  return (
+                    <div
+                      key={art.id}
+                      className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-xl border transition ${
+                        isLead
+                          ? 'bg-amber-950/30 border-amber-500/60 shadow-md ring-1 ring-amber-500/30'
+                          : 'bg-[#0a1428] border-slate-800 hover:border-slate-700'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        {/* Order Number Badge */}
+                        <span className={`w-7 h-7 rounded-lg flex items-center justify-center font-black text-xs shrink-0 ${
+                          isLead ? 'bg-amber-500 text-slate-950' : 'bg-slate-800 text-slate-300'
+                        }`}>
+                          {idx + 1}
+                        </span>
+
+                        {/* Thumbnail */}
+                        <div className="w-16 h-12 rounded-lg bg-slate-900 border border-slate-700 overflow-hidden shrink-0">
+                          <img
+                            src={getMediaUrl(art.image_url)}
+                            alt=""
+                            className="w-full h-full object-cover"
+                            onError={(e) => { e.target.src = '/Amaze times.jpg'; }}
+                          />
+                        </div>
+
+                        {/* Article Info */}
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 flex-wrap mb-1">
+                            <span className="text-[10px] bg-slate-800 text-amber-400 font-bold px-2 py-0.5 rounded">
+                              {art.category || 'பொது'}
+                            </span>
+                            {art.district && art.district !== 'all' && (
+                              <span className="text-[10px] bg-sky-950 text-sky-400 font-bold px-2 py-0.5 rounded border border-sky-800/40">
+                                {art.district}
+                              </span>
+                            )}
+                            <span className="text-[10px] font-bold text-slate-400">
+                              {pageEstimate}
+                            </span>
+                            {isLead && (
+                              <span className="text-[10px] bg-amber-500/20 text-amber-300 font-black px-2 py-0.5 rounded border border-amber-500/40 flex items-center gap-1">
+                                <Star className="w-3 h-3 fill-amber-400 text-amber-400" /> முதல் பக்க முதன்மை
+                              </span>
+                            )}
+                          </div>
+                          <h5 className="font-extrabold text-xs sm:text-sm text-white line-clamp-1 leading-snug">
+                            {art.title}
+                          </h5>
+                        </div>
+                      </div>
+
+                      {/* Action Controls */}
+                      <div className="flex items-center gap-1.5 shrink-0 self-end sm:self-center">
+                        <button
+                          type="button"
+                          onClick={() => moveArticleUp(idx)}
+                          disabled={idx === 0}
+                          title="மேலே நகர்த்து"
+                          className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition border border-slate-700"
+                        >
+                          <ArrowUp className="w-3.5 h-3.5" />
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => moveArticleDown(idx)}
+                          disabled={idx === editionArticles.length - 1}
+                          title="கீழே நகர்த்து"
+                          className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition border border-slate-700"
+                        >
+                          <ArrowDown className="w-3.5 h-3.5" />
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleMakeLead(art)}
+                          title="முதல் பக்க முதன்மைச் செய்தியாக மாற்று"
+                          className={`px-2.5 py-1.5 rounded-lg text-xs font-black flex items-center gap-1 cursor-pointer transition border ${
+                            isLead
+                              ? 'bg-amber-500 text-slate-950 border-amber-400 font-black shadow'
+                              : 'bg-slate-800 hover:bg-amber-500/20 text-amber-300 border-slate-700'
+                          }`}
+                        >
+                          <Star className={`w-3.5 h-3.5 ${isLead ? 'fill-slate-950' : ''}`} />
+                          <span>{isLead ? 'முதன்மை' : 'முதன்மை ஆக்கு'}</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveArticle(art.id)}
+                          title="இதழிலிருந்து நீக்கு"
+                          className="p-1.5 rounded-lg bg-slate-800 hover:bg-red-900/60 text-slate-400 hover:text-red-300 cursor-pointer transition border border-slate-700"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* ADD ARTICLE TO CURRENT EDITION MODAL */}
+            {showAddArticleModal && (
+              <div className="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                <div className="bg-[#0b162c] border border-slate-700 rounded-2xl w-full max-w-2xl max-h-[85vh] flex flex-col shadow-2xl animate-in fade-in duration-150">
+                  <div className="p-4 border-b border-slate-800 flex items-center justify-between">
+                    <div>
+                      <h4 className="text-base font-black text-white flex items-center gap-2">
+                        <Plus className="w-5 h-5 text-amber-400" />
+                        <span>இதழில் கூடுதல் செய்தி சேர்க்க (Add Article to Edition)</span>
+                      </h4>
+                      <p className="text-xs text-slate-400 mt-0.5">
+                        தளத்தில் வெளியான செய்திகளைத் தேர்ந்தெடுத்து இந்த நாளிதழ் பதிப்பில் இணைக்கலாம்.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowAddArticleModal(false)}
+                      className="p-2 text-slate-400 hover:text-white rounded-xl bg-slate-800 cursor-pointer"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  <div className="p-4 border-b border-slate-800 grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-900/60">
+                    <div className="relative">
+                      <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                      <input
+                        type="text"
+                        placeholder="செய்தி தலைப்பில் தேட..."
+                        value={newsSearchTerm}
+                        onChange={(e) => setNewsSearchTerm(e.target.value)}
+                        className="w-full bg-[#050c1e] border border-slate-700 rounded-xl pl-9 pr-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500"
+                      />
+                    </div>
+
+                    <select
+                      value={newsCategoryFilter}
+                      onChange={(e) => setNewsCategoryFilter(e.target.value)}
+                      className="bg-[#050c1e] border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500 font-bold"
+                    >
+                      <option value="all">அனைத்து பிரிவுகள்</option>
+                      <option value="தமிழ்நாடு">தமிழ்நாடு</option>
+                      <option value="அரசியல்">அரசியல்</option>
+                      <option value="இந்தியா">இந்தியா</option>
+                      <option value="உலகம்">உலகம்</option>
+                      <option value="வணிகம்">வணிகம்</option>
+                      <option value="விளையாட்டு">விளையாட்டு</option>
+                      <option value="சினிமா">சினிமா</option>
+                    </select>
+                  </div>
+
+                  <div className="p-4 overflow-y-auto space-y-2 flex-1 max-h-[450px]">
+                    {loadingNewsPool ? (
+                      <div className="py-8 text-center text-xs text-amber-300 flex items-center justify-center gap-2">
+                        <RefreshCw className="w-4 h-4 animate-spin" /> செய்திகள் ஏற்றப்படுகின்றன...
+                      </div>
+                    ) : (
+                      availableNewsPool
+                        .filter((item) => {
+                          if (newsCategoryFilter !== 'all' && item.category !== newsCategoryFilter) return false;
+                          if (!newsSearchTerm.trim()) return true;
+                          return (item.title || '').toLowerCase().includes(newsSearchTerm.toLowerCase());
+                        })
+                        .slice(0, 30)
+                        .map((item) => {
+                          const alreadyIn = editionArticles.some(a => a.id === item.id);
+                          return (
+                            <div
+                              key={item.id}
+                              className={`flex items-center justify-between gap-3 p-2.5 rounded-xl border text-xs ${
+                                alreadyIn
+                                  ? 'bg-slate-900/50 border-slate-800 text-slate-500'
+                                  : 'bg-[#050c1e] border-slate-800 hover:border-slate-700 text-white'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                                <div className="w-12 h-10 rounded bg-slate-900 border border-slate-700 overflow-hidden shrink-0">
+                                  <img
+                                    src={getMediaUrl(item.main_image || item.image_url)}
+                                    alt=""
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => { e.target.src = '/Amaze times.jpg'; }}
+                                  />
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <span className="text-[9.5px] bg-slate-800 text-amber-400 font-bold px-1.5 py-0.5 rounded mr-1.5">
+                                    {item.category}
+                                  </span>
+                                  <span className="font-bold line-clamp-1">{item.title}</span>
+                                </div>
+                              </div>
+
+                              <button
+                                type="button"
+                                onClick={() => handleAddArticleToEdition(item)}
+                                disabled={alreadyIn}
+                                className={`px-3 py-1.5 rounded-lg font-bold text-xs shrink-0 cursor-pointer transition ${
+                                  alreadyIn
+                                    ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                                    : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow'
+                                }`}
+                              >
+                                {alreadyIn ? 'சேர்க்கப்பட்டுள்ளது' : '+ இதழில் சேர்'}
+                              </button>
+                            </div>
+                          );
+                        })
+                    )}
+                  </div>
+
+                  <div className="p-3 border-t border-slate-800 flex justify-end bg-slate-900/40">
+                    <button
+                      type="button"
+                      onClick={() => setShowAddArticleModal(false)}
+                      className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold cursor-pointer"
+                    >
+                      முடிந்தது
+                    </button>
+                  </div>
                 </div>
               </div>
             )}

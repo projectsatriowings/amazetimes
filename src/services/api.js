@@ -1,17 +1,19 @@
-export const API_BASE_URL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:5000/api' : '/api');
+export const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 const API_BASE = API_BASE_URL;
 
 export const getMediaUrl = (url) => {
   if (!url) return '';
   let cleanUrl = String(url).trim();
 
+  if (cleanUrl.startsWith('data:') || cleanUrl.startsWith('blob:')) {
+    return cleanUrl;
+  }
+
   let backendOrigin = '';
   if (import.meta.env.VITE_API_URL) {
     try {
       backendOrigin = new URL(import.meta.env.VITE_API_URL).origin;
     } catch (_) {}
-  } else if (import.meta.env.DEV) {
-    backendOrigin = 'http://localhost:5000';
   }
 
   if (backendOrigin) {
@@ -23,10 +25,11 @@ export const getMediaUrl = (url) => {
     }
   }
 
-  if (cleanUrl.includes('localhost:5000') || cleanUrl.includes('127.0.0.1:5000')) {
-    cleanUrl = cleanUrl.replace(/^https:\/\/localhost:5000/i, 'http://localhost:5000')
-                       .replace(/^https:\/\/127\.0\.0\.1:5000/i, 'http://localhost:5000');
+  // In Vite dev, /uploads is proxied cleanly to 127.0.0.1:5000 on the same origin
+  if (cleanUrl.includes('localhost:5000/uploads') || cleanUrl.includes('127.0.0.1:5000/uploads')) {
+    cleanUrl = cleanUrl.replace(/^https?:\/\/(localhost|127\.0\.0\.1):5000/i, '');
   }
+
   return cleanUrl;
 };
 
@@ -443,6 +446,34 @@ export const api = {
     return res;
   },
   updateArticleStatus: function(id, status) { return this.updateNewsStatus(id, status); },
+
+  reorderNews: async (items) => {
+    newsCache.clear();
+    const res = await request('/news/reorder', {
+      method: 'PUT',
+      body: JSON.stringify({ items })
+    });
+    try {
+      if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+        new BroadcastChannel('amaze_news_sync').postMessage({ action: 'reordered', timestamp: Date.now() });
+        new BroadcastChannel('adutha_news_sync').postMessage({ action: 'reordered', timestamp: Date.now() });
+      }
+    } catch (_) {}
+    return res;
+  },
+
+  makeNewsFirst: async (id) => {
+    newsCache.clear();
+    const res = await request(`/news/${id}/make-first`, {
+      method: 'POST'
+    });
+    try {
+      if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+        new BroadcastChannel('amaze_news_sync').postMessage({ action: 'make_first', id, timestamp: Date.now() });
+      }
+    } catch (_) {}
+    return res;
+  },
 
   deleteNews: async (id) => {
     newsCache.clear();

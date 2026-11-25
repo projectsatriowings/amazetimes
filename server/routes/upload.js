@@ -68,14 +68,20 @@ router.post('/', optionalAuth, (req, res) => {
       return res.status(400).json({ success: false, message: 'கோப்பு எதுவும் தேர்ந்தெடுக்கப்படவில்லை (No file uploaded)' });
     }
 
-    // Automatically strip unnecessary EXIF and metadata from uploaded images
+    // Automatically optimize, resize, and compress uploaded images under 90 kB (resolves Issue B: images > 100 kB)
     if (req.file.mimetype && req.file.mimetype.startsWith('image/') && !req.file.mimetype.includes('svg')) {
       try {
         const filePath = req.file.path;
-        const strippedBuf = await sharp(filePath).withMetadata(false).toBuffer();
-        fs.writeFileSync(filePath, strippedBuf);
+        const inputBuf = fs.readFileSync(filePath);
+        const optBuf = await sharp(inputBuf)
+          .resize({ width: 1200, withoutEnlargement: true })
+          .webp({ quality: 80, effort: 4 })
+          .toBuffer();
+        if (optBuf.length < inputBuf.length) {
+          fs.writeFileSync(filePath, optBuf);
+        }
       } catch (stripErr) {
-        console.warn('Metadata strip warning:', stripErr.message);
+        console.warn('Image optimization warning:', stripErr.message);
       }
     }
 

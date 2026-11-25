@@ -30,7 +30,7 @@ import { getReaderUser } from '../services/api';
 
 const API_BASE = import.meta.env.VITE_API_URL
   ? import.meta.env.VITE_API_URL.replace(/\/$/, '')
-  : (import.meta.env.DEV ? 'http://localhost:5000/api' : '/api');
+  : '/api';
 
 // 100ms silent WAV audio to prime and unlock iOS Safari media engine synchronously on user touch
 const SILENT_AUDIO_DATA_URI = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA';
