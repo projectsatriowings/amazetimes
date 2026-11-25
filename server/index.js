@@ -82,7 +82,6 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin']
 }));
-app.options('*', cors());
 
 // Canonical URL & HTTPS 301 Permanent Redirection Middleware (SEO High Issue)
 app.use(async (req, res, next) => {

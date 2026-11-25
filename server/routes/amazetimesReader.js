@@ -27,6 +27,8 @@ const COVER_NEWS_COLUMNS_SQL = `
 const CACHE_TTL_MS = 120 * 1000; // 2 minutes RAM cache for instant sub-2ms repeat loads
 const enewspaperCache = new Map();
 const magazineCache = new Map();
+const archiveCoversCache = new Map();
+
 // Cache invalidation helpers
 export function clearArchiveCoversCache() {
   archiveCoversCache.clear();
