@@ -96,18 +96,20 @@ export default function MagazinePromoModal({ news = [], onOpenEPaper, onOpenMaga
   useEffect(() => {
     if (dismissedInCurrentLoad) return;
 
+    let openTimer = null;
+    let active = true;
+
     const now = new Date();
     const currentMonthNum = String(now.getMonth() + 1).padStart(2, '0');
     const currentYearStr = String(now.getFullYear());
 
     // Open reliably within 900ms — never blocked waiting 10+ seconds on cold DB queries!
-    const openTimer = setTimeout(() => {
+    openTimer = setTimeout(() => {
       if (!dismissedInCurrentLoad) {
         setIsOpen(true);
       }
     }, 900);
 
-    let active = true;
     const fetchMagazineCover = async () => {
       try {
         const res = await fetch(`/api/amazetimes/magazine?_t=${Date.now()}`, { cache: 'no-store' })
@@ -179,7 +181,9 @@ export default function MagazinePromoModal({ news = [], onOpenEPaper, onOpenMaga
 
     return () => {
       active = false;
-      clearTimeout(openTimer);
+      if (openTimer) {
+        clearTimeout(openTimer);
+      }
     };
   }, []);
 

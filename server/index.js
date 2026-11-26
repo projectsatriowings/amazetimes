@@ -82,6 +82,17 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin']
 }));
+// Express 5 compatible preflight options handler
+app.use((req, res, next) => {
+  if (req.method === 'OPTIONS') {
+    res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+    res.header('Access-Control-Allow-Headers', req.headers['access-control-request-headers'] || 'Content-Type, Authorization, X-Requested-With, Accept, Origin, X-Visitor-Id');
+    return res.sendStatus(204);
+  }
+  next();
+});
 
 // Canonical URL & HTTPS 301 Permanent Redirection Middleware (SEO High Issue)
 app.use(async (req, res, next) => {
@@ -249,7 +260,7 @@ app.get('/sitemap.xml', async (req, res) => {
     xml += `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:news="http://www.google.com/schemas/sitemap-news/0.9">\n`;
 
     // Core Categories
-    const categories = ['tamilnadu', 'politics', 'districts', 'business', 'cinema', 'sports', 'india', 'world', 'spiritual', 'editorial', 'epaper', 'magazine'];
+    const categories = ['tamilnadu', 'politics', 'districts', 'business', 'cinema', 'sports', 'india', 'world', 'spiritual', 'editorial', 'education', 'epaper', 'magazine'];
     xml += `  <url>\n    <loc>${baseUrl}/</loc>\n    <lastmod>${now}</lastmod>\n    <changefreq>always</changefreq>\n    <priority>1.0</priority>\n  </url>\n`;
 
     categories.forEach(cat => {
@@ -273,6 +284,80 @@ app.get('/sitemap.xml', async (req, res) => {
     }
     return res.status(500).send('<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>');
   }
+});
+
+// Dynamic RSS 2.0 Feed for Google News, Feedspot & Content Aggregators (High SEO Value)
+app.get(['/rss.xml', '/feed.xml', '/rss'], async (req, res) => {
+  res.setHeader('Content-Type', 'application/rss+xml; charset=utf-8');
+  res.setHeader('Cache-Control', 'public, max-age=1800, stale-while-revalidate=86400');
+
+  try {
+    const result = await query(
+      `SELECT id, title, category, summary, content, main_image, author_name,
+              COALESCE(published_at, created_at) as pub_date
+       FROM news 
+       WHERE status = 'published' 
+       ORDER BY COALESCE(published_at, created_at) DESC 
+       LIMIT 50`
+    );
+
+    const baseUrl = 'https://amazetimes.com';
+    const nowRss = new Date().toUTCString();
+
+    let rss = `<?xml version="1.0" encoding="UTF-8"?>\n`;
+    rss += `<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:media="http://search.yahoo.com/mrss/" xmlns:content="http://purl.org/rss/1.0/modules/content/">\n`;
+    rss += `  <channel>\n`;
+    rss += `    <title>அமேஸ் டைம்ஸ் (Amaze Times) — தமிழ் செய்திகள்</title>\n`;
+    rss += `    <link>${baseUrl}</link>\n`;
+    rss += `    <description>தமிழ்நாடு, அரசியல், சினிமா, விளையாட்டு, வணிகம் மற்றும் உலக நிகழ்வுகளின் நடுநிலையான உடனுக்குடன் தமிழ் செய்திகள்</description>\n`;
+    rss += `    <language>ta-IN</language>\n`;
+    rss += `    <copyright>© 2026 Amaze Times. All rights reserved.</copyright>\n`;
+    rss += `    <lastBuildDate>${nowRss}</lastBuildDate>\n`;
+    rss += `    <atom:link href="${baseUrl}/rss.xml" rel="self" type="application/rss+xml" />\n`;
+    rss += `    <image>\n`;
+    rss += `      <url>${baseUrl}/amaze-times-logo.webp</url>\n`;
+    rss += `      <title>அமேஸ் டைம்ஸ்</title>\n`;
+    rss += `      <link>${baseUrl}</link>\n`;
+    rss += `    </image>\n`;
+
+    if (result && result.rows) {
+      result.rows.forEach(item => {
+        const itemDate = item.pub_date ? new Date(item.pub_date).toUTCString() : nowRss;
+        const itemUrl = `${baseUrl}${buildArticleHref(item)}`;
+        const cleanTitle = (item.title || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        const cleanDesc = (item.summary || item.content || '').replace(/<[^>]+>/g, '').substring(0, 300).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        const author = item.author_name || 'அமேஸ் டைம்ஸ் ஆசிரியர் குழு';
+        const imgUrl = item.main_image ? (item.main_image.startsWith('http') ? item.main_image : `${baseUrl}${item.main_image}`) : `${baseUrl}/og-image.jpg`;
+
+        rss += `    <item>\n`;
+        rss += `      <title>${cleanTitle}</title>\n`;
+        rss += `      <link>${itemUrl}</link>\n`;
+        rss += `      <guid isPermaLink="true">${itemUrl}</guid>\n`;
+        rss += `      <pubDate>${itemDate}</pubDate>\n`;
+        rss += `      <author>${author}</author>\n`;
+        rss += `      <category>${item.category || 'தமிழ்நாடு'}</category>\n`;
+        rss += `      <description>${cleanDesc}</description>\n`;
+        if (imgUrl) {
+          rss += `      <media:content url="${imgUrl}" medium="image" />\n`;
+        }
+        rss += `    </item>\n`;
+      });
+    }
+
+    rss += `  </channel>\n`;
+    rss += `</rss>`;
+    return res.send(rss);
+  } catch (err) {
+    console.error('⚠️ [RSS] Error generating RSS feed:', err);
+    return res.status(500).send('<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel><title>Amaze Times</title></channel></rss>');
+  }
+});
+
+// Google Search Console Site Verification (Direct Exact Match Route)
+app.get(['/googled830f38830b0a3b5.html', '/googled830f38830b0a3b5'], (req, res) => {
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.setHeader('Cache-Control', 'public, max-age=86400');
+  res.send('google-site-verification: googled830f38830b0a3b5.html');
 });
 
 // Explicit Favicon Routes with Exact MIME Types (Resolves Favicon Test)
@@ -354,6 +439,8 @@ const validStaticRoutes = new Set([
   '/social-media',
   '/robots.txt',
   '/sitemap.xml',
+  '/rss.xml',
+  '/feed.xml',
   '/ads.txt',
   '/googled830f38830b0a3b5.html',
   '/favicon.ico',
